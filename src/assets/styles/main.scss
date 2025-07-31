@@ -1,0 +1,94 @@
+// vehicle-rental-frontend/src/assets/styles/main.scss
+
+// Import your variables (crucial for consistent styling)
+@import 'variables.scss';
+
+/* Global Styles */
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif; /* Using Inter font as per previous instructions */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: $background-color; // From variables.scss
+  color: $text-color-dark; // From variables.scss
+  line-height: 1.6;
+}
+
+#app {
+  /* Basic container styling for the main app wrapper */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; // Ensure app takes full viewport height
+  background-color: $background-color;
+}
+
+main {
+  flex-grow: 1; // Allow main content to expand and push footer down
+}
+
+/* Basic Reset for elements */
+h1, h2, h3, h4, h5, h6, p, ul, ol, li {
+  margin: 0;
+  padding: 0;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Base styles for form elements */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db; // A light gray border
+  border-radius: $border-radius-sm; // Small border-radius from variables.scss
+  box-sizing: border-box;
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color; // Primary color on focus
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.2); // Light shadow on focus
+  }
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background-color: $primary-color;
+  color: white;
+  padding: 0.75rem 1.25rem;
+  border-radius: $border-radius-sm;
+  font-weight: 600;
+  transition: background-color 0.2s ease-in-out;
+
+  &:hover {
+    background-color: darken($primary-color, 10%);
+  }
+
+  &:disabled {
+    background-color: lighten($primary-color, 20%);
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+}
+
+/* Utility classes (optional, but good for quick adjustments) */
+.text-center { text-align: center; }
+.mt-4 { margin-top: 1rem; } // Example: margin-top-4 (16px)
+.mb-4 { margin-bottom: 1rem; } // Example: margin-bottom-4 (16px)
+.p-4 { padding: 1rem; } // Example: padding-4 (16px)

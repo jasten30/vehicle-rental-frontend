@@ -1,0 +1,40 @@
+// frontend/src/assets/styles/variables.scss
+
+// Colors
+$primary-color: #007bff; // Blue
+$secondary-color: #28a745; // Green
+$accent-color: #fd7e14; // Orange
+$accent-color-dark: #eb5915; 
+
+$text-color-dark: #343a40;
+$text-color-medium: #6c757d;
+$text-color-light: #f8f9fa;
+
+$admin-color: #fd321a;
+
+$background-color: #f8f9fa; // Light gray background
+$card-background: #ffffff; // White for cards
+
+// Borders & Shadows
+$border-color: #dee2e6;
+$border-radius-sm: 0.25rem;
+$border-radius-md: 0.5rem;
+$border-radius-lg: 1rem;
+
+$shadow-light: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+$shadow-medium: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+$shadow-hover: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+
+// Typography
+$font-family-base: 'Inter', sans-serif;
+$font-size-base: 1rem;
+
+// Spacing
+$spacing-sm: 0.5rem;
+$spacing-md: 1rem;
+$spacing-lg: 1.5rem;
+$spacing-xl: 2rem;
+
+// Layout Heights (Add these lines)
+$header-height: 60px; // Example header height
+$footer-height: 80px; // Example footer height
