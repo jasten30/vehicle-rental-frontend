@@ -4,6 +4,7 @@ import api from "@/views/services/api";
 import router from "../router";
 import { DateTime } from 'luxon';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
+import owner from '../store/modules/owner';
 
 export default createStore({
   state: {
@@ -316,7 +317,6 @@ export default createStore({
       }
     },
 
-    // FIXED: Correctly pass bookingId as first argument, and updatedData as second
     async updateBookingPaymentMethod({ _commit }, { bookingId, paymentMethod, newStatus }) {
       console.log(`[Vuex Action] Calling api.updateBooking with bookingId: ${bookingId}, payload: { paymentMethod: ${paymentMethod}, newStatus: ${newStatus} }`);
       try {
@@ -324,6 +324,19 @@ export default createStore({
         return response.data;
       } catch (error) {
         console.error('Failed to update booking payment method:', error);
+        throw error;
+      }
+    },
+
+    // NEW: Action for admin/owner to update booking status
+    async updateBookingStatusAdmin({ _commit }, { bookingId, newStatus }) {
+      console.log(`[Vuex Action] Calling api.updateBookingStatusAdmin for bookingId: ${bookingId}, newStatus: ${newStatus}`);
+      try {
+        const response = await api.updateBookingStatusAdmin(bookingId, newStatus);
+        console.log('[Vuex Action] Admin status update successful:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('[Vuex Action] Failed to update booking status (Admin):', error.response?.data?.message || error.message);
         throw error;
       }
     },
@@ -404,5 +417,8 @@ export default createStore({
       }
       return vehicles;
     },
+  },
+  modules: {
+    owner,
   },
 });

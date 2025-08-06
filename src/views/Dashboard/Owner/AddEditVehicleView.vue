@@ -1,409 +1,404 @@
 <!-- frontend/src/views/Dashboard/Owner/AddEditVehicleView.vue -->
 <template>
   <div class="add-edit-vehicle-container">
-    <h2 class="section-title">{{ isEditing ? 'Edit Vehicle' : 'Add New Vehicle' }}</h2>
+    <h2 class="section-title">{{ isEditMode ? 'Edit Your Vehicle Listing' : 'Add a New Vehicle' }}</h2>
 
-    <div v-if="loading" class="loading-message">
-      <p>Loading vehicle details...</p>
-    </div>
-
-    <div v-else-if="errorMessage" class="error-message">
-      <p>{{ errorMessage }}</p>
-      <button @click="loadVehicle" v-if="isEditing" class="button primary-button">Retry Load Vehicle</button>
-    </div>
-
-    <form v-else @submit.prevent="saveVehicle" class="vehicle-form">
-      <div class="form-group">
-        <label for="make">Make</label>
-        <input type="text" id="make" v-model="vehicleForm.make" required class="form-input">
-      </div>
-
-      <div class="form-group">
-        <label for="model">Model</label>
-        <input type="text" id="model" v-model="vehicleForm.model" required class="form-input">
-      </div>
-
-      <div class="form-group">
-        <label for="year">Year</label>
-        <input type="number" id="year" v-model.number="vehicleForm.year" required class="form-input">
-      </div>
-
-      <div class="form-group">
-        <label for="licensePlate">License Plate</label>
-        <input type="text" id="licensePlate" v-model="vehicleForm.licensePlate" required class="form-input">
-      </div>
-
-      <div class="form-group">
-        <label for="rentalPricePerDay">Daily Rental Price (₱)</label>
-        <input type="number" id="rentalPricePerDay" v-model.number="vehicleForm.rentalPricePerDay" required step="0.01" class="form-input">
-      </div>
-
-      <div class="form-group">
-        <label for="location">Location</label>
-        <input type="text" id="location" v-model="vehicleForm.location" required class="form-input">
-      </div>
-
-      <!-- NEW: Image Upload/URL Selection -->
-      <div class="form-group image-upload-options">
-        <label>Vehicle Image</label>
-        <div class="radio-group">
-          <label>
-            <input type="radio" v-model="imageInputType" value="url"> Image URL
-          </label>
-          <label>
-            <input type="radio" v-model="imageInputType" value="upload"> Upload Image
-          </label>
+    <form @submit.prevent="submitForm" class="vehicle-form">
+      <!-- Vehicle Details Section -->
+      <div class="form-section">
+        <h3>Vehicle Details</h3>
+        <div class="form-group">
+          <label for="make">Make</label>
+          <input type="text" id="make" v-model="vehicle.make" placeholder="e.g., Toyota" required>
         </div>
-
-        <div v-if="imageInputType === 'url'">
-          <label for="imageUrl">Image URL (Optional)</label>
-          <input type="url" id="imageUrl" v-model="vehicleForm.imageUrl" class="form-input">
+        <div class="form-group">
+          <label for="model">Model</label>
+          <input type="text" id="model" v-model="vehicle.model" placeholder="e.g., Vios" required>
         </div>
-
-        <div v-else-if="imageInputType === 'upload'">
-          <label for="imageUpload">Upload Image File (Optional)</label>
-          <input type="file" id="imageUpload" @change="handleFileUpload" accept="image/*" class="form-input file-input">
-          <p v-if="uploadFileName" class="upload-file-name">Selected: {{ uploadFileName }}</p>
+        <div class="form-group">
+          <label for="year">Year</label>
+          <input type="number" id="year" v-model.number="vehicle.year" placeholder="e.g., 2020" required>
         </div>
-
-        <div v-if="displayImageUrl" class="image-preview">
-          <img :src="displayImageUrl" alt="Vehicle Preview" class="preview-image" @error="handleImageError">
-          <p class="preview-text">Image Preview</p>
+        <div class="form-group">
+          <label for="licensePlate">License Plate</label>
+          <input type="text" id="licensePlate" v-model="vehicle.licensePlate" placeholder="e.g., ABC 123" required>
+        </div>
+        <div class="form-group">
+          <label for="location">Location</label>
+          <input type="text" id="location" v-model="vehicle.location" placeholder="e.g., Cebu City" required>
+        </div>
+        <div class="form-group">
+          <label for="seatingCapacity">Seating Capacity</label>
+          <input type="number" id="seatingCapacity" v-model.number="vehicle.seatingCapacity" placeholder="e.g., 5" required>
         </div>
       </div>
 
-      <div class="form-group">
-        <label for="description">Description (Optional)</label>
-        <textarea id="description" v-model="vehicleForm.description" class="form-input textarea"></textarea>
+      <!-- Pricing Section -->
+      <div class="form-section">
+        <h3>Pricing</h3>
+        <div class="form-group">
+          <label for="rentalPricePerDay">Rental Price Per Day (PHP)</label>
+          <input type="number" id="rentalPricePerDay" v-model.number="vehicle.rentalPricePerDay" placeholder="e.g., 1500" required>
+        </div>
       </div>
 
-      <div v-if="successMessage" class="success-message">
-        {{ successMessage }}
-      </div>
-      <div v-if="updateErrorMessage" class="error-message">
-        {{ updateErrorMessage }}
+      <!-- Features Section -->
+      <div class="form-section">
+        <h3>Features</h3>
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" v-model="vehicle.description" rows="4" placeholder="Describe your vehicle's condition and features..." required></textarea>
+        </div>
+        <div class="form-group">
+          <label for="imageUrl">Image URL</label>
+          <input type="url" id="imageUrl" v-model="vehicle.imageUrl" placeholder="e.g., https://example.com/car.jpg">
+          <p class="help-text">A URL to an image of your vehicle.</p>
+        </div>
       </div>
 
-      <div class="form-actions">
-        <button type="submit" :disabled="saving" class="button primary-button save-button">
-          <span v-if="saving">Saving...</span>
-          <span v-else>{{ isEditing ? 'Update Vehicle' : 'Add Vehicle' }}</span>
+      <!-- Availability Section -->
+      <div class="form-section">
+        <h3>Availability (Optional)</h3>
+        <div class="availability-info">
+          <p>Mark specific date ranges when the vehicle is **unavailable** for rent.</p>
+          <p class="help-text">Example: Vehicle is unavailable from 2024-06-01 to 2024-06-05.</p>
+        </div>
+        <div class="availability-list" v-if="vehicle.availability && vehicle.availability.length > 0">
+          <h4>Unavailable Dates:</h4>
+          <ul>
+            <li v-for="(range, index) in vehicle.availability" :key="index" class="availability-item">
+              <span class="date-range-text">{{ formatDate(range.start) }} - {{ formatDate(range.end) }}</span>
+              <button type="button" @click="removeAvailability(index)" class="remove-btn">
+                <i class="fas fa-trash"></i>
+              </button>
+            </li>
+          </ul>
+        </div>
+        <div class="add-availability-form">
+          <div class="form-group">
+            <label for="newStartDate">From</label>
+            <input type="date" id="newStartDate" v-model="newAvailability.start">
+          </div>
+          <div class="form-group">
+            <label for="newEndDate">To</label>
+            <input type="date" id="newEndDate" v-model="newAvailability.end">
+          </div>
+          <button type="button" @click="addAvailability" class="button secondary-button">Add Unavailable Date Range</button>
+        </div>
+      </div>
+
+
+      <!-- Action Buttons -->
+      <div class="button-group">
+        <button type="submit" class="button primary-button" :disabled="loading">
+          <span v-if="loading">{{ isEditMode ? 'Updating...' : 'Adding...' }}</span>
+          <span v-else>{{ isEditMode ? 'Update Vehicle' : 'Add Vehicle' }}</span>
         </button>
-        <button type="button" @click="goBack" class="button secondary-button">Cancel</button>
+        <button type="button" @click="cancel" class="button secondary-button">Cancel</button>
       </div>
+
+      <!-- Status and Error Messages -->
+      <p v-if="successMessage" class="success-message">{{ successMessage }}</p>
+      <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
     </form>
   </div>
 </template>
 
 <script>
 import { mapActions } from 'vuex';
+import { DateTime } from 'luxon';
 
 export default {
   name: 'AddEditVehicleView',
-  props: {
-    vehicleId: { // This prop will be present if we are in 'edit' mode
-      type: String,
-      default: null,
-    },
-  },
+  props: ['id'], // Vehicle ID for edit mode
   data() {
     return {
+      isEditMode: false,
       loading: false,
-      saving: false,
-      errorMessage: null,
-      updateErrorMessage: null,
-      successMessage: null,
-      vehicleForm: {
+      successMessage: '',
+      errorMessage: '',
+      vehicle: {
         make: '',
         model: '',
         year: null,
         licensePlate: '',
-        rentalPricePerDay: null,
         location: '',
-        imageUrl: '', // This will hold either URL or Base64
+        seatingCapacity: null,
+        rentalPricePerDay: null,
         description: '',
+        imageUrl: '',
+        availability: [], // Array of { start: 'YYYY-MM-DD', end: 'YYYY-MM-DD' }
       },
-      isEditing: false,
-      imageInputType: 'url', // 'url' or 'upload'
-      uploadFileName: null,
-      base64Image: null, // To temporarily hold the base64 string
+      newAvailability: {
+        start: null,
+        end: null,
+      },
     };
   },
-  computed: {
-    displayImageUrl() {
-      // If we have a base64 image, display that. Otherwise, display the URL.
-      return this.base64Image || this.vehicleForm.imageUrl;
-    }
-  },
   created() {
-    if (this.vehicleId) {
-      this.isEditing = true;
-      this.loadVehicle();
+    if (this.id) {
+      this.isEditMode = true;
+      this.fetchVehicleDetails(this.id);
     }
   },
   methods: {
-    ...mapActions(['addVehicle', 'getVehicleById', 'updateVehicle']),
-
-    async loadVehicle() {
+    ...mapActions(['addVehicle', 'updateVehicle', 'getVehicleById']),
+    async fetchVehicleDetails(vehicleId) {
       this.loading = true;
-      this.errorMessage = null;
       try {
-        const fetchedVehicle = await this.getVehicleById(this.vehicleId); // Use existing action
-        if (fetchedVehicle) {
-          this.vehicleForm = {
-            make: fetchedVehicle.make || '',
-            model: fetchedVehicle.model || '',
-            year: fetchedVehicle.year || null,
-            licensePlate: fetchedVehicle.licensePlate || '',
-            rentalPricePerDay: fetchedVehicle.rentalPricePerDay || null,
-            location: fetchedVehicle.location || '',
-            imageUrl: fetchedVehicle.imageUrl || '', // This will be the existing URL
-            description: fetchedVehicle.description || '',
-          };
-          // If editing, assume existing image is a URL, set input type to URL
-          this.imageInputType = 'url';
-          this.base64Image = null; // Clear any previous base64
-          this.uploadFileName = null; // Clear file name
-          console.log('[AddEditVehicleView] Vehicle loaded for editing:', fetchedVehicle);
-        } else {
-          this.errorMessage = 'Vehicle not found.';
-        }
+        const vehicleData = await this.getVehicleById(vehicleId);
+        // Map the fetched data to the local vehicle object
+        this.vehicle = {
+          ...vehicleData,
+          // Ensure availability dates are in 'YYYY-MM-DD' format for the input type="date"
+          availability: vehicleData.availability.map(range => ({
+            start: range.start ? DateTime.fromISO(range.start).toISODate() : null,
+            end: range.end ? DateTime.fromISO(range.end).toISODate() : null,
+          })),
+        };
       } catch (error) {
-        console.error('[AddEditVehicleView] Error loading vehicle:', error);
-        this.errorMessage = error.response?.data?.message || 'Failed to load vehicle for editing. Please try again.';
+        this.errorMessage = 'Failed to load vehicle details for editing.';
+        console.error(error);
       } finally {
         this.loading = false;
       }
     },
-    handleFileUpload(event) {
-      const file = event.target.files[0];
-      if (file) {
-        this.uploadFileName = file.name;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          this.base64Image = e.target.result; // Store Base64 for preview
-          this.vehicleForm.imageUrl = e.target.result; // Send Base64 to backend via imageUrl field
+    async submitForm() {
+      this.loading = true;
+      this.successMessage = '';
+      this.errorMessage = '';
+
+      try {
+        const payload = {
+          ...this.vehicle,
+          // Convert availability dates back to ISO strings for the backend
+          availability: this.vehicle.availability.map(range => ({
+            start: range.start, // Already in YYYY-MM-DD format
+            end: range.end,
+          })),
         };
-        reader.onerror = (error) => {
-          console.error("Error reading file:", error);
-          this.uploadFileName = null;
-          this.base64Image = null;
-          this.vehicleForm.imageUrl = '';
-          this.updateErrorMessage = 'Failed to read image file.';
-        };
-        reader.readAsDataURL(file);
-      } else {
-        this.uploadFileName = null;
-        this.base64Image = null;
-        this.vehicleForm.imageUrl = '';
+
+        if (this.isEditMode) {
+          await this.updateVehicle({ id: this.id, ...payload });
+          this.successMessage = 'Vehicle listing updated successfully!';
+        } else {
+          await this.addVehicle(payload);
+          this.successMessage = 'Vehicle added successfully!';
+          this.resetForm();
+        }
+        // Redirect to My Listings after success
+        this.$router.push({ name: 'MyListings' });
+
+      } catch (error) {
+        this.errorMessage = 'An error occurred. Please try again.';
+        console.error(error);
+      } finally {
+        this.loading = false;
       }
     },
-    async saveVehicle() {
-      this.saving = true;
-      this.successMessage = null;
-      this.updateErrorMessage = null;
-      try {
-        let response;
-        // If imageInputType is 'upload' and base64Image is available, vehicleForm.imageUrl already holds base64.
-        // If imageInputType is 'url', vehicleForm.imageUrl holds the URL.
-        // So, vehicleForm.imageUrl is correctly prepared for the backend.
-
-        if (this.isEditing) {
-          response = await this.updateVehicle({ id: this.vehicleId, ...this.vehicleForm });
-          this.successMessage = 'Vehicle updated successfully!';
+    addAvailability() {
+      if (this.newAvailability.start && this.newAvailability.end) {
+        const startDate = DateTime.fromISO(this.newAvailability.start);
+        const endDate = DateTime.fromISO(this.newAvailability.end);
+        if (startDate.isValid && endDate.isValid && startDate <= endDate) {
+          this.vehicle.availability.push({ ...this.newAvailability });
+          this.newAvailability.start = null;
+          this.newAvailability.end = null;
         } else {
-          response = await this.addVehicle(this.vehicleForm);
-          this.successMessage = 'Vehicle added successfully!';
-          this.resetForm(); // Reset form for new entry
+          // Use a custom modal or message box instead of alert()
+          console.error('Please select a valid date range where the start date is before or on the end date.');
         }
-        console.log('[AddEditVehicleView] Vehicle saved/updated:', response);
-        this.goBack(); // Go back to listings after successful save
-      } catch (error) {
-        console.error('[AddEditVehicleView] Error saving vehicle:', error);
-        this.updateErrorMessage = error.response?.data?.message || 'Failed to save vehicle. Please try again.';
-      } finally {
-        this.saving = false;
+      } else {
+        // Use a custom modal or message box instead of alert()
+        console.error('Please select both a start and an end date.');
       }
+    },
+    removeAvailability(index) {
+      this.vehicle.availability.splice(index, 1);
+    },
+    formatDate(dateString) {
+      if (!dateString) return '';
+      const date = DateTime.fromISO(dateString);
+      return date.isValid ? date.toLocaleString(DateTime.DATE_MED) : 'Invalid Date';
     },
     resetForm() {
-      this.vehicleForm = {
+      this.vehicle = {
         make: '',
         model: '',
         year: null,
         licensePlate: '',
-        rentalPricePerDay: null,
         location: '',
-        imageUrl: '', // Clear image field
+        seatingCapacity: null,
+        rentalPricePerDay: null,
         description: '',
+        imageUrl: '',
+        availability: [],
       };
-      this.imageInputType = 'url'; // Reset to URL input
-      this.uploadFileName = null;
-      this.base64Image = null;
+      this.newAvailability = { start: null, end: null };
     },
-    handleImageError(event) {
-      // Set a placeholder image if the provided URL or Base64 fails to load
-      event.target.src = this.getPlaceholderImage(200, 150, 'cccccc', '333333', 'Image Error');
-    },
-    getPlaceholderImage(width, height, bgColor, textColor, text) {
-      return `https://placehold.co/${width}x${height}/${bgColor}/${textColor}?text=${text}`;
-    },
-    goBack() {
-      this.$router.push({ name: 'OwnerVehicles' });
-    },
+    cancel() {
+      this.$router.push({ name: 'MyListings' });
+    }
   },
 };
 </script>
 
 <style lang="scss" scoped>
-@import '../../../assets/styles/variables.scss';
+@import '@/assets/styles/variables.scss';
 
 .add-edit-vehicle-container {
-  padding: 1.5rem;
-  max-width: 700px;
+  padding: 2rem;
+  max-width: 800px;
   margin: 0 auto;
 }
 
 .section-title {
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 700;
   color: $text-color-dark;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
   text-align: center;
-}
-
-.loading-message, .error-message {
-  text-align: center;
-  padding: 2rem;
-  font-size: 1.1rem;
-  color: $text-color-medium;
-}
-
-.error-message {
-  color: #ef4444;
-  font-weight: 600;
-  background-color: #fee2e2;
-  border-radius: $border-radius-md;
-  padding: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.success-message {
-  color: #22c55e;
-  font-weight: 600;
-  background-color: #dcfce7;
-  border-radius: $border-radius-md;
-  padding: 0.75rem;
-  margin-bottom: 1rem;
 }
 
 .vehicle-form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 2rem;
   background-color: $card-background;
   padding: 2rem;
   border-radius: $border-radius-lg;
   box-shadow: $shadow-medium;
 }
 
-.form-group {
-  margin-bottom: 0.5rem;
-}
+.form-section {
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  border-radius: $border-radius-md;
+  background-color: #f9fafb;
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: $text-color-dark;
-}
-
-.form-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 1rem;
-  box-sizing: border-box;
-  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-
-  &:focus {
-    outline: none;
-    border-color: $primary-color;
-    box-shadow: 0 0 0 3px rgba($primary-color, 0.2);
+  h3 {
+    font-size: 1.5rem;
+    color: $primary-color;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid $primary-color;
+    padding-bottom: 0.5rem;
   }
 }
 
-.form-input.textarea {
-  min-height: 100px;
-  resize: vertical;
+.form-group {
+  margin-bottom: 1rem;
+
+  label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: $text-color-dark;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="url"],
+  input[type="date"],
+  textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: $border-radius-sm;
+    font-size: 1rem;
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    background-color: #ffffff;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px rgba($primary-color, 0.2);
+    }
+  }
+
+  textarea {
+    resize: vertical;
+  }
 }
 
-.file-input {
-  padding: 0.75rem 0; /* Adjust padding for file input */
-}
-
-.upload-file-name {
+.help-text {
   font-size: 0.85rem;
   color: $text-color-medium;
-  margin-top: 0.5rem;
-  font-style: italic;
+  margin-top: 0.25rem;
 }
 
-.image-upload-options {
-  .radio-group {
+.availability-info {
+  margin-bottom: 1.5rem;
+}
+
+.availability-list {
+  margin-top: 1rem;
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .availability-item {
     display: flex;
-    gap: 1.5rem;
-    margin-bottom: 1rem;
-    label {
-      display: flex;
-      align-items: center;
-      font-weight: normal;
-      color: $text-color-dark;
-      input[type="radio"] {
-        margin-right: 0.5rem;
-      }
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background-color: #f3f4f6;
+    border-radius: $border-radius-sm;
+    margin-bottom: 0.5rem;
+    .date-range-text {
+      font-weight: 500;
+    }
+  }
+  .remove-btn {
+    background-color: transparent;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: color 0.2s ease;
+    &:hover {
+      color: #b91c1c;
     }
   }
 }
 
-.image-preview {
-  margin-top: 1rem;
-  text-align: center;
-  border: 1px dashed #ccc;
-  padding: 1rem;
-  border-radius: $border-radius-md;
-  background-color: #f9fafb;
+.add-availability-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+
+  .form-group {
+    flex: 1;
+    min-width: 150px;
+    margin-bottom: 0;
+  }
+
+  .button {
+    flex-shrink: 0;
+  }
 }
 
-.preview-image {
-  max-width: 100%;
-  max-height: 200px;
-  object-fit: contain;
-  border-radius: $border-radius-sm;
-  box-shadow: $shadow-light;
-}
-
-.preview-text {
-  font-size: 0.85rem;
-  color: $text-color-medium;
-  margin-top: 0.5rem;
-}
-
-.form-actions {
+.button-group {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  margin-top: 1.5rem;
+  margin-top: 2rem;
 }
 
 .button {
   padding: 0.85rem 1.5rem;
-  border-radius: 0.375rem;
-  font-size: 1.1rem;
+  border-radius: $border-radius-sm;
+  font-size: 1.05rem;
   font-weight: 700;
   cursor: pointer;
   transition: background-color 0.2s ease-in-out, opacity 0.2s ease-in-out;
   border: none;
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
 }
 
 .primary-button {
@@ -412,22 +407,33 @@ export default {
   &:hover:not(:disabled) {
     background-color: darken($primary-color, 10%);
   }
-  &:disabled {
-    background-color: lighten($primary-color, 20%);
-    cursor: not-allowed;
-    opacity: 0.7;
-  }
 }
 
 .secondary-button {
-  background-color: #6c757d;
+  background-color: #6b7280;
   color: white;
   &:hover:not(:disabled) {
-    background-color: darken(#6c757d, 10%);
+    background-color: darken(#6b7280, 10%);
   }
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
-}s
+}
+
+.success-message {
+  color: #16a34a;
+  background-color: #dcfce7;
+  padding: 1rem;
+  border-radius: $border-radius-md;
+  text-align: center;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+.error-message {
+  color: #dc2626;
+  background-color: #fee2e2;
+  padding: 1rem;
+  border-radius: $border-radius-md;
+  text-align: center;
+  font-weight: 600;
+  margin-top: 1rem;
+}
 </style>

@@ -65,15 +65,13 @@ export default {
     return api.put(`/vehicles/${id}`, vehicleData);
   },
   // Bookings
-  // NEW: Method to create a booking (initial pending state)
   createBooking(bookingData) {
-    return api.post('/bookings', bookingData); // This hits your backend's bookingRoutes.js POST / endpoint
+    return api.post('/bookings', bookingData);
   },
   checkVehicleAvailability(vehicleId, startDate, endDate) {
     return api.get(`/bookings/availability/${vehicleId}?startDate=${startDate}&endDate=${endDate}`);
   },
-  // initiateManualPayment will now be called from BookingPaymentView, not VehicleDetailView
-  initiateManualPayment(payload) { // This is for the payment controller's endpoint
+  initiateManualPayment(payload) {
     return api.post('/payment/initiate-manual-payment', payload);
   },
   confirmManualQrPayment(bookingId) {
@@ -92,7 +90,11 @@ export default {
     return api.get(`/bookings/${bookingId}`);
   },
   updateBooking(bookingId, updatedData) {
-    return api.put(`/bookings/${bookingId}/payment-method`, updatedData); // Use the specific payment-method endpoint
+    return api.put(`/bookings/${bookingId}/payment-method`, updatedData);
+  },
+  // NEW: Admin/Owner action to update booking status
+  updateBookingStatusAdmin(bookingId, newStatus) {
+    return api.put('/payment/update-status', { bookingId, newStatus });
   },
 
   // User Profile
