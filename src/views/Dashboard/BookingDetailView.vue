@@ -52,9 +52,18 @@
         </div>
 
         <!-- Owner/Admin Action Section -->
-        <div v-if="(userRole === 'admin' || (userRole === 'owner' && booking.vehicle && booking.vehicle.ownerId === user.uid)) && (booking.paymentStatus === 'pending_cash_downpayment' || booking.paymentStatus === 'awaiting_qr_downpayment' || booking.paymentStatus === 'qr_downpayment_confirmed_by_user')" class="admin-actions">
+        <!-- TEMPORARILY SIMPLIFIED V-IF FOR DEBUGGING -->
+        <div v-if="booking && user" class="admin-actions debug-admin-actions-border">
+          <p class="debug-text">--- DEBUG: ADMIN ACTIONS SECTION IS VISIBLE ---</p>
+          <p class="debug-text">User Role: {{ userRole }}</p>
+          <p class="debug-text">User UID: {{ user.uid }}</p>
+          <p class="debug-text">Booking Payment Status: {{ booking.paymentStatus }}</p>
+          <p class="debug-text">Booking Vehicle Owner ID: {{ booking.vehicle ? booking.vehicle.ownerId : 'N/A' }}</p>
+
           <h4>Owner/Admin Actions</h4>
-          <button @click="markDownpaymentReceived" :disabled="confirmingDownpayment" class="button success-button">
+          <!-- Actual button, still conditional on original logic -->
+          <button v-if="(userRole === 'admin' || (userRole === 'owner' && booking.vehicle && booking.vehicle.ownerId === user.uid)) && (booking.paymentStatus === 'pending_cash_downpayment' || booking.paymentStatus === 'awaiting_qr_downpayment' || booking.paymentStatus === 'qr_downpayment_confirmed_by_user')"
+                  @click="markDownpaymentReceived" :disabled="confirmingDownpayment" class="button success-button">
             <span v-if="confirmingDownpayment">Confirming...</span>
             <span v-else>Mark Downpayment Received</span>
           </button>
@@ -105,6 +114,7 @@ export default {
       ];
       return cancellableStatuses.includes(this.booking.paymentStatus);
     },
+    // Removed canShowAdminActions computed property for this debug step
   },
   watch: {
     bookingId: {
@@ -141,6 +151,15 @@ export default {
         }
 
         this.booking = fetchedBooking;
+
+        // --- DIRECT DEBUG LOGS AFTER BOOKING IS SET ---
+        console.log('--- Direct Admin Action Debugging ---');
+        console.log(`[Direct Debug] Current User Role: "${this.userRole}"`);
+        console.log(`[Direct Debug] Current User UID: "${this.user ? this.user.uid : 'User object not available'}"`);
+        console.log(`[Direct Debug] Booking Payment Status: "${this.booking ? this.booking.paymentStatus : 'Booking not available'}"`);
+        console.log(`[Direct Debug] Booking Vehicle Owner ID: "${this.booking && this.booking.vehicle ? this.booking.vehicle.ownerId : 'Vehicle or ownerId not available'}"`);
+        console.log('-------------------------------------');
+
       } catch (error) {
         console.error('[BookingDetailView] Error fetching booking details:', error);
         this.errorMessage = error.response?.data?.message || 'Failed to load booking details.';
@@ -219,6 +238,7 @@ export default {
       if (!confirm('Are you sure you want to mark this downpayment as RECEIVED? This action cannot be undone.')) {
         return;
       }
+
       this.confirmingDownpayment = true;
       this.adminActionMessage = null;
       this.adminActionSuccess = false;
@@ -230,7 +250,7 @@ export default {
         });
         this.adminActionMessage = 'Downpayment successfully marked as received!';
         this.adminActionSuccess = true;
-        this.fetchBooking();
+        this.fetchBooking(); // Re-fetch booking to update status in UI
         console.log('[BookingDetailView] Downpayment marked received and booking re-fetched.');
       } catch (error) {
         console.error('[BookingDetailView] Error marking downpayment received:', error);
@@ -419,11 +439,10 @@ export default {
     padding-bottom: 0.5rem;
   }
 
-  // THIS IS THE CRITICAL FIX: Force paragraphs to display as block
   p {
-    display: block !important; /* Override any global display: none */
-    font-size: 1rem; /* Ensure a readable font size */
-    color: $text-color-dark; /* Ensure a visible color */
+    display: block !important;
+    font-size: 1rem;
+    color: $text-color-dark;
     margin-bottom: 0.5rem;
   }
 
@@ -445,6 +464,17 @@ export default {
     color: #16a34a; /* Dark green for admin action title */
     margin-bottom: 1rem;
   }
+}
+
+.debug-admin-actions-border {
+  border: 2px dashed blue !important;
+  background-color: rgba(0, 0, 255, 0.1) !important;
+}
+
+.debug-text {
+  color: blue !important;
+  font-weight: bold !important;
+  margin-bottom: 10px !important;
 }
 
 .button {

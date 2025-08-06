@@ -42,7 +42,7 @@ const dashboardRoutes = [
         meta: { requiresAuth: true, authorize: ['renter', 'admin', 'owner'] },
       },
       {
-        path: "my-bookings/:bookingId", // This route was missing in your provided router
+        path: "my-bookings/:bookingId",
         name: "BookingDetails",
         component: BookingDetailView,
         props: true,

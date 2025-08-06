@@ -48,14 +48,13 @@
               </td>
               <td class="table-data">{{ formatPrice(booking.totalCost) }}</td>
               <td class="table-data action-cell">
+                <!-- Changed to a button that navigates to BookingDetailView -->
                 <button
-                  v-if="isPendingConfirmation(booking.paymentStatus)"
-                  @click="confirmDownpayment(booking.id)"
-                  class="action-button"
+                  @click="viewBookingDetails(booking.id)"
+                  class="action-button view-details-button"
                 >
-                  Confirm Payment
+                  View Details
                 </button>
-                <span v-else class="no-action-text">No action needed</span>
               </td>
             </tr>
           </tbody>
@@ -67,6 +66,7 @@
 
 <script>
 import { mapState, mapActions } from 'vuex';
+import { DateTime } from 'luxon'; // Import Luxon for date formatting
 
 export default {
   name: 'OwnerBookings',
@@ -83,21 +83,16 @@ export default {
     console.log("[OwnerBookingsView] fetchOwnerBookings action completed.");
   },
   methods: {
-    ...mapActions('owner', ['fetchOwnerBookings', 'confirmBookingDownpayment']),
+    ...mapActions('owner', ['fetchOwnerBookings']), // Removed 'confirmBookingDownpayment' as it's now on detail page
     
-    async confirmDownpayment(bookingId) {
-      try {
-        await this.confirmBookingDownpayment(bookingId);
-        await this.fetchOwnerBookings();
-        console.log(`Downpayment confirmed for booking ID: ${bookingId}`);
-      } catch (error) {
-        console.error("Error confirming downpayment:", error);
-      }
+    // New method to navigate to BookingDetailView
+    viewBookingDetails(bookingId) {
+      this.$router.push({ name: 'BookingDetails', params: { bookingId: bookingId } });
     },
     formatDate(dateString) {
       if (!dateString) return 'N/A';
-      const date = new Date(dateString);
-      return date.toLocaleDateString();
+      const date = DateTime.fromISO(dateString); // Use Luxon
+      return date.toLocaleString(DateTime.DATE_SHORT); // Format for table display
     },
     formatPrice(price) {
       return price ? `₱${price.toFixed(2)}` : 'N/A';
@@ -106,18 +101,23 @@ export default {
       if (!status) return 'N/A';
       return status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     },
-    isPendingConfirmation(status) {
-      return status === 'pending_cash_downpayment';
-    },
+    // Removed isPendingConfirmation as it's no longer needed here
     getStatusBadgeClass(status) {
       switch (status) {
         case 'downpayment_received':
         case 'full_payment_received':
           return 'status-badge status-confirmed';
         case 'pending_cash_downpayment':
+        case 'awaiting_qr_downpayment': // Added for badge styling
+        case 'qr_downpayment_confirmed_by_user': // Added for badge styling
           return 'status-badge status-pending';
         case 'cancelled':
+        case 'cancelled_no_downpayment':
+        case 'cancelled_by_user_after_grace_period':
+        case 'cancelled_within_grace_period':
           return 'status-badge status-cancelled';
+        case 'refunded':
+          return 'status-badge status-refunded'; // Added for badge styling
         default:
           return 'status-badge status-default';
       }
@@ -262,6 +262,10 @@ export default {
     background-color: #fee2e2; // red-100
     color: #991b1b; // red-800
   }
+  &.status-refunded {
+    background-color: #e0f2fe; // very light blue
+    color: #0284c7; // medium blue
+  }
   &.status-default {
     background-color: #f3f4f6; // gray-100
     color: #374151; // gray-800
@@ -269,16 +273,18 @@ export default {
 }
 
 .action-button {
-  background-color: #22c55e;
+  background-color: #2563eb; /* Use primary color for view details */
   color: #ffffff;
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 600;
   transition: background-color 150ms ease-in-out;
+  border: none; /* Ensure no default button border */
+  cursor: pointer; /* Indicate it's clickable */
 
   &:hover {
-    background-color: #16a34a;
+    background-color: darken(#2563eb, 10%); /* Darken on hover */
   }
 }
 
