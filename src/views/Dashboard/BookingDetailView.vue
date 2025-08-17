@@ -1,3 +1,4 @@
+<!-- vehicle-rental-frontend/src/views/dashboard/BookingDetailView.vue -->
 <template>
   <div class="booking-detail-container">
     <h2 class="section-title">Booking Details</h2>
@@ -45,14 +46,10 @@
           <p>Return Date: {{ formatDate(booking.endDate) }}</p>
           <p>Booked On: {{ formatDateTime(booking.createdAt) }}</p>
           <p>Total Cost: {{ formatPrice(booking.totalCost) }}</p>
-          <p>Downpayment: {{ formatPrice(booking.downpaymentAmount) }}</p>
-          <p>Remaining Due: {{ formatPrice(booking.fullPaymentAmount) }}</p>
-          <p v-if="booking.downpaymentDueDate">Downpayment Due By: {{ formatDate(booking.downpaymentDueDate) }}</p>
-          <p v-if="booking.cancellationGracePeriodEnd">Cancellation Grace Period Ends: {{ formatDateTime(booking.cancellationGracePeriodEnd) }}</p>
         </div>
 
         <!-- Owner/Admin Action Section -->
-        <!-- TEMPORARILY SIMPLIFIED V-IF FOR DEBUGGING -->
+        <!-- The condition has been simplified to use the new statuses -->
         <div v-if="booking && user" class="admin-actions debug-admin-actions-border">
           <p class="debug-text">--- DEBUG: ADMIN ACTIONS SECTION IS VISIBLE ---</p>
           <p class="debug-text">User Role: {{ userRole }}</p>
@@ -61,11 +58,11 @@
           <p class="debug-text">Booking Vehicle Owner ID: {{ booking.vehicle ? booking.vehicle.ownerId : 'N/A' }}</p>
 
           <h4>Owner/Admin Actions</h4>
-          <!-- Actual button, still conditional on original logic -->
-          <button v-if="(userRole === 'admin' || (userRole === 'owner' && booking.vehicle && booking.vehicle.ownerId === user.uid)) && (booking.paymentStatus === 'pending_cash_downpayment' || booking.paymentStatus === 'awaiting_qr_downpayment' || booking.paymentStatus === 'qr_downpayment_confirmed_by_user')"
-                  @click="markDownpaymentReceived" :disabled="confirmingDownpayment" class="button success-button">
-            <span v-if="confirmingDownpayment">Confirming...</span>
-            <span v-else>Mark Downpayment Received</span>
+          <!-- This button now marks the full payment as received -->
+          <button v-if="(userRole === 'admin' || (userRole === 'owner' && booking.vehicle && booking.vehicle.ownerId === user.uid)) && (booking.paymentStatus === 'pending_cash_payment' || booking.paymentStatus === 'awaiting_qr_payment' || booking.paymentStatus === 'qr_payment_confirmed_by_user')"
+                      @click="markFullPaymentReceived" :disabled="confirmingPayment" class="button success-button">
+            <span v-if="confirmingPayment">Confirming...</span>
+            <span v-else>Mark Full Payment Received</span>
           </button>
           <div v-if="adminActionMessage" :class="{'success-message': adminActionSuccess, 'error-message': !adminActionSuccess}">
             {{ adminActionMessage }}
@@ -95,10 +92,10 @@ export default {
       errorMessage: null,
       booking: null,
       cancellingBooking: false,
-      confirmingDownpayment: false,
+      confirmingPayment: false, // Updated variable name
       adminActionMessage: null,
       adminActionSuccess: false,
-      showBookingSummary: false, // Controls visibility of the summary section
+      showBookingSummary: false,
     };
   },
   computed: {
@@ -107,14 +104,12 @@ export default {
       if (!this.booking) return false;
       const cancellableStatuses = [
         'pending_payment_selection',
-        'pending_cash_downpayment',
-        'awaiting_qr_downpayment',
-        'qr_downpayment_confirmed_by_user',
-        'downpayment_received'
+        'pending_cash_payment',
+        'awaiting_qr_payment',
+        'qr_payment_confirmed_by_user',
       ];
       return cancellableStatuses.includes(this.booking.paymentStatus);
     },
-    // Removed canShowAdminActions computed property for this debug step
   },
   watch: {
     bookingId: {
@@ -144,7 +139,7 @@ export default {
       try {
         const fetchedBooking = await this.getBookingById(this.bookingId);
         console.log('[BookingDetailView] Fetched booking details (for inspection):', fetchedBooking);
-        
+
         if (fetchedBooking && fetchedBooking.vehicleDetails) {
             fetchedBooking.vehicle = fetchedBooking.vehicleDetails;
             delete fetchedBooking.vehicleDetails;
@@ -192,18 +187,15 @@ export default {
     },
     getStatusClass(status) {
       switch (status) {
+        // Updated statuses for the new flow
         case 'pending_payment_selection':
-        case 'pending_cash_downpayment':
-        case 'awaiting_qr_downpayment':
-        case 'qr_downpayment_confirmed_by_user':
+        case 'pending_cash_payment':
+        case 'awaiting_qr_payment':
+        case 'qr_payment_confirmed_by_user':
           return 'status-pending';
-        case 'downpayment_received':
-          return 'status-downpayment-received';
         case 'full_payment_received':
           return 'status-full-payment-received';
-        case 'cancelled_no_downpayment':
-        case 'cancelled_by_user_after_grace_period':
-        case 'cancelled_within_grace_period':
+        case 'cancelled_by_user':
           return 'status-cancelled';
         case 'refunded':
           return 'status-refunded';
@@ -234,30 +226,30 @@ export default {
         this.cancellingBooking = false;
       }
     },
-    async markDownpaymentReceived() {
-      if (!confirm('Are you sure you want to mark this downpayment as RECEIVED? This action cannot be undone.')) {
+    // New method to mark full payment received
+    async markFullPaymentReceived() {
+      if (!confirm('Are you sure you want to mark this payment as RECEIVED? This action cannot be undone.')) {
         return;
       }
-
-      this.confirmingDownpayment = true;
+      this.confirmingPayment = true;
       this.adminActionMessage = null;
       this.adminActionSuccess = false;
       try {
-        console.log(`[BookingDetailView] Attempting to mark downpayment received for booking ID: ${this.bookingId}`);
+        console.log(`[BookingDetailView] Attempting to mark full payment received for booking ID: ${this.bookingId}`);
         await this.updateBookingStatusAdmin({
           bookingId: this.bookingId,
-          newStatus: 'downpayment_received'
+          newStatus: 'full_payment_received'
         });
-        this.adminActionMessage = 'Downpayment successfully marked as received!';
+        this.adminActionMessage = 'Full payment successfully marked as received!';
         this.adminActionSuccess = true;
-        this.fetchBooking(); // Re-fetch booking to update status in UI
-        console.log('[BookingDetailView] Downpayment marked received and booking re-fetched.');
+        this.fetchBooking();
+        console.log('[BookingDetailView] Full payment marked received and booking re-fetched.');
       } catch (error) {
-        console.error('[BookingDetailView] Error marking downpayment received:', error);
-        this.adminActionMessage = 'Failed to mark downpayment received: ' + (error.response?.data?.message || error.message);
+        console.error('[BookingDetailView] Error marking full payment received:', error);
+        this.adminActionMessage = 'Failed to mark full payment received: ' + (error.response?.data?.message || error.message);
         this.adminActionSuccess = false;
       } finally {
-        this.confirmingDownpayment = false;
+        this.confirmingPayment = false;
       }
     },
     goBack() {
@@ -353,11 +345,6 @@ export default {
 .status-pending {
   background-color: #fffbe6; /* light yellow */
   color: #d97706; /* dark yellow */
-}
-
-.status-downpayment-received {
-  background-color: #dcfce7; /* light green */
-  color: #16a34a; /* dark green */
 }
 
 .status-full-payment-received {
@@ -534,9 +521,9 @@ export default {
 
 .toggle-summary-button {
   margin-top: 1rem;
-  align-self: flex-start; // Align to the left
-  min-width: 200px; // Ensure enough width for the text
-  background-color: #60a5fa; // A distinct color for the toggle button
+  align-self: flex-start;
+  min-width: 200px;
+  background-color: #60a5fa;
   &:hover {
     background-color: darken(#60a5fa, 10%);
   }

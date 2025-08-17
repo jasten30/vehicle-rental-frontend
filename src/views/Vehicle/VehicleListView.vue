@@ -110,7 +110,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(['allVehicles', 'filteredAndSortedVehicles', 'currentVehicleFilters', 'vehicleSort']), // Added vehicleSort getter
+    ...mapGetters(['allVehicles', 'filteredAndSortedVehicles', 'currentVehicleFilters', 'vehicleSort']),
     
     totalPages() {
       return Math.ceil(this.filteredAndSortedVehicles.length / this.itemsPerPage);
@@ -130,10 +130,9 @@ export default {
     async loadVehicles() {
       this.loading = true;
       try {
-        await this.fetchAllVehicles(); // Correctly dispatching fetchAllVehicles
+        await this.fetchAllVehicles();
       } catch (error) {
         console.error('Error loading vehicles:', error);
-        // Optionally, display an error message to the user
       } finally {
         this.loading = false;
       }
@@ -183,6 +182,18 @@ export default {
     }
   },
   watch: {
+    // Watch for changes in the URL query parameters
+    '$route.query': {
+      handler(newQuery) {
+        // If the location query exists and is different from the current filter, update it
+        if (newQuery.location && newQuery.location !== this.filterForm.location) {
+          this.filterForm.location = newQuery.location;
+          this.updateFilter('location', newQuery.location);
+        }
+      },
+      immediate: true, // This will run the handler on component creation
+      deep: true // Watch for nested changes in the query object
+    },
     // Watch for changes in filteredAndSortedVehicles to reset current page if needed
     filteredAndSortedVehicles() {
       if (this.currentPage > this.totalPages && this.totalPages > 0) {

@@ -47,7 +47,7 @@
           </div>
           <button @click="bookVehicle" :disabled="bookingLoading" class="button primary-button">
             <span v-if="bookingLoading">Booking...</span>
-            <span v-else>Book Now & Pay Downpayment</span>
+            <span v-else>Reserve</span>
           </button>
           <div v-if="bookingErrorMessage" class="error-message booking-error">
             {{ bookingErrorMessage }}

@@ -272,39 +272,39 @@ export default createStore({
     },
 
     async confirmManualQrPayment({ _commit }, bookingId) {
-        console.log('[Vuex Action] Confirming manual QR payment for booking:', bookingId);
-        try {
-            const response = await api.confirmManualQrPayment(bookingId);
-            console.log('[Vuex Action] Manual QR payment confirmed by user:', response.data);
-            return response.data;
-        } catch (error) {
-            console.error('[Vuex Action] Failed to confirm manual QR payment:', error.response?.data?.message || error.message);
-            throw error;
-        }
+      console.log('[Vuex Action] Confirming manual QR payment for booking:', bookingId);
+      try {
+        const response = await api.confirmManualQrPayment(bookingId);
+        console.log('[Vuex Action] Manual QR payment confirmed by user:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('[Vuex Action] Failed to confirm manual QR payment:', error.response?.data?.message || error.message);
+        throw error;
+      }
     },
 
     async cancelBooking({ _commit }, bookingId) {
-        console.log('[Vuex Action] Cancelling booking:', bookingId);
-        try {
-            const response = await api.cancelBooking(bookingId);
-            console.log('[Vuex Action] Booking cancelled:', response.data);
-            return response.data;
-        } catch (error) {
-            console.error('[Vuex Action] Failed to cancel booking:', error.response?.data?.message || error.message);
-            throw error;
-        }
+      console.log('[Vuex Action] Cancelling booking:', bookingId);
+      try {
+        const response = await api.cancelBooking(bookingId);
+        console.log('[Vuex Action] Booking cancelled:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('[Vuex Action] Failed to cancel booking:', error.response?.data?.message || error.message);
+        throw error;
+      }
     },
 
     async getPaymentStatus({ _commit }, bookingId) {
-        console.log('[Vuex Action] Getting booking status via API for booking ID:', bookingId);
-        try {
-            const response = await api.getPaymentStatus(bookingId);
-            console.log('[Vuex Action] Booking status retrieved:', response.data);
-            return response.data;
-        } catch (error) {
-            console.error('[Vuex Action] Failed to get booking status:', error.response?.data?.message || error.message);
-            throw error;
-        }
+      console.log('[Vuex Action] Getting booking status via API for booking ID:', bookingId);
+      try {
+        const response = await api.getPaymentStatus(bookingId);
+        console.log('[Vuex Action] Booking status retrieved:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('[Vuex Action] Failed to get booking status:', error.response?.data?.message || error.message);
+        throw error;
+      }
     },
 
     async getBookingById({ _commit }, bookingId) {
@@ -373,10 +373,12 @@ export default createStore({
       let vehicles = Array.isArray(state.allVehicles) ? [...state.allVehicles] : [];
       const filters = state.vehicleFilters;
 
-      if (filters.make) { vehicles = vehicles.filter(v => v.make.toLowerCase().includes(filters.make.toLowerCase())); }
-      if (filters.model) { vehicles = vehicles.filter(v => v.model.toLowerCase().includes(filters.model.toLowerCase())); }
+      // The fix for the TypeError is here:
+      // Added a check to ensure both the filter value and the vehicle property exist before comparing.
+      if (filters.make) { vehicles = vehicles.filter(v => v.make && v.make.toLowerCase().includes(filters.make.toLowerCase())); }
+      if (filters.model) { vehicles = vehicles.filter(v => v.model && v.model.toLowerCase().includes(filters.model.toLowerCase())); }
       if (filters.year !== null && !isNaN(filters.year)) { vehicles = vehicles.filter(v => v.year === parseInt(filters.year)); }
-      if (filters.location) { vehicles = vehicles.filter(v => v.location.toLowerCase().includes(filters.location.toLowerCase())); }
+      if (filters.location) { vehicles = vehicles.filter(v => v.location && v.location.toLowerCase().includes(filters.location.toLowerCase())); }
       if (filters.minPrice !== null && !isNaN(filters.minPrice)) { vehicles = vehicles.filter(v => v.rentalPricePerDay >= parseFloat(filters.minPrice)); }
       if (filters.maxPrice !== null && !isNaN(filters.maxPrice)) { vehicles = vehicles.filter(v => v.rentalPricePerDay <= parseFloat(filters.maxPrice)); }
       
@@ -405,9 +407,10 @@ export default createStore({
           let valA = a[sortKey];
           let valB = b[sortKey];
 
+          // Added a check for null/undefined before toLowerCase()
           if (typeof valA === 'string' && typeof valB === 'string') {
-            valA = valA.toLowerCase();
-            valB = valB.toLowerCase();
+            valA = (valA || '').toLowerCase();
+            valB = (valB || '').toLowerCase();
           }
 
           if (valA < valB) { return sortOrder === 'asc' ? -1 : 1; }
