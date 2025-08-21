@@ -1,12 +1,44 @@
-<!-- frontend/src/views/HomeView.vue -->
+<!-- frontend/src/components/HeroSection.vue -->
 <template>
-  <div class="home-container">
-    <!-- Hero Section Component -->
-    <HeroSection />
-
-    <!-- Skip Counter Section Component -->
-    <SkipCounterSection />
-
+  <!-- Hero Section with Background Image, New Title, and Centered Search Bar -->
+  <section class="hero-section">
+    <!-- The new hero title -->
+    <h1 class="hero-title">Your Next Adventure, Your Way.</h1>
+    
+    <div class="search-bar">
+      <div class="search-field where-field">
+        <label class="field-label">Where</label>
+        <input type="text" v-model="location" placeholder="City, airport, address or hotel" class="search-input">
+      </div>
+      <div class="search-divider"></div>
+      <div class="search-field dates-field from-field">
+        <label class="field-label">From</label>
+        <div class="date-time-group">
+          <div class="date-select" @click="isPickerVisible = true">
+            <span class="date-placeholder">{{ fromDate || 'Select Date' }}</span>
+          </div>
+          <select v-model="fromTime" class="time-select" @click.stop>
+            <option v-for="time in timeOptions" :key="time" :value="time">{{ time }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="search-divider"></div>
+      <div class="search-field dates-field until-field">
+        <label class="field-label">Until</label>
+        <div class="date-time-group">
+          <div class="date-select" @click="isPickerVisible = true">
+            <span class="date-placeholder">{{ untilDate || 'Select Date' }}</span>
+          </div>
+          <select v-model="untilTime" class="time-select" @click.stop>
+            <option v-for="time in timeOptions" :key="time" :value="time">{{ time }}</option>
+          </select>
+        </div>
+      </div>
+      <button class="search-button" @click="searchVehicles">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+    
     <!-- Date Picker Component -->
     <DateRangePicker
       v-if="isPickerVisible"
@@ -16,41 +48,16 @@
       @update:endDate="untilDate = $event"
       @close="isPickerVisible = false"
     />
-
-    <!-- Browse By Make Components -->
-    <BrowseByMake />
-
-    <!-- Add the BROWSE BY CITIES component here -->
-    <BrowseByCities />
-
-    <!-- Add the BOOK OR BROWSE component here -->
-    <BookOrHost />
-
-    <!-- Add the FAQ SECTION component here -->
-    <FAQSection />
-  </div>
+  </section>
 </template>
 
 <script>
-import HeroSection from '@/components/HomeViewComponents/HeroSection.vue';
-import SkipCounterSection from '@/components/HomeViewComponents/SkipCounterSection.vue';
 import DateRangePicker from '@/components/HomeViewComponents/DateRangePicker.vue';
-import BrowseByMake from '@/components/HomeViewComponents/BrowseByMake.vue';
-import BrowseByCities from '@/components/HomeViewComponents/BrowseByCities.vue';
-import BookOrHost from '@/components/HomeViewComponents/BookOrHost.vue';
-import FAQSection from '@/components/HomeViewComponents/FAQSection.vue';
-
 
 export default {
-  name: 'HomeView',
+  name: 'HeroSection',
   components: {
-    HeroSection,
-    SkipCounterSection,
     DateRangePicker,
-    BrowseByMake,
-    BrowseByCities,
-    BookOrHost,
-    FAQSection,
   },
   data() {
     return {
@@ -110,8 +117,7 @@ export default {
       this.untilTime = this.timeOptions[initialUntilTimeIndex] || '12:00 AM';
     },
     searchVehicles() {
-      // Correctly route to the 'VehicleList' page, which is the correct name
-      // defined in your router/index.js file for the vehicles page.
+      // This method now handles the routing directly, making the component self-contained.
       const query = {
         location: this.location,
         fromDate: this.fromDate,
@@ -131,50 +137,75 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-/* Import the Nunito font from Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
-/* Import Bootstrap Icons CSS */
 @import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css');
 
-@import '../assets/styles/variables.scss';
+@import '../../assets/styles/variables.scss';
 
-.home-container {
-  /* Use Nunito as the primary font family */
-  font-family: 'Nunito', sans-serif;
-  color: $text-color-dark;
-  background-color: #ffffff; // A light grey background
+.hero-section {
+  background-image: url('https://blog.carousell.ph/wp-content/uploads/PH_BlogCoverImages-8thSet_1024x536-2-696x364.jpg');
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  min-height: 600px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: none;
+  margin: 0;
+  padding: 0;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    z-index: 1;
+  }
 }
 
-.button {
-  display: inline-block;
-  padding: 0.8rem 1.8rem;
-  border-radius: $border-radius-md;
-  text-decoration: none;
-  font-weight: 600;
-  transition: background-color 0.3s ease, transform 0.2s ease;
+.hero-title {
+  font-size: 4rem;
+  font-weight: 900;
+  color: white;
   text-align: center;
-  cursor: pointer;
-
-  &.primary-button {
-    background-color: $primary-color;
-    color: white;
-    border: 1px solid $primary-color;
-
-    &:hover {
-      background-color: darken($primary-color, 10%);
-      transform: translateY(-2px);
-    }
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
+  z-index: 2;
+  margin-bottom: 2rem;
+  padding: 0 1rem;
+  
+  @media (max-width: 768px) {
+    font-size: 2.5rem;
+    margin-top: 5rem;
   }
+}
 
-  &.secondary-button {
-    background-color: transparent;
-    color: $primary-color;
-    border: 1px solid $primary-color;
-
-    &:hover {
-      background-color: lighten($primary-color, 40%);
-      transform: translateY(-2px);
-    }
+.search-bar {
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 9999px;
+  padding: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+  max-width: 1100px;
+  width: 95%;
+  position: static;
+  z-index: 2;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    width: 90%;
+    border-radius: $border-radius-md;
+    padding: 1rem;
+    background-color: rgba(255, 255, 255, 0.95);
+    position: absolute;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
   }
 }
 
@@ -234,7 +265,7 @@ export default {
     font-size: 0.9rem;
     color: $text-color-medium;
   }
-
+  
   .time-select {
     border: none;
     background: transparent;
@@ -267,7 +298,7 @@ export default {
 }
 
 .search-button {
-  background-color: #6a0dad; // A purple color to match the reference image
+  background-color: #6a0dad;
   color: white;
   border: none;
   border-radius: 9999px;
@@ -278,11 +309,11 @@ export default {
   justify-content: center;
   transition: background-color 0.3s ease;
   font-size: 0.85rem;
-
+  
   &:hover {
-    background-color: darken($primary-color, 10%);
+    background-color: darken(#6a0dad, 10%);
   }
-
+  
   @media (max-width: 768px) {
     width: 100%;
     margin-top: 1rem;
@@ -290,34 +321,4 @@ export default {
     padding: 0.75rem;
   }
 }
-
-.section-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: $primary-color;
-  text-align: center;
-  margin-bottom: 3rem;
-  position: relative;
-  padding-bottom: 0.5rem;
-  margin-left: 3rem;
-  margin-right: 3rem;
-
-  &::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: 0;
-    transform: translateX(-50%);
-    width: 80px;
-    height: 4px;
-    background-color: $secondary-color;
-    border-radius: 2px;
-  }
-
-  @media (max-width: 768px) {
-    font-size: 2rem;
-    margin: 2rem;
-  }
-}
-
 </style>

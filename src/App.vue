@@ -11,7 +11,7 @@
 
       <!-- Center: Conditional Search Bar for the VehicleList page -->
       <div class="header-center">
-        <!-- The search bar is now conditionally displayed and styled to match the image -->
+        <!-- The search bar is now conditionally displayed -->
         <div v-if="$route.name === 'VehicleList'" class="search-bar header-search-bar">
           <div class="search-field where-field">
             <label for="location-input">Where</label>
@@ -41,13 +41,9 @@
               </select>
             </div>
           </div>
-          <div class="search-divider"></div>
-          <div class="search-field age-field">
-            <label>Age</label>
-            <select v-model="age" class="age-select">
-              <option v-for="ageOption in ageOptions" :key="ageOption" :value="ageOption">{{ ageOption }}</option>
-            </select>
-          </div>
+          <button class="search-button" @click="searchVehicles">
+            <i class="bi bi-search"></i>
+          </button>
         </div>
       </div>
 
@@ -151,7 +147,7 @@
 
 <script>
 import { mapGetters, mapActions } from "vuex";
-import DateRangePicker from "./components/DateRangePicker.vue";
+import DateRangePicker from "./components/HomeViewComponents/DateRangePicker.vue";
 
 export default {
   name: "App",
@@ -168,9 +164,6 @@ export default {
       fromTime: '',
       untilDate: '',
       untilTime: '',
-      // Age data property and options
-      age: 25,
-      ageOptions: Array.from({ length: 83 }, (_, i) => 18 + i),
     };
   },
   computed: {
@@ -239,6 +232,19 @@ export default {
       const initialUntilTimeIndex = Math.floor((parseInt(untilHour) * 60 + parseInt(untilMinute)) / 30);
       this.untilTime = this.timeOptions[initialUntilTimeIndex] || '12:00 AM';
     },
+    // Method to perform the search when the button is clicked
+    searchVehicles() {
+      const query = {
+        location: this.location,
+        fromDate: this.fromDate,
+        fromTime: this.fromTime,
+        untilDate: this.untilDate,
+        untilTime: this.untilTime,
+      };
+
+      // Navigate to the 'VehicleList' route with the updated query
+      this.$router.push({ name: 'VehicleList', query });
+    },
   },
   mounted() {
     // Add the event listener when the component is mounted
@@ -259,6 +265,8 @@ export default {
   This is necessary for the fonts to be available for use in the application.
 */
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Nunito:wght@400;700;900&display=swap');
+@import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css');
+
 
 /* Import the variables SCSS file */
 @import "./assets/styles/variables.scss";
@@ -519,7 +527,6 @@ body {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   font-size: 0.9rem;
   font-family: 'Nunito', sans-serif; /* Explicitly set font */
-
 }
 
 .search-field {
@@ -538,8 +545,7 @@ body {
   }
   
   .search-input,
-  .date-time-group,
-  .age-select {
+  .date-time-group {
     border: none;
     background: transparent;
     padding: 0;
@@ -566,7 +572,6 @@ body {
   gap: 0.5rem;
   font-family: 'Nunito', sans-serif; /* Explicitly set font */
 
-
   .date-select,
   .time-select {
     cursor: pointer;
@@ -592,10 +597,25 @@ body {
   }
 }
 
-.age-field {
-  flex-basis: 15%;
-  .age-select {
-    min-width: 50px;
+.search-button {
+  background-color: #6a0dad;
+  color: white;
+  border: none;
+  border-radius: 9999px;
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s ease;
+  font-size: 0.85rem;
+  
+  &:hover {
+    background-color: darken(#6a0dad, 10%);
+  }
+
+  .bi-search {
+    font-size: 1rem;
   }
 }
 

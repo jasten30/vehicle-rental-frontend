@@ -61,9 +61,14 @@ export default {
   justify-content: center;
   align-items: center;
   padding: 4rem 2rem;
-  background-color: #ffffff; /* Changed to a light gray background */
   overflow: hidden;
   font-family: 'Nunito', sans-serif;
+  
+  // New background with image and overlay
+  background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://www.peruforless.com/images/rental-keys.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed; // For a nice parallax effect
 }
 
 /* Main content container to center the cards */
@@ -97,8 +102,13 @@ export default {
   flex: 1;
   text-align: center;
   cursor: pointer;
-  background-color: #ffffff; /* Added white background */
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  
+  // Glassmorphism effect
+  background-color: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); // For Safari
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  
   transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
@@ -107,7 +117,7 @@ export default {
 }
 
 .action-card:hover {
-  box-shadow: 0 10px 40px rgba(124, 77, 255, 0.25), 0 0 15px rgba(124, 77, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
   transform: translateY(-5px);
 }
 
@@ -134,14 +144,14 @@ export default {
 .action-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #333;
+  color: #ffffff; // Changed to white
   margin-bottom: 0;
   white-space: nowrap;
 }
 
 .arrow-icon {
   font-weight: 900;
-  color: #7c4dff;
+  color: #ffffff; // Changed to white
   opacity: 0;
   transform: translateX(0);
   transition: opacity 0.3s ease, transform 0.3s ease;
@@ -165,7 +175,7 @@ export default {
 }
 
 .action-icon {
-  color: #7c4dff;
+  color: #ffffff; // Changed to white
   transition: transform 0.3s ease;
 }
 
@@ -185,15 +195,11 @@ export default {
     flex-direction: column;
     text-align: center;
     padding: 2rem 1rem;
-  }
-
-  .action-card.left-card, .action-card.right-card {
-    border-right: 1px solid rgba(0, 0, 0, 0.05);
-    border-bottom: none;
+    border-right: none !important;
   }
 
   .action-card.left-card {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
   }
 
   .action-card:hover {

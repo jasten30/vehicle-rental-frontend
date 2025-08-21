@@ -107,8 +107,8 @@ export default {
     isSameDay(date1, date2) {
       if (!date1 || !date2) return false;
       return date1.getFullYear() === date2.getFullYear() &&
-             date1.getMonth() === date2.getMonth() &&
-             date1.getDate() === date2.getDate();
+               date1.getMonth() === date2.getMonth() &&
+               date1.getDate() === date2.getDate();
     },
     isDateDisabled(day, isNextMonth = false) {
       const date = this.getDateObject(day, isNextMonth);
@@ -189,7 +189,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../assets/styles/variables.scss';
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap');
+@import '../../assets/styles/variables.scss';
 
 .date-picker-overlay {
   position: fixed;
@@ -215,7 +216,7 @@ export default {
   display: flex;
   flex-direction: column;
   position: relative;
-  font-family: $font-family-base;
+  font-family: 'Nunito', sans-serif;
 
   @media (max-width: 768px) {
     max-width: 100%;
@@ -295,55 +296,74 @@ export default {
 .day-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 0.5rem;
+  /* Removed gap and margin */
+  // gap: 0.5rem;
 
   .day-cell {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 40px;
-    width: 40px;
-    border-radius: 50%;
+    height: 48px;
+    width: 100%; /* Make width a percentage of the container */
+    padding: 0; /* No padding */
     cursor: pointer;
     font-size: 1rem;
     color: $text-color-dark;
     position: relative;
     z-index: 1;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    border-radius: 0.5rem;
 
     &.blank {
       visibility: hidden;
+      background-color: transparent;
+      border: none;
     }
 
-    &:hover {
+    &:hover:not(.disabled) {
       background-color: lighten($primary-color, 35%);
       color: $primary-color;
+      transform: translateY(-2px);
     }
-
+    
     &.selected-start, &.selected-end {
       background-color: $primary-color;
       color: white;
       font-weight: 600;
+      border-radius: 0;
+      position: relative;
+      z-index: 2;
+
+      &.selected-start {
+        border-top-left-radius: 0.5rem;
+        border-bottom-left-radius: 0.5rem;
+      }
+      &.selected-end {
+        border-top-right-radius: 0.5rem;
+        border-bottom-right-radius: 0.5rem;
+      }
     }
-    
+
+    &.selected-start.selected-end {
+      border-radius: 0.5rem;
+    }
+
     &.disabled {
       color: $text-color-light;
       cursor: not-allowed;
       pointer-events: none;
+      background-color: transparent;
     }
 
     &.in-range {
-      background-color: lighten($primary-color, 35%);
-      color: $primary-color;
+      background-color: $primary-color;
+      color: white;
       border-radius: 0;
       z-index: 0;
-
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        background-color: lighten($primary-color, 35%);
-        z-index: -1;
+      
+      &:hover {
+        background-color: $primary-color;
+        color: white;
       }
     }
   }
