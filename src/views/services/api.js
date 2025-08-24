@@ -2,7 +2,8 @@
 import axios from 'axios';
 import store from '../../store'; // Corrected path: go up two levels to src/, then into store
 
-const API_BASE_URL = 'http://localhost:5000/api'; // Your backend API base URL
+// CORRECTED: The base URL now points to port 5001
+const API_BASE_URL = 'http://localhost:5001/api';
 
 const api = axios.create({ // This 'api' variable is what should be used
   baseURL: API_BASE_URL,

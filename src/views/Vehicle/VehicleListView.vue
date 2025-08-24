@@ -407,6 +407,8 @@ export default {
   /* Removed top/bottom padding to eliminate gap with the element above. */
   padding: 0 2rem;
   font-family: 'Inter', sans-serif;
+  /* Added a white background color to the main container */
+  background-color: #fff;
 }
 
 .filters-sort-section {

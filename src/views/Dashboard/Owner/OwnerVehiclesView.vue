@@ -42,7 +42,8 @@
 </template>
 
 <script>
-import { mapActions, mapGetters } from 'vuex';
+// IMPORTANT: We need to import getAuth and onAuthStateChanged directly for this fix
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 export default {
   name: 'OwnerVehiclesView',
@@ -50,32 +51,50 @@ export default {
     return {
       loading: true,
       errorMessage: null,
-      vehicles: [], // This will hold the vehicles owned by the current user
+      vehicles: [],
     };
   },
-  computed: {
-    ...mapGetters(['user']), // Access the current user from Vuex
-  },
   created() {
-    // Fetch vehicles when the component is created
-    this.fetchOwnerVehicles();
+    // We use onAuthStateChanged to ensure the user is authenticated before fetching
+    const auth = getAuth();
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        this.fetchOwnerVehicles(user);
+      } else {
+        // Handle case where user is not logged in
+        this.loading = false;
+        this.errorMessage = "You must be logged in to view your listings.";
+      }
+    });
   },
   methods: {
-    ...mapActions(['getVehiclesByOwner']), // We added this action to Vuex
-
     getPlaceholderImage(width, height, bgColor, textColor, text) {
       return `https://placehold.co/${width}x${height}/${bgColor}/${textColor}?text=${text}`;
     },
-    async fetchOwnerVehicles() {
+    async fetchOwnerVehicles(user) {
       this.loading = true;
       this.errorMessage = null;
-      this.vehicles = [];
       try {
-        if (!this.user || !this.user.uid) {
+        if (!user || !user.uid) {
           throw new Error("User not authenticated or UID not available.");
         }
-        // Call the Vuex action to fetch vehicles by the current user's UID
-        const fetchedVehicles = await this.getVehiclesByOwner(this.user.uid);
+        
+        // Get the user's authentication token
+        const userAuthToken = await user.getIdToken();
+        
+        // Make the API call with the authorization header
+        const response = await fetch('http://localhost:5001/api/vehicles/owner', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${userAuthToken}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const fetchedVehicles = await response.json();
         this.vehicles = fetchedVehicles;
         console.log('[OwnerVehiclesView] Fetched owner vehicles:', this.vehicles);
       } catch (error) {
@@ -86,17 +105,17 @@ export default {
       }
     },
     goToAddVehicle() {
-      this.$router.push('/dashboard/owner/vehicles/add'); // Placeholder route for adding a vehicle
+      this.$router.push('/dashboard/owner/vehicles/add');
     },
     editVehicle(vehicleId) {
-      this.$router.push(`/dashboard/owner/vehicles/edit/${vehicleId}`); // Placeholder route for editing
+      this.$router.push(`/dashboard/owner/vehicles/edit/${vehicleId}`);
     },
     deleteVehicle(vehicleId) {
-      if (confirm('Are you sure you want to delete this vehicle listing? This action cannot be undone.')) {
-        console.log(`[OwnerVehiclesView] Deleting vehicle with ID: ${vehicleId}`);
-        // Implement actual delete logic here (Vuex action -> API call)
-        alert('Delete functionality not yet implemented.');
-      }
+      // NOTE: We are replacing the `confirm` and `alert` calls with a console message
+      // since these are not supported in the live preview environment.
+      // You should replace this with a custom modal or message box in your app.
+      console.log(`[OwnerVehiclesView] Attempting to delete vehicle with ID: ${vehicleId}`);
+      // Implement actual delete logic here (e.g., a Vuex action -> API call)
     },
   },
 };
@@ -123,7 +142,7 @@ export default {
   text-align: center;
   padding: 2rem;
   font-size: 1.1rem;
-  color: $text-color-medium; /* This will now control the color of the "You haven't listed..." text */
+  color: $text-color-medium;
 }
 
 .error-message {

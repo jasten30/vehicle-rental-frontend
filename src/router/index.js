@@ -5,7 +5,7 @@ import { getAuth } from 'firebase/auth';
 
 // Public Views
 import HomeView from "../views/HomeView.vue";
-import VehicleListView from "../views/Vehicle/VehicleListView.vue"; // Corrected name
+import VehicleListView from "../views/Vehicle/VehicleListView.vue";
 import VehicleDetailView from "../views/Vehicle/VehicleDetailView.vue";
 import LoginView from "../views/Auth/LoginView.vue";
 import RegisterView from "../views/Auth/RegisterView.vue";
@@ -13,11 +13,12 @@ import NotFoundView from "../views/NotFoundView.vue";
 
 // Dashboard Views
 import DashboardLayout from "../views/Dashboard/DashboardLayout.vue";
-import MyBookingsView from "../views/Dashboard/MyBookings.vue"; // Corrected path
-import BookingDetailView from "../views/Dashboard/BookingDetailView.vue"; // This was missing in the router, but used in MyBookings.vue
-import ProfileSettingsView from "../views/Dashboard/ProfileSettings.vue"; // Corrected name
+import MyBookingsView from "../views/Dashboard/MyBookings.vue";
+import BookingDetailView from "../views/Dashboard/BookingDetailView.vue";
+import ProfileSettingsView from "../views/Dashboard/ProfileSettings.vue";
 import OwnerVehiclesView from "../views/Dashboard/Owner/OwnerVehiclesView.vue";
-import AddEditVehicleView from "../views/Dashboard/Owner/AddEditVehicleView.vue";
+// CORRECTED: Import VehicleFormSteps instead of AddEditVehicleView
+import VehicleFormSteps from "../components/forms/VehicleFormSteps.vue";
 // NEW: Import the BookingPaymentView
 import BookingPaymentView from "../views/Booking/BookingPaymentView.vue";
 // NEW: Import the BookingSummaryView (will create placeholder below)
@@ -62,15 +63,19 @@ const dashboardRoutes = [
         meta: { requiresAuth: true, authorize: ['owner', 'admin'] },
       },
       {
+        // CORRECTED: Use VehicleFormSteps here
         path: "owner/vehicles/add",
         name: "AddVehicle",
-        component: AddEditVehicleView,
+        component: VehicleFormSteps,
+        // THIS IS THE NEW LINE: pass an empty object for new vehicles
+        props: { initialVehicle: {} },
         meta: { requiresAuth: true, authorize: ['owner', 'admin'] },
       },
       {
+        // CORRECTED: Use VehicleFormSteps here as well
         path: "owner/vehicles/edit/:vehicleId",
         name: "EditVehicle",
-        component: AddEditVehicleView,
+        component: VehicleFormSteps,
         props: true,
         meta: { requiresAuth: true, authorize: ['owner', 'admin'] },
       },

@@ -1,7 +1,5 @@
 <template>
   <div class="vehicle-detail-container">
-    <h2 class="section-title">Vehicle Details</h2>
-
     <div v-if="loading" class="loading-message">
       <p>Loading vehicle details...</p>
     </div>
@@ -12,13 +10,7 @@
     </div>
 
     <div v-else-if="vehicle" class="vehicle-details-content">
-      <div class="card-header">
-        <h3 class="vehicle-name">{{ vehicle.make }} {{ vehicle.model }}</h3>
-        <span class="vehicle-year">({{ vehicle.year }})</span>
-      </div>
-
       <div class="card-body">
-        <!-- New Image Gallery Component -->
         <VehicleImageGallery
           :main-image-url="vehicle.imageUrl"
           :thumbnail-urls="thumbnailImages"
@@ -26,41 +18,15 @@
           :vehicle-model="vehicle.model"
         />
 
-        <div class="details-and-booking-section">
-          <!-- Details Box -->
-          <div class="details-box">
-            <h4>Details</h4>
-            <div class="detail-line"><strong>License Plate:</strong> {{ vehicle.licensePlate }}</div>
-            <div class="detail-line"><strong>Daily Rate:</strong> ₱{{ vehicle.rentalPricePerDay }}</div>
-            <div class="detail-line"><strong>Location:</strong> {{ vehicle.location }}</div>
-            <div v-if="vehicle.description" class="detail-line"><strong>Description:</strong> {{ vehicle.description }}</div>
-            <div v-if="vehicle.status" class="detail-line"><strong>Status:</strong> {{ vehicle.status }}</div>
-            <div v-if="vehicle.ownerId" class="detail-line"><strong>Owner ID:</strong> {{ vehicle.ownerId }}</div>
-          </div>
-
-          <!-- Booking Section -->
-          <div class="booking-section">
-            <h3>Book This Vehicle</h3>
-            <div class="form-group">
-              <label for="pickupDate">Pick-up Date:</label>
-              <input type="date" id="pickupDate" v-model="bookingForm.startDate" class="form-input" required>
-            </div>
-            <div class="form-group">
-              <label for="returnDate">Return Date:</label>
-              <input type="date" id="returnDate" v-model="bookingForm.endDate" class="form-input" required>
-            </div>
-            <button @click="bookVehicle" :disabled="bookingLoading" class="button primary-button">
-              <span v-if="bookingLoading">Booking...</span>
-              <span v-else>Reserve</span>
-            </button>
-            <div v-if="bookingErrorMessage" class="error-message booking-error">
-              {{ bookingErrorMessage }}
-            </div>
-            <div v-if="bookingSuccessMessage" class="success-message booking-success">
-              {{ bookingSuccessMessage }}
-            </div>
-          </div>
-        </div>
+        <!-- Using the custom v-model syntax, which handles the prop and event automatically -->
+        <VehicleDetailsAndBooking
+          :vehicle="vehicle"
+          v-model:booking-form="bookingForm"
+          :booking-loading="bookingLoading"
+          :booking-error-message="bookingErrorMessage"
+          :booking-success-message="bookingSuccessMessage"
+          @book-vehicle="bookVehicle"
+        />
       </div>
     </div>
   </div>
@@ -69,14 +35,16 @@
 <script>
 import { mapActions, mapGetters } from 'vuex';
 import { DateTime } from 'luxon';
-import VehicleImageGallery from '@/components/vehicle/VehicleImageGallery.vue'; // Import the new component
+import VehicleImageGallery from '@/components/vehicle/VehicleImageGallery.vue';
+import VehicleDetailsAndBooking from '@/components/vehicle/VehicleDetailsAndBooking.vue';
 
 export default {
   name: 'VehicleDetailView',
   components: {
-    VehicleImageGallery, // Register the new component
+    VehicleImageGallery,
+    VehicleDetailsAndBooking,
   },
-  props: ['id'], // Vehicle ID from route params
+  props: ['id'],
   data() {
     return {
       loading: true,
@@ -89,7 +57,6 @@ export default {
       bookingLoading: false,
       bookingErrorMessage: null,
       bookingSuccessMessage: null,
-      // Mock thumbnail images. You'll replace these with real data.
       thumbnailImages: [
         this.getPlaceholderImage(400, 300, 'c0c0c0', '333333', 'Thumb 1'),
         this.getPlaceholderImage(400, 300, 'a0a0a0', '333333', 'Thumb 2'),
@@ -99,7 +66,6 @@ export default {
     };
   },
   computed: {
-    // eslint-disable-next-line no-unused-vars
     ...mapGetters(['isAuthenticated', 'user']),
   },
   watch: {
@@ -184,24 +150,23 @@ export default {
         if (availabilityResponse.isAvailable === true) {
             console.log('[VehicleDetailView] Vehicle is available. Proceeding to create booking...');
 
-            // UPDATED: Payload for createBooking endpoint
             const bookingPayload = {
               vehicleId: this.vehicle.id,
-              renterId: this.user.uid, // Assuming user.uid is available from Vuex getter
+              renterId: this.user.uid,
               startDate: isoStartDate,
               endDate: isoEndDate,
               totalCost: availabilityResponse.totalCost,
               downpaymentAmount: availabilityResponse.downpaymentAmount,
               fullPaymentAmount: availabilityResponse.fullPaymentAmount,
-              paymentStatus: 'pending_payment_selection', // Initial status
-              paymentDetails: {}, // Empty for now, will be filled upon payment method selection
+              paymentStatus: 'pending_payment_selection',
+              paymentDetails: {},
             };
 
             console.log('[VehicleDetailView] Calling createBooking with payload:', bookingPayload);
-            const createBookingResponse = await this.createBooking(bookingPayload); // Call the new createBooking action
+            const createBookingResponse = await this.createBooking(bookingPayload);
             console.log('[VehicleDetailView] createBooking Response:', createBookingResponse);
             
-            const bookingId = createBookingResponse.id; // Get the ID from the created booking
+            const bookingId = createBookingResponse.id;
 
             if (bookingId) {
               console.log(`[VehicleDetailView] Booking created successfully. Redirecting to BookingPayment for bookingId: ${bookingId}`);
@@ -235,10 +200,15 @@ export default {
 <style lang="scss" scoped>
 @import '../../assets/styles/variables.scss';
 
+// Use a global selector via :deep() to change the body background
+:deep(body) {
+  background-color: #fff;
+}
+
 .vehicle-detail-container {
   padding: 1.5rem;
-  max-width: 900px;
-  margin: 0 auto;
+  width: 100%; // Make the container full width
+  background-color: #fff;
 }
 
 .section-title {
@@ -277,8 +247,14 @@ export default {
 .vehicle-details-content {
   background-color: transparent; 
   border-radius: $border-radius-lg;
-  box-shadow: none; // Removed box shadow
+  box-shadow: none;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  // Make content bigger but still centered
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 .card-header {
@@ -286,7 +262,7 @@ export default {
   padding: 1.25rem 2rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   border-bottom: 1px solid #e0e0e0;
 }
 
@@ -308,107 +284,5 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 2rem;
-}
-
-.details-and-booking-section {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.details-box {
-  flex-grow: 1;
-  background-color: transparent; 
-  border: 1px solid #e5e7eb;
-  border-radius: $border-radius-md;
-  padding: 1.5rem;
-
-  h4 {
-    font-size: 1.25rem;
-    color: $primary-color;
-    margin-bottom: 1rem;
-    border-bottom: 1px solid #e0e0e0;
-    padding-bottom: 0.5rem;
-  }
-
-  .detail-line {
-    font-size: 1rem;
-    color: $text-color-dark;
-    margin-bottom: 0.5rem;
-    strong {
-      font-weight: 600;
-    }
-  }
-}
-
-.booking-section {
-  background-color: transparent; 
-  border: 1px solid #e5e7eb;
-  border-radius: $border-radius-md;
-  padding: 1.5rem;
-
-  h3 {
-    font-size: 1.5rem;
-    color: $primary-color;
-    margin-bottom: 1.5rem;
-    text-align: center;
-  }
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: $text-color-dark;
-}
-
-.form-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 1rem;
-  box-sizing: border-box;
-  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-
-  &:focus {
-    outline: none;
-    border-color: $primary-color;
-    box-shadow: 0 0 0 3px rgba($primary-color, 0.2);
-  }
-}
-
-.button {
-  padding: 0.85rem 1.5rem;
-  border-radius: 0.375rem;
-  font-size: 1.1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background-color 0.2s ease-in-out, opacity 0.2s ease-in-out;
-  border: none;
-  width: 100%;
-  margin-top: 1rem;
-}
-
-.primary-button {
-  background-color: $primary-color;
-  color: white;
-  &:hover:not(:disabled) {
-    background-color: darken($primary-color, 10%);
-  }
-  &:disabled {
-    background-color: lighten($primary-color, 20%);
-    cursor: not-allowed;
-    opacity: 0.7;
-  }
-}
-
-.booking-error, .booking-success {
-  margin-top: 1rem;
-  text-align: center;
 }
 </style>

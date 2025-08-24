@@ -277,7 +277,7 @@ body {
   font-family: 'Nunito', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: $background-color;
+  background-color: white; /* Changed to white */
   box-sizing: border-box;
 }
 
@@ -286,7 +286,7 @@ body {
   width: 100%;
   padding: 0;
   box-shadow: none;
-  background-color: transparent;
+  background-color: white; /* Changed to white */
   margin: 0;
 }
 

@@ -186,10 +186,21 @@ export default createStore({
       }
     },
 
-    async getVehiclesByOwner({ _commit }, ownerId) {
-      console.log('[Vuex Action] Fetching vehicles for owner ID:', ownerId);
+    // ⭐️ Updated action to fix the 404 error ⭐️
+    async getVehiclesByOwner({ _commit }) {
+      console.log('[Vuex Action] Fetching vehicles for owner.');
       try {
-        const response = await api.getVehiclesByOwner(ownerId); // Calls the new API service method
+        const auth = getAuth();
+        const user = auth.currentUser;
+        if (!user) {
+          throw new Error("User not authenticated.");
+        }
+        
+        // Get the user's authentication token
+        const userAuthToken = await user.getIdToken();
+        
+        // Call the API service with the authentication token
+        const response = await api.getVehiclesByOwner(userAuthToken);
         console.log('[Vuex Action] Owner vehicles fetched successfully:', response.data);
         return response.data;
       } catch (error) {
@@ -226,7 +237,7 @@ export default createStore({
     async addVehicle({ _commit }, vehicleData) {
       console.log('[Vuex Action] Adding new vehicle:', vehicleData);
       try {
-        const response = await api.addVehicle(vehicleData); // Call API service method
+        const response = await api.addVehicle(vehicleData);
         console.log('[Vuex Action] Vehicle added successfully:', response.data);
         return response.data;
       } catch (error) {
@@ -238,7 +249,7 @@ export default createStore({
     async updateVehicle({ _commit }, { id, ...vehicleData }) {
       console.log(`[Vuex Action] Updating vehicle ID ${id} with data:`, vehicleData);
       try {
-        const response = await api.updateVehicle(id, vehicleData); // Call API service method
+        const response = await api.updateVehicle(id, vehicleData);
         console.log('[Vuex Action] Vehicle updated successfully:', response.data);
         return response.data;
       } catch (error) {
@@ -250,7 +261,7 @@ export default createStore({
     async getVehicleById({ _commit }, vehicleId) {
       console.log('[Vuex Action] Fetching single vehicle by ID:', vehicleId);
       try {
-        const response = await api.getVehicleById(vehicleId); // Calls the API service method
+        const response = await api.getVehicleById(vehicleId);
         console.log('[Vuex Action] Single vehicle fetched successfully:', response.data);
         return response.data;
       } catch (error) {
@@ -328,7 +339,6 @@ export default createStore({
       }
     },
 
-    // NEW: Action for admin/owner to update booking status
     async updateBookingStatusAdmin({ _commit }, { bookingId, newStatus }) {
       console.log(`[Vuex Action] Calling api.updateBookingStatusAdmin for bookingId: ${bookingId}, newStatus: ${newStatus}`);
       try {
@@ -373,8 +383,6 @@ export default createStore({
       let vehicles = Array.isArray(state.allVehicles) ? [...state.allVehicles] : [];
       const filters = state.vehicleFilters;
 
-      // The fix for the TypeError is here:
-      // Added a check to ensure both the filter value and the vehicle property exist before comparing.
       if (filters.make) { vehicles = vehicles.filter(v => v.make && v.make.toLowerCase().includes(filters.make.toLowerCase())); }
       if (filters.model) { vehicles = vehicles.filter(v => v.model && v.model.toLowerCase().includes(filters.model.toLowerCase())); }
       if (filters.year !== null && !isNaN(filters.year)) { vehicles = vehicles.filter(v => v.year === parseInt(filters.year)); }
@@ -407,7 +415,6 @@ export default createStore({
           let valA = a[sortKey];
           let valB = b[sortKey];
 
-          // Added a check for null/undefined before toLowerCase()
           if (typeof valA === 'string' && typeof valB === 'string') {
             valA = (valA || '').toLowerCase();
             valB = (valB || '').toLowerCase();
