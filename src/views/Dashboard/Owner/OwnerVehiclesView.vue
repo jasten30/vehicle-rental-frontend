@@ -2,28 +2,23 @@
 <template>
   <div class="owner-vehicles-container">
     <h2 class="section-title">My Listings</h2>
-
     <div v-if="loading" class="loading-message">
       <p>Loading your vehicles...</p>
     </div>
-
     <div v-else-if="errorMessage" class="error-message">
       <p>{{ errorMessage }}</p>
       <button @click="fetchOwnerVehicles" class="button primary-button">Retry Load Vehicles</button>
     </div>
-
     <div v-else-if="!vehicles || vehicles.length === 0" class="no-vehicles-message">
-      <!-- REVERTED TO DIV WITH INLINE STYLES FOR ROBUSTNESS -->
       <div style="color: #333 !important; font-size: 1rem !important; margin-bottom: 1rem;">You haven't listed any vehicles yet.</div>
       <button @click="goToAddVehicle" class="button primary-button">Add New Vehicle</button>
     </div>
-
     <div v-else class="vehicle-list">
       <div v-for="vehicle in vehicles" :key="vehicle.id" class="vehicle-card">
         <img :src="vehicle.imageUrl || getPlaceholderImage(200, 150, 'cccccc', '333333', 'No Image')"
-             :alt="`${vehicle.make} ${vehicle.model}`"
-             class="vehicle-image"
-             @error="vehicle.imageUrl = getPlaceholderImage(200, 150, 'cccccc', '333333', 'No Image')">
+          :alt="`${vehicle.make} ${vehicle.model}`"
+          class="vehicle-image"
+          @error="vehicle.imageUrl = getPlaceholderImage(200, 150, 'cccccc', '333333', 'No Image')">
         <div class="vehicle-details">
           <h3>{{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})</h3>
           <p><strong>License Plate:</strong> {{ vehicle.licensePlate }}</p>
@@ -42,7 +37,6 @@
 </template>
 
 <script>
-// IMPORTANT: We need to import getAuth and onAuthStateChanged directly for this fix
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 export default {
@@ -55,13 +49,11 @@ export default {
     };
   },
   created() {
-    // We use onAuthStateChanged to ensure the user is authenticated before fetching
     const auth = getAuth();
     onAuthStateChanged(auth, (user) => {
       if (user) {
         this.fetchOwnerVehicles(user);
       } else {
-        // Handle case where user is not logged in
         this.loading = false;
         this.errorMessage = "You must be logged in to view your listings.";
       }
@@ -78,22 +70,16 @@ export default {
         if (!user || !user.uid) {
           throw new Error("User not authenticated or UID not available.");
         }
-        
-        // Get the user's authentication token
         const userAuthToken = await user.getIdToken();
-        
-        // Make the API call with the authorization header
-        const response = await fetch('http://localhost:5001/api/vehicles/owner', {
+        const response = await fetch('http://localhost:5001/api/vehicles/my-listings', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${userAuthToken}`
           }
         });
-
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
-
         const fetchedVehicles = await response.json();
         this.vehicles = fetchedVehicles;
         console.log('[OwnerVehiclesView] Fetched owner vehicles:', this.vehicles);
@@ -111,11 +97,7 @@ export default {
       this.$router.push(`/dashboard/owner/vehicles/edit/${vehicleId}`);
     },
     deleteVehicle(vehicleId) {
-      // NOTE: We are replacing the `confirm` and `alert` calls with a console message
-      // since these are not supported in the live preview environment.
-      // You should replace this with a custom modal or message box in your app.
       console.log(`[OwnerVehiclesView] Attempting to delete vehicle with ID: ${vehicleId}`);
-      // Implement actual delete logic here (e.g., a Vuex action -> API call)
     },
   },
 };
@@ -129,7 +111,6 @@ export default {
   max-width: 1200px;
   margin: 0 auto;
 }
-
 .section-title {
   font-size: 2rem;
   font-weight: 700;
@@ -137,14 +118,12 @@ export default {
   margin-bottom: 1.5rem;
   text-align: center;
 }
-
 .loading-message, .error-message, .no-vehicles-message {
   text-align: center;
   padding: 2rem;
   font-size: 1.1rem;
   color: $text-color-medium;
 }
-
 .error-message {
   color: #ef4444;
   font-weight: 600;
@@ -153,14 +132,12 @@ export default {
   padding: 0.75rem;
   margin-bottom: 1rem;
 }
-
 .vehicle-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
   margin-top: 1.5rem;
 }
-
 .vehicle-card {
   background-color: $card-background;
   border-radius: $border-radius-lg;
@@ -169,29 +146,24 @@ export default {
   display: flex;
   flex-direction: column;
   transition: transform 0.2s ease;
-
   &:hover {
     transform: translateY(-5px);
   }
 }
-
 .vehicle-image {
   width: 100%;
   height: 200px;
   object-fit: cover;
   border-bottom: 1px solid #e0e0e0;
 }
-
 .vehicle-details {
   padding: 1rem;
   flex-grow: 1;
-
   h3 {
     font-size: 1.3rem;
     color: $primary-color;
     margin-bottom: 0.75rem;
   }
-
   p {
     font-size: 0.95rem;
     color: $text-color-dark;
@@ -201,7 +173,6 @@ export default {
     }
   }
 }
-
 .vehicle-actions {
   display: flex;
   justify-content: flex-end;
@@ -210,7 +181,6 @@ export default {
   border-top: 1px solid #e0e0e0;
   background-color: #f9fafb;
 }
-
 .button {
   padding: 0.75rem 1.25rem;
   border-radius: $border-radius-md;
@@ -222,7 +192,6 @@ export default {
   align-items: center;
   justify-content: center;
 }
-
 .primary-button {
   background-color: $primary-color;
   color: white;
@@ -232,7 +201,6 @@ export default {
     transform: translateY(-2px);
   }
 }
-
 .secondary-button {
   background-color: transparent;
   color: $primary-color;
@@ -242,7 +210,6 @@ export default {
     transform: translateY(-2px);
   }
 }
-
 .cancel-button {
   background-color: #ef4444;
   color: white;
@@ -256,7 +223,6 @@ export default {
     cursor: not-allowed;
   }
 }
-
 .add-new-button {
   margin-top: 2rem;
   width: fit-content;

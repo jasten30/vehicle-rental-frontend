@@ -2,7 +2,7 @@
 
 import api from "@/views/services/api";
 import router from "@/router";
-import { getAuth, signInWithCustomToken } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, signOut } from 'firebase/auth'; // Import signInWithEmailAndPassword
 
 const state = () => ({
   authToken: localStorage.getItem("authToken") || null,
@@ -47,22 +47,35 @@ const mutations = {
 const actions = {
   async login({ commit }, credentials) {
     try {
-      const backendResponse = await api.login(credentials);
-      const customToken = backendResponse.data.token;
-      const userDetailsFromBackend = backendResponse.data.user;
       const auth = getAuth();
-      const userCredential = await signInWithCustomToken(auth, customToken);
+      // --- CRUCIAL FIX: Use Firebase's client-side login directly ---
+      const userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
       const firebaseUser = userCredential.user;
+
+      // Get the ID token, which contains the custom claims
       const idToken = await firebaseUser.getIdToken();
+      
+      // Get the user's role from the token's claims
+      const idTokenResult = await firebaseUser.getIdTokenResult();
+      const userRole = idTokenResult.claims.role || 'renter';
+
+      // Fetch the full user profile from the backend using the new ID token
+      // You will need to create a new endpoint for this on your backend.
+      const backendResponse = await api.getUserProfileByIdToken(idToken);
+      const userDetailsFromBackend = backendResponse.data;
+
+      // Update the user info with the role from the token
+      userDetailsFromBackend.role = userRole;
 
       commit("SET_AUTH_TOKEN", idToken);
       commit("SET_USER_INFO", userDetailsFromBackend);
+
       await router.push("/dashboard");
       return true;
     } catch (error) {
       console.error(
         "[Vuex Auth] Login failed:",
-        error.response?.data?.message || error.message
+        error.message
       );
       throw error;
     }
@@ -83,7 +96,7 @@ const actions = {
   async logout({ commit }) {
     const auth = getAuth();
     try {
-      await auth.signOut();
+      await signOut(auth);
     } catch (error) {
       console.error('[Vuex Auth] Error signing out from Firebase:', error);
     } finally {

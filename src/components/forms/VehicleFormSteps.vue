@@ -1,3 +1,4 @@
+// frontend/src/components/VehicleFormSteps.vue
 <template>
   <div class="form-container">
     <div class="form-card">
@@ -53,6 +54,20 @@ import VehiclePhotos from '@/components/forms/VehiclePhotos.vue';
 import SubmitListing from '@/components/forms/SubmitListing.vue';
 import { getAuth } from 'firebase/auth';
 import { uploadImageToFirebase } from '@/views/services/firebaseStorageService';
+import { getApp } from 'firebase/app';
+
+// Helper function to convert base64 to a Blob
+const dataURLtoBlob = (dataurl) => {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+};
 
 export default {
   name: 'VehicleFormSteps',
@@ -135,9 +150,7 @@ export default {
         cleanlinessChecked: false,
         notes: '',
       },
-      exteriorPhotoUrl: '',
-      interiorPhotoUrl: '',
-      photos: [],
+      photos: [], // Ensure this is an array
     };
 
     return {
@@ -210,7 +223,8 @@ export default {
         case 8:
           return this.localVehicle.make && this.localVehicle.model && this.localVehicle.year && this.localVehicle.seatingCapacity;
         case 9:
-          return this.localVehicle.pricing.marketValue > 0 && this.localVehicle.pricing.condition;
+          // The API expects rentalPricePerDay which is manualPrice
+          return this.localVehicle.pricing.marketValue > 0 && this.localVehicle.pricing.condition && this.localVehicle.pricing.manualPrice > 0;
         case 10:
           return this.localVehicle.safety.tiresChecked && this.localVehicle.safety.brakesChecked && this.localVehicle.safety.lightsChecked && this.localVehicle.safety.wipersChecked && this.localVehicle.safety.emergencyToolsChecked && this.localVehicle.safety.registrationChecked && this.localVehicle.safety.cleanlinessChecked;
         case 11:
@@ -221,6 +235,62 @@ export default {
           return false;
       }
     },
+    async submitUserProfileData() {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      const firebaseApp = getApp();
+
+      if (!user) {
+        throw new Error('User not authenticated for profile submission.');
+      }
+
+      const userAuthToken = await user.getIdToken();
+      const apiUrl = 'http://localhost:5001/api/users';
+
+      // Helper function to check if data is a base64 URL and upload if so
+      const uploadIfNeeded = async (imageData, path) => {
+          if (typeof imageData === 'string' && imageData.startsWith('data:image')) {
+              const blob = dataURLtoBlob(imageData);
+              const url = await uploadImageToFirebase(blob, path, firebaseApp);
+              return url;
+          }
+          return imageData; // Already a URL or other valid data
+      };
+
+      // Upload user-specific documents (e.g., license and profile photo)
+      const userProfileImageUrl = await uploadIfNeeded(this.localVehicle.userProfileImageUrl, `users/${user.uid}/profile.png`);
+      const driversLicenseImageUrl = await uploadIfNeeded(this.localVehicle.driversLicense?.imageUrl, `users/${user.uid}/drivers_license.png`);
+      const qrCodeUrl = await uploadIfNeeded(this.localVehicle.payoutDetails?.qrCodeUrl, `users/${user.uid}/payout_qr.png`);
+
+      // Create the payload for the user endpoint
+      const userPayload = {
+        userId: user.uid,
+        userProfileImageUrl: userProfileImageUrl,
+        driversLicense: { ...this.localVehicle.driversLicense, imageUrl: driversLicenseImageUrl },
+        payoutDetails: { ...this.localVehicle.payoutDetails, qrCodeUrl },
+      };
+
+      console.log('Final User Payload before sending:', JSON.stringify(userPayload, null, 2));
+
+      // Send the user payload to the new user API endpoint
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userAuthToken}`
+        },
+        body: JSON.stringify(userPayload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('User profile successfully updated:', data);
+    },
+    
     async submitForm() {
       this.$emit('error', '');
       console.log('Attempting to submit form with data:', this.localVehicle);
@@ -236,61 +306,79 @@ export default {
       const apiUrl = 'http://localhost:5001/api/vehicles'; 
       const vehicleId = this.localVehicle.vehicleId || crypto.randomUUID();
 
-      // IMPORTANT: Use a try-catch block to handle the upload process.
-      try {
-        this.$emit('error', 'Uploading images...');
-        
-        // Step 1: Upload all images and get their URLs
-        const crImageUrl = this.localVehicle.cor?.crImageFile
-          ? await uploadImageToFirebase(this.localVehicle.cor.crImageFile, `vehicles/${vehicleId}/cor.png`)
-          : this.localVehicle.cor.crImageUrl; // Use existing URL if no new file
-        
-        const orImageUrl = this.localVehicle.or?.orImageFile
-          ? await uploadImageToFirebase(this.localVehicle.or.orImageFile, `vehicles/${vehicleId}/or.png`)
-          : this.localVehicle.or.orImageUrl;
-          
-        const userProfileImageUrl = this.localVehicle.userProfileImageFile
-          ? await uploadImageToFirebase(this.localVehicle.userProfileImageFile, `users/${user.uid}/profile.png`)
-          : this.localVehicle.userProfileImageUrl;
-          
-        const driversLicenseImageUrl = this.localVehicle.driversLicense?.imageFile
-          ? await uploadImageToFirebase(this.localVehicle.driversLicense.imageFile, `users/${user.uid}/drivers_license.png`)
-          : this.localVehicle.driversLicense.imageUrl;
+      // Get the Firebase app instance
+      const firebaseApp = getApp();
 
-        const uploadedPhotos = await Promise.all(
-          (this.localVehicle.photos || []).map(async (file, index) => {
-            if (file instanceof File) {
-              const photoPath = `vehicles/${vehicleId}/photos/${crypto.randomUUID()}-${index}.png`;
-              return await uploadImageToFirebase(file, photoPath);
+      try {
+        this.$emit('error', 'Submitting user data...');
+        // First, submit the user profile data and wait for it to complete.
+        await this.submitUserProfileData();
+
+        this.$emit('error', 'Uploading vehicle images...');
+        
+        // Helper function to check if data is a base64 URL and upload if so
+        const uploadIfNeeded = async (imageData, path) => {
+            if (typeof imageData === 'string' && imageData.startsWith('data:image')) {
+                const blob = dataURLtoBlob(imageData);
+                const url = await uploadImageToFirebase(blob, path, firebaseApp);
+                return url;
             }
-            return file; // If it's already a URL, just return it.
+            return imageData; // Already a URL or other valid data
+        };
+
+        // Only upload vehicle-specific documents.
+        const crImageUrl = await uploadIfNeeded(this.localVehicle.cor?.crImageUrl, `vehicles/${vehicleId}/cor.png`);
+        const orImageUrl = await uploadIfNeeded(this.localVehicle.or?.orImageUrl, `vehicles/${vehicleId}/or.png`);
+        
+        // Handle the photos array, which can contain both files and base64 strings
+        const uploadedPhotos = await Promise.all(
+          (this.localVehicle.photos || []).map(async (photoData) => {
+            if (photoData instanceof File) {
+              const photoPath = `vehicles/${vehicleId}/photos/${crypto.randomUUID()}-${photoData.name}`;
+              return await uploadImageToFirebase(photoData, photoPath, firebaseApp);
+            } else if (typeof photoData === 'string' && photoData.startsWith('data:image')) {
+              const blob = dataURLtoBlob(photoData);
+              const photoPath = `vehicles/${vehicleId}/photos/${crypto.randomUUID()}.png`;
+              return await uploadImageToFirebase(blob, photoPath, firebaseApp);
+            }
+            return photoData; // Already a URL
           })
         );
         
-        // Step 2: Create the final payload with the new URLs
+        // Step 2: Create the final vehicle payload with the new URLs
+        // We explicitly define the COR and OR objects to avoid sending unwanted file properties.
         const payload = {
-          ...this.localVehicle,
+          ownerId: user.uid,
           vehicleId,
-          rentalPricePerDay: this.localVehicle.pricing.manualPrice,
-          cor: { ...this.localVehicle.cor, crImageUrl },
-          or: { ...this.localVehicle.or, orImageUrl },
-          driversLicense: { ...this.localVehicle.driversLicense, imageUrl: driversLicenseImageUrl },
-          userProfileImageUrl,
+          make: this.localVehicle.make,
+          model: this.localVehicle.model,
+          year: this.localVehicle.year,
+          seatingCapacity: this.localVehicle.seatingCapacity,
+          rentalPricePerDay: this.localVehicle.pricing.manualPrice, 
+          location: this.localVehicle.location,
+          availability: this.localVehicle.availability,
+          pricing: {
+            marketValue: this.localVehicle.pricing.marketValue,
+            condition: this.localVehicle.pricing.condition,
+            manualPrice: this.localVehicle.pricing.manualPrice,
+            recommendedPrice: this.localVehicle.pricing.recommendedPrice,
+          },
+          safety: this.localVehicle.safety,
+          cor: {
+            crNumber: this.localVehicle.cor.crNumber,
+            plateNumber: this.localVehicle.cor.plateNumber,
+            dateIssued: this.localVehicle.cor.dateIssued,
+            crImageUrl
+          },
+          or: {
+            orNumber: this.localVehicle.or.orNumber,
+            dateIssued: this.localVehicle.or.dateIssued,
+            orImageUrl
+          },
           photos: uploadedPhotos,
         };
 
-        // Remove the temporary file objects
-        delete payload.cor.crImageFile;
-        delete payload.or.orImageFile;
-        delete payload.driversLicense.imageFile;
-        delete payload.userProfileImageFile;
-        delete payload.payoutDetails.qrCodeUrl;
-        delete payload.exteriorPhotoUrl;
-        delete payload.interiorPhotoUrl;
-        
-        console.log('Final Payload before sending:', JSON.stringify(payload, null, 2));
-
-        // Step 3: Send the cleaned payload to the server
+        // Step 3: Send the cleaned vehicle payload to the server
         const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
