@@ -409,7 +409,7 @@ export default {
 @import '@/assets/styles/variables.scss';
 
 .form-container {
-  max-width: 900px;
+  max-width: 800px;
   margin: 0 auto;
   padding: 1.5rem;
 

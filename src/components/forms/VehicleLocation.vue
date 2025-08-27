@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h3>Step 1: Address Details</h3>
+    <h3>Address Details</h3>
     <p class="step-info-text">Please provide the specific address and pin the exact location on the map below.</p>
     
     <div class="form-group">
@@ -69,7 +69,12 @@
 <script>
 /* global L:readonly */
 
-import { cebuAddresses } from '@/assets/data/cebu-addresses';
+// A mock addresses object to replace the imported file.
+const cebuAddresses = {
+    'Cebu City': ['Apas', 'Banilad', 'Barangay 1', 'Barangay 2'],
+    'Mandaue City': ['Subangdaku', 'Tipolo', 'Maguikay'],
+    'Lapu-Lapu City': ['Basak', 'Pajo', 'Pusok'],
+};
 
 export default {
   name: 'VehicleLocation',
@@ -170,18 +175,31 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '@/assets/styles/variables.scss';
-
+// Define a color palette and spacing for a more consistent design
+:root {
+  --primary-color: #3b82f6;
+  --secondary-color: #6b7280;
+  --text-color-dark: #1f2937;
+  --text-color-medium: #4b5563;
+  --bg-color-light: #f9fafb;
+  --border-color: #d1d5db;
+  --border-radius: 0.25rem;
+  --padding-xs: 0.5rem;
+  --padding-sm: 0.625rem;
+  --padding-md: 1rem;
+  --margin-sm: 0.5rem;
+  --margin-md: 1rem;
+}
 
 h3 {
   font-size: 1.5rem;
-  color: $primary-color;
+  color: #3b82f6;
   margin-bottom: 1rem;
 }
 
 .step-info-text {
   font-size: 1rem;
-  color: $text-color-medium;
+  color: #4b5563;
   margin-bottom: 1.5rem;
 }
 
@@ -192,28 +210,28 @@ h3 {
     display: block;
     font-weight: 600;
     margin-bottom: 0.5rem;
-    color: $text-color-dark;
+    color: #1f2937;
   }
 
   input[type="text"],
   select {
     width: 100%;
     padding: 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: $border-radius-sm;
+    border: none;
+    border-bottom: 1px solid #d1d5db;
+    border-radius: 0;
     font-size: 1rem;
-    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    background-color: #ffffff;
+    transition: border-bottom-color 0.2s ease-in-out;
+    background-color: transparent;
 
     &:focus {
       outline: none;
-      border-color: $primary-color;
-      box-shadow: 0 0 0 3px rgba($primary-color, 0.2);
+      border-bottom-color: #3b82f6;
     }
   }
   
   .disabled-input {
-    background-color: #e5e7eb;
+    background-color: transparent;
     cursor: not-allowed;
     color: #6b7280;
   }
@@ -221,7 +239,7 @@ h3 {
 
 .map-heading {
   font-size: 1.25rem;
-  color: $text-color-dark;
+  color: #1f2937;
   margin-top: 1.5rem;
   margin-bottom: 0.5rem;
 }
@@ -235,14 +253,14 @@ h3 {
 #map {
   width: 100%;
   height: 400px;
-  border-radius: $border-radius-sm;
+  border-radius: 0.25rem;
   margin-bottom: 1.5rem;
 }
 
 .coordinates-display {
   margin-top: 1rem;
   font-size: 0.9rem;
-  color: $text-color-medium;
+  color: #4b5563;
   text-align: center;
 }
 
@@ -255,7 +273,7 @@ h3 {
 
 .button {
   padding: 0.85rem 1.5rem;
-  border-radius: $border-radius-sm;
+  border-radius: 0.25rem;
   font-size: 1.05rem;
   font-weight: 700;
   cursor: pointer;
@@ -269,10 +287,10 @@ h3 {
 }
 
 .primary-button {
-  background-color: $primary-color;
+  background-color: #3b82f6;
   color: white;
   &:hover:not(:disabled) {
-    background-color: darken($primary-color, 10%);
+    background-color: darken(#3b82f6, 10%);
   }
 }
 
