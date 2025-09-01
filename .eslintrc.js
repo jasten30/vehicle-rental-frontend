@@ -9,7 +9,10 @@ module.exports = {
     'eslint:recommended',
   ],
   parserOptions: {
+    // This is the key line.
     parser: '@babel/eslint-parser',
+    // We add this line to tell the parser to not require a babel.config.js file.
+    requireConfigFile: false,
   },
   rules: {
     'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',

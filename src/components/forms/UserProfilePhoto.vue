@@ -52,15 +52,15 @@
 export default {
   name: 'UserProfilePhoto',
   props: {
-    initialProfileImageUrl: {
+    userProfileImageUrl: {
       type: String,
       required: true,
     }
   },
-  emits: ['update:profileImageUrl', 'next', 'prev', 'error'],
+  emits: ['update:userProfileImageUrl', 'next', 'prev', 'error'],
   data() {
     return {
-      profileImageUrl: this.initialProfileImageUrl,
+      profileImageUrl: this.userProfileImageUrl,
       error: '',
     };
   },
@@ -70,7 +70,7 @@ export default {
     }
   },
   watch: {
-    initialProfileImageUrl(newVal) {
+    userProfileImageUrl(newVal) {
       this.profileImageUrl = newVal;
     }
   },
@@ -84,7 +84,7 @@ export default {
         const reader = new FileReader();
         reader.onload = (e) => {
           this.profileImageUrl = e.target.result;
-          this.$emit('update:profileImageUrl', this.profileImageUrl);
+          this.$emit('update:userProfileImageUrl', this.profileImageUrl);
           this.error = '';
         };
         reader.readAsDataURL(file);

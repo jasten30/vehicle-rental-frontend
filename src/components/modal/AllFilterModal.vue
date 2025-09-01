@@ -4,7 +4,9 @@
       <div class="modal">
         <div class="modal-header">
           <h3>Filter Options</h3>
-          <button @click="$emit('close-modal')" class="close-button">&times;</button>
+          <button @click="$emit('close-modal')" class="close-button">
+            &times;
+          </button>
         </div>
         <div class="modal-body">
           <div class="filters-container">
@@ -28,43 +30,75 @@
             <!-- Vehicle Type Filter -->
             <div class="filter-group">
               <label for="vehicleType" class="filter-label">Vehicle Type</label>
-              <select id="vehicleType" v-model="localFilterForm.vehicleType" class="filter-select">
+              <select
+                id="vehicleType"
+                v-model="localFilterForm.vehicleType"
+                class="filter-select"
+              >
                 <option :value="null">All Types</option>
-                <option v-for="type in uniqueTypes" :key="type" :value="type">{{ type }}</option>
+                <option v-for="type in uniqueTypes" :key="type" :value="type">
+                  {{ type }}
+                </option>
               </select>
             </div>
 
             <!-- Make Filter -->
             <div class="filter-group">
               <label for="make" class="filter-label">Make</label>
-              <select id="make" v-model="localFilterForm.make" class="filter-select">
+              <select
+                id="make"
+                v-model="localFilterForm.make"
+                class="filter-select"
+              >
                 <option :value="null">All Makes</option>
-                <option v-for="make in uniqueMakes" :key="make" :value="make">{{ make }}</option>
+                <option v-for="make in uniqueMakes" :key="make" :value="make">
+                  {{ make }}
+                </option>
               </select>
             </div>
 
             <!-- Model Filter (conditionally rendered) -->
             <div class="filter-group" v-if="localFilterForm.make">
               <label for="model" class="filter-label">Model</label>
-              <select id="model" v-model="localFilterForm.model" class="filter-select">
+              <select
+                id="model"
+                v-model="localFilterForm.model"
+                class="filter-select"
+              >
                 <option :value="null">All Models</option>
-                <option v-for="model in uniqueModels" :key="model" :value="model">{{ model }}</option>
+                <option
+                  v-for="model in uniqueModels"
+                  :key="model"
+                  :value="model"
+                >
+                  {{ model }}
+                </option>
               </select>
             </div>
 
             <!-- Year Filter -->
             <div class="filter-group">
               <label for="year" class="filter-label">Year</label>
-              <select id="year" v-model.number="localFilterForm.year" class="filter-select">
+              <select
+                id="year"
+                v-model.number="localFilterForm.year"
+                class="filter-select"
+              >
                 <option :value="null">All Years</option>
-                <option v-for="year in uniqueYears" :key="year" :value="year">{{ year }}</option>
+                <option v-for="year in uniqueYears" :key="year" :value="year">
+                  {{ year }}
+                </option>
               </select>
             </div>
 
             <!-- Seats Filter -->
             <div class="filter-group">
               <label for="seats" class="filter-label">Seats</label>
-              <select id="seats" v-model.number="localFilterForm.seats" class="filter-select">
+              <select
+                id="seats"
+                v-model.number="localFilterForm.seats"
+                class="filter-select"
+              >
                 <option :value="null">Any</option>
                 <option value="4">4 seats</option>
                 <option value="5">5 seats</option>
@@ -100,9 +134,22 @@
                 @click="updateSort(localSortForm.key, 'asc')"
                 class="sort-button"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1z" clip-rule="evenodd" />
-                  <path fill-rule="evenodd" d="M10 3a1 1 0 011-1h6a1 1 0 011 1v12a1 1 0 11-2 0V4h-4zM10 3a1 1 0 011-1H4a1 1 0 011 1v12a1 1 0 11-2 0V4h4z" clip-rule="evenodd" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1z"
+                    clip-rule="evenodd"
+                  />
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 3a1 1 0 011-1h6a1 1 0 011 1v12a1 1 0 11-2 0V4h-4zM10 3a1 1 0 011-1H4a1 1 0 011 1v12a1 1 0 11-2 0V4h4z"
+                    clip-rule="evenodd"
+                  />
                 </svg>
                 Ascending
               </button>
@@ -111,9 +158,22 @@
                 @click="updateSort(localSortForm.key, 'desc')"
                 class="sort-button"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 rotate-180" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1z" clip-rule="evenodd" />
-                  <path fill-rule="evenodd" d="M10 3a1 1 0 011-1h6a1 1 0 011 1v12a1 1 0 11-2 0V4h-4zM10 3a1 1 0 011-1H4a1 1 0 011 1v12a1 1 0 11-2 0V4h4z" clip-rule="evenodd" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5 rotate-180"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1z"
+                    clip-rule="evenodd"
+                  />
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 3a1 1 0 011-1h6a1 1 0 011 1v12a1 1 0 11-2 0V4h-4zM10 3a1 1 0 011-1H4a1 1 0 011 1v12a1 1 0 11-2 0V4h4z"
+                    clip-rule="evenodd"
+                  />
                 </svg>
                 Descending
               </button>
@@ -129,7 +189,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, reactive, computed, watch } from 'vue';
+import { defineProps, defineEmits, reactive, computed, watch } from "vue";
 
 const props = defineProps({
   show: Boolean,
@@ -139,31 +199,47 @@ const props = defineProps({
   maxPrice: Number,
 });
 
-const emit = defineEmits(['close-modal', 'reset-filters', 'update:sort-key', 'update:sort-order', 'update:filter-form']);
+const emit = defineEmits([
+  "close-modal",
+  "reset-filters",
+  "update:sort-key",
+  "update:sort-order",
+  "update:filter-form",
+]);
 
 // Use reactive clones of props to avoid mutating them directly
 const localFilterForm = reactive({ ...props.filterForm });
 const localSortForm = reactive({ ...props.sortForm });
 
 // Watch for prop changes and update local state
-watch(() => props.filterForm, (newVal) => {
-  Object.assign(localFilterForm, newVal);
-}, { deep: true });
+watch(
+  () => props.filterForm,
+  (newVal) => {
+    Object.assign(localFilterForm, newVal);
+  },
+  { deep: true }
+);
 
-watch(() => props.sortForm, (newVal) => {
-  Object.assign(localSortForm, newVal);
-}, { deep: true });
+watch(
+  () => props.sortForm,
+  (newVal) => {
+    Object.assign(localSortForm, newVal);
+  },
+  { deep: true }
+);
 
 // Computed properties for dropdown options
 const uniqueTypes = computed(() => {
   if (!props.allVehicles) return [];
-  const types = new Set(props.allVehicles.map(v => v.type));
+  const types = new Set(
+    props.allVehicles.map((v) => v.vehicleType).filter(Boolean)
+  );
   return Array.from(types).sort();
 });
 
 const uniqueMakes = computed(() => {
   if (!props.allVehicles) return [];
-  const makes = new Set(props.allVehicles.map(v => v.make));
+  const makes = new Set(props.allVehicles.map((v) => v.make));
   return Array.from(makes).sort();
 });
 
@@ -171,33 +247,37 @@ const uniqueModels = computed(() => {
   if (!props.allVehicles || !localFilterForm.make) return [];
   const models = new Set(
     props.allVehicles
-      .filter(v => v.make === localFilterForm.make)
-      .map(v => v.model)
+      .filter((v) => v.make === localFilterForm.make)
+      .map((v) => v.model)
   );
   return Array.from(models).sort();
 });
 
 const uniqueYears = computed(() => {
   if (!props.allVehicles) return [];
-  const years = new Set(props.allVehicles.map(v => v.year));
+  const years = new Set(props.allVehicles.map((v) => v.year));
   return Array.from(years).sort((a, b) => b - a);
 });
 
 // Watch local form changes and emit updates to parent
-watch(localFilterForm, (newVal) => {
-  emit('update:filter-form', newVal);
-}, { deep: true });
+watch(
+  localFilterForm,
+  (newVal) => {
+    emit("update:filter-form", newVal);
+  },
+  { deep: true }
+);
 
 // Function to handle sort updates
 const updateSort = (key, order) => {
   localSortForm.key = key;
   localSortForm.order = order;
-  emit('update:sort-key', key);
-  emit('update:sort-order', order);
+  emit("update:sort-key", key);
+  emit("update:sort-order", order);
 };
 
 const handleReset = () => {
-  emit('reset-filters');
+  emit("reset-filters");
 };
 </script>
 
@@ -264,7 +344,10 @@ const handleReset = () => {
 
 .filters-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Adjusted grid columns for smaller size */
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(180px, 1fr)
+  ); /* Adjusted grid columns for smaller size */
   gap: 0.75rem; /* Reduced gap */
 }
 
@@ -274,7 +357,8 @@ const handleReset = () => {
   gap: 0.25rem; /* Reduced gap */
 }
 
-.filter-label, .sort-label {
+.filter-label,
+.sort-label {
   font-weight: 600;
   color: #4a5568;
   font-size: 0.875rem;
@@ -321,7 +405,8 @@ const handleReset = () => {
   gap: 0.75rem; /* Reduced gap */
 }
 
-.sort-controls, .sort-order {
+.sort-controls,
+.sort-order {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;

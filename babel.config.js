@@ -1,3 +1,9 @@
+// This file is the default configuration for Babel in a Vue project.
 module.exports = {
-  presets: ["@vue/cli-plugin-babel/preset"],
+  // Use a preset to transform modern JavaScript features.
+  // The '@vue/cli-plugin-babel/preset' handles all the necessary
+  // transformations for Vue development.
+  presets: [
+    '@vue/cli-plugin-babel/preset'
+  ]
 };

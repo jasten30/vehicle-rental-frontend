@@ -69,12 +69,7 @@
 <script>
 /* global L:readonly */
 
-// A mock addresses object to replace the imported file.
-const cebuAddresses = {
-    'Cebu City': ['Apas', 'Banilad', 'Barangay 1', 'Barangay 2'],
-    'Mandaue City': ['Subangdaku', 'Tipolo', 'Maguikay'],
-    'Lapu-Lapu City': ['Basak', 'Pajo', 'Pusok'],
-};
+import { cebuAddresses } from '@/assets/data/cebu-addresses';
 
 export default {
   name: 'VehicleLocation',

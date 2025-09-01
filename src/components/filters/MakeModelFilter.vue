@@ -1,7 +1,11 @@
 <!-- src/components/filters/MakeModelFilters.vue -->
 <template>
   <div>
-    <button @click="$emit('toggle-dropdown')" class="dropdown-button" :class="{ active: isActive }">
+    <button
+      @click="$emit('toggle-dropdown')"
+      class="dropdown-button"
+      :class="{ active: isActive }"
+    >
       Make & Model
       <span class="dropdown-arrow">▼</span>
     </button>
@@ -26,14 +30,18 @@
         </select>
       </div>
 
-      <ResultsSummary :filtered-count="filteredCount" :total-count="totalCount" @reset="$emit('reset')" />
+      <ResultsSummary
+        :filtered-count="filteredCount"
+        :total-count="totalCount"
+        @reset="$emit('reset')"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, defineProps, defineEmits } from 'vue';
-import ResultsSummary from '@/components/common/ResultsSummary.vue';
+import { ref, computed, watch, defineProps, defineEmits } from "vue";
+import ResultsSummary from "@/components/common/ResultsSummary.vue";
 
 const props = defineProps({
   selectedMake: {
@@ -62,13 +70,18 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:make', 'update:model', 'reset', 'toggle-dropdown']);
+const emit = defineEmits([
+  "update:make",
+  "update:model",
+  "reset",
+  "toggle-dropdown",
+]);
 
 const selectedMake = ref(props.selectedMake);
 const selectedModel = ref(props.selectedModel);
 
 const uniqueMakes = computed(() => {
-  const makes = new Set(props.allVehicles.map(v => v.make));
+  const makes = new Set(props.allVehicles.map((v) => v.make));
   return [...makes].sort();
 });
 
@@ -78,22 +91,22 @@ const uniqueModels = computed(() => {
   }
   const models = new Set(
     props.allVehicles
-      .filter(v => v.make === selectedMake.value)
-      .map(v => v.model)
+      .filter((v) => v.make === selectedMake.value)
+      .map((v) => v.model)
   );
   return [...models].sort();
 });
 
 // Watch for changes to selectedMake and emit the update event.
 watch(selectedMake, (newMake) => {
-  emit('update:make', newMake);
+  emit("update:make", newMake);
   // Reset the selected model when the make changes
   selectedModel.value = null;
 });
 
 // Watch for changes to selectedModel and emit the update event.
 watch(selectedModel, (newModel) => {
-  emit('update:model', newModel);
+  emit("update:model", newModel);
 });
 </script>
 

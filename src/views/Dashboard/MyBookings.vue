@@ -1,4 +1,3 @@
-<!-- frontend/src/views/Dashboard/MyBookings.vue -->
 <template>
   <div class="my-bookings-container">
     <h2 class="section-title">My Bookings</h2>
@@ -9,30 +8,57 @@
 
     <div v-else-if="errorMessage" class="error-message">
       <p>{{ errorMessage }}</p>
-      <button @click="fetchBookings" class="button primary-button">Retry Load Bookings</button>
+      <button @click="fetchBookings" class="button primary-button">
+        Retry Load Bookings
+      </button>
     </div>
 
     <div v-else-if="bookings.length === 0" class="no-bookings-message">
       <p>You have no active or past bookings.</p>
-      <router-link to="/vehicles" class="button primary-button">Browse Vehicles</router-link>
+      <router-link to="/vehicles" class="button primary-button"
+        >Browse Vehicles</router-link
+      >
     </div>
 
     <div v-else class="bookings-list">
       <div v-for="booking in bookings" :key="booking.id" class="booking-card">
         <div class="card-header">
           <h3 class="booking-id">Booking ID: {{ booking.id }}</h3>
-          <span :class="getStatusClass(booking.paymentStatus)">{{ formatStatus(booking.paymentStatus) }}</span>
+          <span :class="getStatusClass(booking.paymentStatus)">{{
+            formatStatus(booking.paymentStatus)
+          }}</span>
         </div>
         <div class="card-body">
           <!-- ADDED v-if="booking.vehicleDetails" here -->
           <div v-if="booking.vehicleDetails" class="vehicle-summary">
-            <img :src="booking.vehicleDetails.imageUrl || getPlaceholderImage(100, 75, 'cccccc', '333333', 'No Image')"
-                 :alt="`${booking.vehicleDetails.make} ${booking.vehicleDetails.model}`"
-                 class="vehicle-thumbnail"
-                 @error="booking.vehicleDetails.imageUrl = getPlaceholderImage(100, 75, 'cccccc', '333333', 'No Image')">
+            <img
+              :src="
+                booking.vehicleDetails.imageUrl ||
+                getPlaceholderImage(100, 75, 'cccccc', '333333', 'No Image')
+              "
+              :alt="`${booking.vehicleDetails.make} ${booking.vehicleDetails.model}`"
+              class="vehicle-thumbnail"
+              @error="
+                booking.vehicleDetails.imageUrl = getPlaceholderImage(
+                  100,
+                  75,
+                  'cccccc',
+                  '333333',
+                  'No Image'
+                )
+              "
+            />
             <div class="vehicle-text">
-              <h4>{{ booking.vehicleDetails.make }} {{ booking.vehicleDetails.model }} ({{ booking.vehicleDetails.year }})</h4>
-              <p><strong>Dates:</strong> {{ formatDate(booking.startDate) }} - {{ formatDate(booking.endDate) }}</p>
+              <h4>
+                {{ booking.vehicleDetails.make }}
+                {{ booking.vehicleDetails.model }} ({{
+                  booking.vehicleDetails.year
+                }})
+              </h4>
+              <p>
+                <strong>Dates:</strong> {{ formatDate(booking.startDate) }} -
+                {{ formatDate(booking.endDate) }}
+              </p>
               <p><strong>Total Cost:</strong> ₱{{ booking.totalCost }}</p>
             </div>
           </div>
@@ -42,7 +68,12 @@
           </div>
         </div>
         <div class="card-actions">
-          <button @click="viewDetails(booking.id)" class="button secondary-button">View Details</button>
+          <button
+            @click="viewDetails(booking.id)"
+            class="button secondary-button"
+          >
+            View Details
+          </button>
           <!-- Conditional actions based on status -->
           <button
             v-if="canCancel(booking.paymentStatus)"
@@ -69,11 +100,11 @@
 </template>
 
 <script>
-import { mapActions, mapGetters } from 'vuex';
-import { DateTime } from 'luxon';
+import { mapActions, mapGetters } from "vuex";
+import { DateTime } from "luxon";
 
 export default {
-  name: 'MyBookingsView',
+  name: "MyBookingsView",
   data() {
     return {
       loading: true,
@@ -84,56 +115,87 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(['user']), // Access the current user from Vuex
+    ...mapGetters(["user"]), // Access the current user from Vuex
+  },
+  watch: {
+    // Watch for changes to the 'user' getter from the Vuex store
+    user(newUser) {
+      // When the user object is not null and has a UID, we can fetch the bookings
+      if (newUser && newUser.uid) {
+        this.fetchBookings();
+      }
+    },
   },
   created() {
-    this.fetchBookings();
+    // We no longer fetch immediately. The `watch` will handle the initial fetch
+    // once the user object is populated by the authentication listener.
+    // If the user is already authenticated on page load, the watcher will trigger.
+    // Otherwise, it will wait for the user to be signed in.
   },
   methods: {
-    ...mapActions(['fetchBookingsByUser', 'cancelBooking', 'confirmManualQrPayment']),
+    ...mapActions([
+      "fetchBookingsByUser",
+      "cancelBooking",
+      "confirmManualQrPayment",
+    ]),
 
     getPlaceholderImage(width, height, bgColor, textColor, text) {
       return `https://placehold.co/${width}x${height}/${bgColor}/${textColor}?text=${text}`;
     },
     formatDate(isoString) {
-      if (!isoString) return 'N/A';
+      if (!isoString) return "N/A";
       const date = DateTime.fromISO(isoString);
       return date.toLocaleString(DateTime.DATE_FULL);
     },
     formatStatus(status) {
       switch (status) {
-        case 'pending_cash_downpayment': return 'Pending Cash Downpayment';
-        case 'awaiting_qr_downpayment': return 'Awaiting QR Downpayment';
-        case 'qr_downpayment_confirmed_by_user': return 'QR Downpayment Confirmed (Awaiting Verification)';
-        case 'downpayment_received': return 'Downpayment Received';
-        case 'full_payment_received': return 'Full Payment Received';
-        case 'cancelled_no_downpayment': return 'Cancelled (No Downpayment)';
-        case 'cancelled_by_user_after_grace_period': return 'Cancelled (Downpayment Forfeited)';
-        case 'cancelled_within_grace_period': return 'Cancelled (Refund Eligible)';
-        case 'refunded': return 'Refunded';
-        default: return status;
+        case "pending_cash_downpayment":
+          return "Pending Cash Downpayment";
+        case "awaiting_qr_downpayment":
+          return "Awaiting QR Downpayment";
+        case "qr_downpayment_confirmed_by_user":
+          return "QR Downpayment Confirmed (Awaiting Verification)";
+        case "downpayment_received":
+          return "Downpayment Received";
+        case "full_payment_received":
+          return "Full Payment Received";
+        case "cancelled_no_downpayment":
+          return "Cancelled (No Downpayment)";
+        case "cancelled_by_user_after_grace_period":
+          return "Cancelled (Downpayment Forfeited)";
+        case "cancelled_within_grace_period":
+          return "Cancelled (Refund Eligible)";
+        case "refunded":
+          return "Refunded";
+        default:
+          return status;
       }
     },
     getStatusClass(status) {
       switch (status) {
-        case 'downpayment_received':
-        case 'full_payment_received': return 'status-success';
-        case 'pending_cash_downpayment':
-        case 'awaiting_qr_downpayment':
-        case 'qr_downpayment_confirmed_by_user': return 'status-pending';
-        case 'cancelled_no_downpayment':
-        case 'cancelled_by_user_after_grace_period': return 'status-cancelled';
-        case 'cancelled_within_grace_period':
-        case 'refunded': return 'status-info';
-        default: return 'status-default';
+        case "downpayment_received":
+        case "full_payment_received":
+          return "status-success";
+        case "pending_cash_downpayment":
+        case "awaiting_qr_downpayment":
+        case "qr_downpayment_confirmed_by_user":
+          return "status-pending";
+        case "cancelled_no_downpayment":
+        case "cancelled_by_user_after_grace_period":
+          return "status-cancelled";
+        case "cancelled_within_grace_period":
+        case "refunded":
+          return "status-info";
+        default:
+          return "status-default";
       }
     },
     canCancel(status) {
       const cancellableStatuses = [
-        'pending_cash_downpayment',
-        'awaiting_qr_downpayment',
-        'qr_downpayment_confirmed_by_user',
-        'downpayment_received'
+        "pending_cash_downpayment",
+        "awaiting_qr_downpayment",
+        "qr_downpayment_confirmed_by_user",
+        "downpayment_received",
       ];
       return cancellableStatuses.includes(status);
     },
@@ -143,52 +205,64 @@ export default {
       this.bookings = [];
       try {
         if (!this.user || !this.user.uid) {
+          // This case should now be handled by the watcher, but it's good practice
+          // to keep a check here as a guardrail.
           throw new Error("User not authenticated or UID not available.");
         }
         const fetchedBookings = await this.fetchBookingsByUser(this.user.uid);
         this.bookings = fetchedBookings;
-        console.log('[MyBookings] Fetched bookings:', this.bookings);
+        console.log("[MyBookings] Fetched bookings:", this.bookings);
       } catch (error) {
-        console.error('[MyBookings] Error fetching bookings:', error);
-        this.errorMessage = error.message || 'Failed to load your bookings. Please try again.';
+        console.error("[MyBookings] Error fetching bookings:", error);
+        this.errorMessage =
+          error.message || "Failed to load your bookings. Please try again.";
       } finally {
         this.loading = false;
       }
     },
     viewDetails(bookingId) {
-      console.log(`[MyBookings] Navigating to booking details for ID: ${bookingId}`);
-      this.$router.push({ name: 'BookingDetails', params: { bookingId: bookingId } });
+      console.log(
+        `[MyBookings] Navigating to booking details for ID: ${bookingId}`
+      );
+      this.$router.push({
+        name: "BookingDetails",
+        params: { bookingId: bookingId },
+      });
     },
     async attemptCancelBooking(bookingId) {
-      if (confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
-        this.cancellingBooking = bookingId;
-        this.errorMessage = null;
-        try {
-          const response = await this.cancelBooking(bookingId);
-          alert(response.message);
-          this.fetchBookings(); // Re-fetch bookings to update status
-        } catch (error) {
-          console.error('[MyBookings] Error cancelling booking:', error);
-          this.errorMessage = error.response?.data?.message || 'Failed to cancel booking. Please try again.';
-        } finally {
-          this.cancellingBooking = null;
-        }
+      // In a real application, you would replace this with a custom modal UI.
+      console.log("Attempting to cancel booking:", bookingId);
+      this.cancellingBooking = bookingId;
+      this.errorMessage = null;
+      try {
+        const response = await this.cancelBooking(bookingId);
+        console.log("Booking cancelled:", response.message);
+        this.fetchBookings(); // Re-fetch bookings to update status
+      } catch (error) {
+        console.error("[MyBookings] Error cancelling booking:", error);
+        this.errorMessage =
+          error.response?.data?.message ||
+          "Failed to cancel booking. Please try again.";
+      } finally {
+        this.cancellingBooking = null;
       }
     },
     async confirmQrPayment(bookingId) {
-      if (confirm('Are you sure you want to confirm you have paid via QR? This will be subject to verification.')) {
-        this.confirmingQr = bookingId;
-        this.errorMessage = null;
-        try {
-          const response = await this.confirmManualQrPayment(bookingId);
-          alert(response.message);
-          this.fetchBookings(); // Re-fetch bookings to update status
-        } catch (error) {
-          console.error('[MyBookings] Error confirming QR payment:', error);
-          this.errorMessage = error.response?.data?.message || 'Failed to confirm QR payment. Please try again.';
-        } finally {
-          this.confirmingQr = null;
-        }
+      // In a real application, you would replace this with a custom modal UI.
+      console.log("Attempting to confirm QR payment for booking:", bookingId);
+      this.confirmingQr = bookingId;
+      this.errorMessage = null;
+      try {
+        const response = await this.confirmManualQrPayment(bookingId);
+        console.log("QR payment confirmed:", response.message);
+        this.fetchBookings(); // Re-fetch bookings to update status
+      } catch (error) {
+        console.error("[MyBookings] Error confirming QR payment:", error);
+        this.errorMessage =
+          error.response?.data?.message ||
+          "Failed to confirm QR payment. Please try again.";
+      } finally {
+        this.confirmingQr = null;
       }
     },
   },
@@ -196,7 +270,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../assets/styles/variables.scss';
+@import "../../assets/styles/variables.scss";
 
 .my-bookings-container {
   padding: 1.5rem;
@@ -212,7 +286,9 @@ export default {
   text-align: center;
 }
 
-.loading-message, .error-message, .no-bookings-message {
+.loading-message,
+.error-message,
+.no-bookings-message {
   text-align: center;
   padding: 2rem;
   font-size: 1.1rem;
@@ -315,7 +391,9 @@ export default {
   border-radius: $border-radius-md;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
   text-decoration: none;
   display: inline-flex;
   align-items: center;

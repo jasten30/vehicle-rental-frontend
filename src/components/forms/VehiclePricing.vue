@@ -58,7 +58,7 @@
         class="button primary-button"
         :disabled="!isValid"
       >
-        Next: Vehicle Photos
+        Next
       </button>
     </div>
 

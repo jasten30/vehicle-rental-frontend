@@ -1,4 +1,3 @@
-<!-- frontend/src/views/Dashboard/Owner/OwnerVehiclesView.vue -->
 <template>
   <div class="owner-vehicles-container">
     <h2 class="section-title">My Listings</h2>
@@ -7,18 +6,46 @@
     </div>
     <div v-else-if="errorMessage" class="error-message">
       <p>{{ errorMessage }}</p>
-      <button @click="fetchOwnerVehicles" class="button primary-button">Retry Load Vehicles</button>
+      <button @click="fetchOwnerVehicles" class="button primary-button">
+        Retry Load Vehicles
+      </button>
     </div>
-    <div v-else-if="!vehicles || vehicles.length === 0" class="no-vehicles-message">
-      <div style="color: #333 !important; font-size: 1rem !important; margin-bottom: 1rem;">You haven't listed any vehicles yet.</div>
-      <button @click="goToAddVehicle" class="button primary-button">Add New Vehicle</button>
+    <div
+      v-else-if="!vehicles || vehicles.length === 0"
+      class="no-vehicles-message"
+    >
+      <div
+        style="
+          color: #333 !important;
+          font-size: 1rem !important;
+          margin-bottom: 1rem;
+        "
+      >
+        You haven't listed any vehicles yet.
+      </div>
+      <button @click="goToAddVehicle" class="button primary-button">
+        Add New Vehicle
+      </button>
     </div>
     <div v-else class="vehicle-list">
       <div v-for="vehicle in vehicles" :key="vehicle.id" class="vehicle-card">
-        <img :src="vehicle.imageUrl || getPlaceholderImage(200, 150, 'cccccc', '333333', 'No Image')"
+        <img
+          :src="
+            vehicle.imageUrl ||
+            getPlaceholderImage(200, 150, 'cccccc', '333333', 'No Image')
+          "
           :alt="`${vehicle.make} ${vehicle.model}`"
           class="vehicle-image"
-          @error="vehicle.imageUrl = getPlaceholderImage(200, 150, 'cccccc', '333333', 'No Image')">
+          @error="
+            vehicle.imageUrl = getPlaceholderImage(
+              200,
+              150,
+              'cccccc',
+              '333333',
+              'No Image'
+            )
+          "
+        />
         <div class="vehicle-details">
           <h3>{{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})</h3>
           <p><strong>License Plate:</strong> {{ vehicle.licensePlate }}</p>
@@ -27,20 +54,35 @@
           <p><strong>Status:</strong> {{ vehicle.status }}</p>
         </div>
         <div class="vehicle-actions">
-          <button @click="editVehicle(vehicle.id)" class="button secondary-button">Edit</button>
-          <button @click="deleteVehicle(vehicle.id)" class="button cancel-button">Delete</button>
+          <button
+            @click="editVehicle(vehicle.id)"
+            class="button secondary-button"
+          >
+            Edit
+          </button>
+          <button
+            @click="deleteVehicle(vehicle.id)"
+            class="button cancel-button"
+          >
+            Delete
+          </button>
         </div>
       </div>
-      <button @click="goToAddVehicle" class="button primary-button add-new-button">Add New Vehicle</button>
+      <button
+        @click="goToAddVehicle"
+        class="button primary-button add-new-button"
+      >
+        Add New Vehicle
+      </button>
     </div>
   </div>
 </template>
 
 <script>
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { getAuth } from "firebase/auth";
 
 export default {
-  name: 'OwnerVehiclesView',
+  name: "OwnerVehiclesView",
   data() {
     return {
       loading: true,
@@ -49,62 +91,77 @@ export default {
     };
   },
   created() {
-    const auth = getAuth();
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        this.fetchOwnerVehicles(user);
-      } else {
-        this.loading = false;
-        this.errorMessage = "You must be logged in to view your listings.";
-      }
-    });
+    // The router guard now ensures the user is logged in.
+    // We can directly call the fetch method.
+    this.fetchOwnerVehicles();
   },
   methods: {
     getPlaceholderImage(width, height, bgColor, textColor, text) {
       return `https://placehold.co/${width}x${height}/${bgColor}/${textColor}?text=${text}`;
     },
-    async fetchOwnerVehicles(user) {
+    async fetchOwnerVehicles() {
       this.loading = true;
       this.errorMessage = null;
       try {
+        const auth = getAuth();
+        const user = auth.currentUser;
+
         if (!user || !user.uid) {
           throw new Error("User not authenticated or UID not available.");
         }
+
+        // The token should now be up-to-date thanks to the router guard.
         const userAuthToken = await user.getIdToken();
-        const response = await fetch('http://localhost:5001/api/vehicles/my-listings', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${userAuthToken}`
+
+        const response = await fetch(
+          "http://localhost:5001/api/vehicles/my-listings",
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${userAuthToken}`,
+            },
           }
-        });
+        );
+
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
+
         const fetchedVehicles = await response.json();
         this.vehicles = fetchedVehicles;
-        console.log('[OwnerVehiclesView] Fetched owner vehicles:', this.vehicles);
+        console.log(
+          "[OwnerVehiclesView] Fetched owner vehicles:",
+          this.vehicles
+        );
       } catch (error) {
-        console.error('[OwnerVehiclesView] Error fetching owner vehicles:', error);
-        this.errorMessage = error.message || 'Failed to load your vehicle listings. Please try again.';
+        console.error(
+          "[OwnerVehiclesView] Error fetching owner vehicles:",
+          error
+        );
+        this.errorMessage =
+          error.message ||
+          "Failed to load your vehicle listings. Please try again.";
       } finally {
         this.loading = false;
       }
     },
     goToAddVehicle() {
-      this.$router.push('/dashboard/owner/vehicles/add');
+      this.$router.push("/dashboard/owner/vehicles/add");
     },
     editVehicle(vehicleId) {
       this.$router.push(`/dashboard/owner/vehicles/edit/${vehicleId}`);
     },
     deleteVehicle(vehicleId) {
-      console.log(`[OwnerVehiclesView] Attempting to delete vehicle with ID: ${vehicleId}`);
+      console.log(
+        `[OwnerVehiclesView] Attempting to delete vehicle with ID: ${vehicleId}`
+      );
     },
   },
 };
 </script>
 
 <style lang="scss" scoped>
-@import '../../../assets/styles/variables.scss';
+@import "../../../assets/styles/variables.scss";
 
 .owner-vehicles-container {
   padding: 1.5rem;
@@ -118,7 +175,9 @@ export default {
   margin-bottom: 1.5rem;
   text-align: center;
 }
-.loading-message, .error-message, .no-vehicles-message {
+.loading-message,
+.error-message,
+.no-vehicles-message {
   text-align: center;
   padding: 2rem;
   font-size: 1.1rem;
@@ -186,7 +245,9 @@ export default {
   border-radius: $border-radius-md;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
   text-decoration: none;
   display: inline-flex;
   align-items: center;

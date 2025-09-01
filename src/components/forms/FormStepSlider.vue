@@ -6,7 +6,7 @@
       </span>
       <span class="next-step">
         Next: {{ nextStepLabel }} |
-        <a href="#" @click.prevent="$emit('startOver')">Start over</a>
+        <a href="#" @click.prevent="$emit('start-over')">Start over</a>
       </span>
     </div>
 
@@ -30,20 +30,21 @@ export default {
   },
   data() {
     return {
-      totalSteps: 12, // Based on your previous code
+      totalSteps: 12,
       stepLabels: {
-        1: 'Profile photo', // The label for the next step (step 2)
+        1: 'Vehicle Location',
         2: 'Vehicle COR',
         3: 'Vehicle OR',
-        4: 'Drivers License',
-        5: 'Mobile and QR',
-        6: 'Vehicle Availability',
-        7: 'Vehicle Details',
-        8: 'Vehicle Pricing',
-        9: 'Vehicle Safety',
-        10: 'Vehicle Photos',
-        11: 'Submit Listing',
-        12: 'Submission Complete'
+        4: 'User Profile Photo',
+        5: 'Drivers License',
+        6: 'User Mobile & QR',
+        7: 'Vehicle Availability',
+        8: 'Vehicle Details',
+        9: 'Vehicle Pricing',
+        10: 'Vehicle Safety',
+        11: 'Vehicle Photos',
+        12: 'Submit Listing',
+        13: 'Submission Complete'
       }
     };
   },

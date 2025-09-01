@@ -1,108 +1,97 @@
-<!-- vehicle-rental-frontend/src/App.vue - Root component of your Vue application -->
 <template>
   <div id="app" class="app-container">
     <header class="app-header">
-      <!-- Left side: Logo now a link to home -->
       <router-link to="/" class="app-title-link">
         <h1 class="app-title">
-          <span class="rent-text">RENT</span><span class="cycle-text">CYCLE</span>
+          <span class="rent-text">RENT</span
+          ><span class="cycle-text">CYCLE</span>
         </h1>
       </router-link>
-
-      <!-- Center: Conditional Search Bar for the VehicleList page -->
-      <div class="header-center">
-        <!-- The search bar is now conditionally displayed -->
-        <div v-if="$route.name === 'VehicleList'" class="search-bar header-search-bar">
-          <div class="search-field where-field">
-            <label for="location-input">Where</label>
-            <input id="location-input" type="text" v-model="location" placeholder="Anywhere" class="search-input">
-          </div>
-          <div class="search-divider"></div>
-          <div class="search-field dates-field from-field">
-            <label>From</label>
-            <div class="date-time-group">
-              <div class="date-select" @click="isPickerVisible = true">
-                <span class="date-placeholder">{{ fromDate || 'Select Date' }}</span>
-              </div>
-              <select v-model="fromTime" class="time-select" @click.stop>
-                <option v-for="time in timeOptions" :key="time" :value="time">{{ time }}</option>
-              </select>
-            </div>
-          </div>
-          <div class="search-divider"></div>
-          <div class="search-field dates-field until-field">
-            <label>Until</label>
-            <div class="date-time-group">
-              <div class="date-select" @click="isPickerVisible = true">
-                <span class="date-placeholder">{{ untilDate || 'Select Date' }}</span>
-              </div>
-              <select v-model="untilTime" class="time-select" @click.stop>
-                <option v-for="time in timeOptions" :key="time" :value="time">{{ time }}</option>
-              </select>
-            </div>
-          </div>
-          <button class="search-button" @click="searchVehicles">
-            <i class="bi bi-search"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Right side: Buttons and Dropdown -->
+      <!-- New Navigation buttons in the center -->
+      <nav class="header-nav">
+        <router-link to="/" class="nav-link">Home</router-link>
+        <router-link to="/vehicles" class="nav-link">Vehicles</router-link>
+        <router-link to="/about" class="nav-link">About</router-link>
+        <router-link to="/contact" class="nav-link">Contact</router-link>
+      </nav>
       <div class="header-right">
-        <!-- The 'Become a host' button is now displayed on all pages except VehicleList -->
-        <router-link to="/dashboard/owner/vehicles" v-if="$route.name !== 'VehicleList'" class="become-host-button">
+        <router-link
+          to="/dashboard/owner/vehicles"
+          v-if="$route.name !== 'VehicleList'"
+          class="become-host-button"
+        >
           Become a host
         </router-link>
-
-        <!-- Combined hamburger and avatar button with dropdown -->
         <div class="user-menu-container">
-          <!-- Ref added to the button to check for clicks -->
           <button class="menu-button" @click="toggleMenu" ref="menuButton">
-            <!-- Bootstrap icons -->
             <i class="bi bi-list menu-icon"></i>
             <i class="bi bi-person-circle avatar-icon"></i>
           </button>
-
-          <!-- Dropdown Menu with transition -->
           <transition name="dropdown-fade">
             <div v-if="isMenuOpen" class="dropdown-menu" ref="dropdownMenu">
               <div v-if="!isAuthenticated" class="dropdown-section">
-                <router-link to="/login" class="dropdown-item" @click="closeMenu">Login</router-link>
-                <router-link to="/register" class="dropdown-item" @click="closeMenu">Sign up</router-link>
+                <router-link
+                  to="/login"
+                  class="dropdown-item"
+                  @click="closeMenu"
+                  >Login</router-link
+                >
+                <router-link
+                  to="/register"
+                  class="dropdown-item"
+                  @click="closeMenu"
+                  >Sign up</router-link
+                >
               </div>
-              
-              <hr v-if="!isAuthenticated" class="dropdown-divider">
-
-              <!-- Logged-in Menu -->
+              <hr v-if="!isAuthenticated" class="dropdown-divider" />
               <div v-if="isAuthenticated" class="dropdown-section">
-                <router-link to="/favorites" class="dropdown-item with-icon" @click="closeMenu">
+                <router-link
+                  to="/favorites"
+                  class="dropdown-item with-icon"
+                  @click="closeMenu"
+                >
                   <i class="bi bi-heart-fill"></i>Favorites
                 </router-link>
-                <router-link to="/dashboard/my-bookings" class="dropdown-item with-icon" @click="closeMenu">
+                <router-link
+                  to="/dashboard/my-bookings"
+                  class="dropdown-item with-icon"
+                  @click="closeMenu"
+                >
                   <i class="bi bi-briefcase-fill"></i>Trips
                 </router-link>
-                <router-link to="/inbox" class="dropdown-item with-icon" @click="closeMenu">
+                <router-link
+                  to="/inbox"
+                  class="dropdown-item with-icon"
+                  @click="closeMenu"
+                >
                   <i class="bi bi-envelope-fill"></i>Inbox
                 </router-link>
               </div>
-
-              <hr v-if="isAuthenticated" class="dropdown-divider">
-
+              <hr v-if="isAuthenticated" class="dropdown-divider" />
               <div v-if="isAuthenticated" class="dropdown-section">
-                <router-link to="/profile" class="dropdown-item with-icon" @click="closeMenu">
+                <router-link
+                  to="/profile"
+                  class="dropdown-item with-icon"
+                  @click="closeMenu"
+                >
                   <i class="bi bi-person-fill"></i>Profile
                 </router-link>
-                <router-link to="/account" class="dropdown-item with-icon" @click="closeMenu">
+                <router-link
+                  to="/account"
+                  class="dropdown-item with-icon"
+                  @click="closeMenu"
+                >
                   <i class="bi bi-gear-fill"></i>Account
                 </router-link>
-                <router-link to="/dashboard/owner/vehicles" class="dropdown-item with-icon" @click="closeMenu">
+                <router-link
+                  to="/dashboard/owner/vehicles"
+                  class="dropdown-item with-icon"
+                  @click="closeMenu"
+                >
                   <i class="bi bi-car-front-fill"></i>Become A Host
                 </router-link>
               </div>
-
-              <hr v-if="isAuthenticated" class="dropdown-divider">
-              
-              <!-- Always visible section -->
+              <hr v-if="isAuthenticated" class="dropdown-divider" />
               <div class="dropdown-section">
                 <router-link to="#" class="dropdown-item with-icon">
                   <i class="bi bi-key"></i>How RentCycle Works
@@ -117,11 +106,12 @@
                   <i class="bi bi-file-earmark-text"></i>Legal
                 </router-link>
               </div>
-
-              <hr v-if="isAuthenticated" class="dropdown-divider">
-              
+              <hr v-if="isAuthenticated" class="dropdown-divider" />
               <div v-if="isAuthenticated" class="dropdown-section">
-                <button @click="handleLogout" class="dropdown-item with-icon logout-button">
+                <button
+                  @click="handleLogout"
+                  class="dropdown-item with-icon logout-button"
+                >
                   <i class="bi bi-box-arrow-right"></i>Logout
                 </button>
               </div>
@@ -130,13 +120,11 @@
         </div>
       </div>
     </header>
-
     <main class="app-content">
       <router-view />
     </main>
-    
-    <!-- The DateRangePicker component, now placed in App.vue and conditionally displayed -->
-    <DateRangePicker v-if="isPickerVisible && $route.name === 'VehicleList'"
+    <DateRangePicker
+      v-if="isPickerVisible && $route.name === 'VehicleList'"
       @dates-selected="handleDatesSelected"
       @close-picker="isPickerVisible = false"
       :initialFromDate="fromDate"
@@ -148,7 +136,6 @@
 <script>
 import { mapGetters, mapActions } from "vuex";
 import DateRangePicker from "./components/HomeViewComponents/DateRangePicker.vue";
-
 export default {
   name: "App",
   components: {
@@ -158,26 +145,24 @@ export default {
     return {
       isMenuOpen: false,
       isPickerVisible: false,
-      // Added search bar data properties from HomeView
-      location: '',
-      fromDate: '',
-      fromTime: '',
-      untilDate: '',
-      untilTime: '',
+      location: "",
+      fromDate: "",
+      fromTime: "",
+      untilDate: "",
+      untilTime: "",
     };
   },
   computed: {
     ...mapGetters(["isAuthenticated", "userRole"]),
-    // Added computed property for time options from HomeView
     timeOptions() {
       const times = [];
       const now = new Date();
-      now.setHours(0, 0, 0, 0); // Start at midnight
+      now.setHours(0, 0, 0, 0);
       for (let i = 0; i < 48; i++) {
         const date = new Date(now.getTime() + i * 30 * 60 * 1000);
         const hours = date.getHours();
         const minutes = date.getMinutes();
-        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const ampm = hours >= 12 ? "PM" : "AM";
         const formattedHours = hours % 12 === 0 ? 12 : hours % 12;
         const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
         times.push(`${formattedHours}:${formattedMinutes} ${ampm}`);
@@ -197,42 +182,52 @@ export default {
     closeMenu() {
       this.isMenuOpen = false;
     },
-    // Method to close the dropdown if a click occurs outside of it
     closeMenuOnClickOutside(event) {
-      // Check if the menu is open and the click target is not within the menu or the button
       if (this.isMenuOpen && this.$refs.dropdownMenu && this.$refs.menuButton) {
-        if (!this.$refs.dropdownMenu.contains(event.target) && !this.$refs.menuButton.contains(event.target)) {
+        if (
+          !this.$refs.dropdownMenu.contains(event.target) &&
+          !this.$refs.menuButton.contains(event.target)
+        ) {
           this.closeMenu();
         }
       }
     },
-    // Method to handle dates selected from the DateRangePicker
     handleDatesSelected({ fromDate, untilDate }) {
       this.fromDate = fromDate;
       this.untilDate = untilDate;
       this.isPickerVisible = false;
     },
-    // Method to set initial date and time for search bar
     setInitialDateTime() {
       const now = new Date();
-      const options = { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false };
-      const pstDateTime = now.toLocaleString('en-US', options);
-      const [datePart, timePart] = pstDateTime.split(', ');
-      const [month, day, year] = datePart.split('/');
-      const [hour, minute] = timePart.split(':');
+      const options = {
+        timeZone: "Asia/Manila",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      };
+      const pstDateTime = now.toLocaleString("en-US", options);
+      const [datePart, timePart] = pstDateTime.split(", ");
+      const [month, day, year] = datePart.split("/");
+      const [hour, minute] = timePart.split(":");
       this.fromDate = `${year}-${month}-${day}`;
-      const initialFromTimeIndex = Math.floor((parseInt(hour) * 60 + parseInt(minute)) / 30);
-      this.fromTime = this.timeOptions[initialFromTimeIndex] || '12:00 AM';
-      const untilDateObj = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000));
-      const pstUntilDateTime = untilDateObj.toLocaleString('en-US', options);
-      const [untilDatePart, untilTimePart] = pstUntilDateTime.split(', ');
-      const [untilMonth, untilDay, untilYear] = untilDatePart.split('/');
-      const [untilHour, untilMinute] = untilTimePart.split(':');
+      const initialFromTimeIndex = Math.floor(
+        (parseInt(hour) * 60 + parseInt(minute)) / 30
+      );
+      this.fromTime = this.timeOptions[initialFromTimeIndex] || "12:00 AM";
+      const untilDateObj = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+      const pstUntilDateTime = untilDateObj.toLocaleString("en-US", options);
+      const [untilDatePart, untilTimePart] = pstUntilDateTime.split(", ");
+      const [untilMonth, untilDay, untilYear] = untilDatePart.split("/");
+      const [untilHour, untilMinute] = untilTimePart.split(":");
       this.untilDate = `${untilYear}-${untilMonth}-${untilDay}`;
-      const initialUntilTimeIndex = Math.floor((parseInt(untilHour) * 60 + parseInt(untilMinute)) / 30);
-      this.untilTime = this.timeOptions[initialUntilTimeIndex] || '12:00 AM';
+      const initialUntilTimeIndex = Math.floor(
+        (parseInt(untilHour) * 60 + parseInt(untilMinute)) / 30
+      );
+      this.untilTime = this.timeOptions[initialUntilTimeIndex] || "12:00 AM";
     },
-    // Method to perform the search when the button is clicked
     searchVehicles() {
       const query = {
         location: this.location,
@@ -241,55 +236,39 @@ export default {
         untilDate: this.untilDate,
         untilTime: this.untilTime,
       };
-
-      // Navigate to the 'VehicleList' route with the updated query
-      this.$router.push({ name: 'VehicleList', query });
+      this.$router.push({ name: "VehicleList", query });
     },
   },
   mounted() {
-    // Add the event listener when the component is mounted
-    document.addEventListener('click', this.closeMenuOnClickOutside);
-    // Set initial date/time when the app component is created
+    document.addEventListener("click", this.closeMenuOnClickOutside);
     this.setInitialDateTime();
   },
   beforeUnmount() {
-    // Remove the event listener before the component is unmounted
-    document.removeEventListener('click', this.closeMenuOnClickOutside);
-  }
+    document.removeEventListener("click", this.closeMenuOnClickOutside);
+  },
 };
 </script>
 
 <style lang="scss">
-/*
-  The following import statement loads the 'Nunito' and 'Anton' fonts from Google Fonts.
-  This is necessary for the fonts to be available for use in the application.
-*/
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Nunito:wght@400;700;900&display=swap');
-@import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css');
-
-
-/* Import the variables SCSS file */
+@import url("https://fonts.googleapis.com/css2?family=Anton&family=Nunito:wght@400;700;900&display=swap");
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css");
 @import "./assets/styles/variables.scss";
-
 body {
   margin: 0;
-  /* Use Nunito for the body font */
-  font-family: 'Nunito', sans-serif;
+  font-family: "Nunito", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: white; /* Changed to white */
+  background-color: white;
   box-sizing: border-box;
 }
-
 .app-container {
   max-width: 100%;
   width: 100%;
   padding: 0;
   box-shadow: none;
-  background-color: white; /* Changed to white */
+  background-color: white;
   margin: 0;
 }
-
 .app-header {
   display: flex;
   justify-content: space-between;
@@ -298,71 +277,49 @@ body {
   background-color: white;
   border-bottom: 1px solid #eee;
   box-shadow: $shadow-light;
-
   @media (max-width: 768px) {
     padding: 1rem 1.5rem;
   }
 }
-
 .app-title-link {
   text-decoration: none;
-  position: relative; // Needed to position the pseudo-element background
+  position: relative;
   cursor: pointer;
-
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: -0.5rem;
     bottom: -0.5rem;
     left: 0;
     right: 0;
-    background-color: #f0f0f0; // A light gray background
+    background-color: #f0f0f0;
     clip-path: polygon(0 0, 95% 0, 100% 50%, 95% 100%, 0 100%);
     border-radius: 9999px;
   }
 }
-
 .app-title {
-  /* Keep Anton for the app title */
   font-family: "Anton", sans-serif;
   font-size: 2.2rem;
   font-weight: 400;
   margin: 0;
   line-height: 1;
-  position: relative; // Ensures text is above the pseudo-element
+  position: relative;
   z-index: 1;
-  padding: 0 1.5rem; // Adds space for the arrow shape
+  padding: 0 1.5rem;
 }
-
 .rent-text {
   color: red;
   font-style: italic;
 }
-
 .cycle-text {
   color: black;
   font-style: italic;
 }
-
-.header-center {
-  flex-grow: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  /* Removed max-width to allow it to be wider */
-  margin: 0 1rem; /* Add some margin */
-
-  @media (max-width: 768px) {
-    display: none; /* Hide search bar on mobile */
-  }
-}
-
 .header-right {
   display: flex;
   align-items: center;
   gap: 1.5rem;
 }
-
 .become-host-button {
   text-decoration: none;
   white-space: nowrap;
@@ -376,19 +333,15 @@ body {
   cursor: pointer;
   transition: box-shadow 0.2s ease-in-out;
   box-shadow: $shadow-light;
-  font-family: 'Nunito', sans-serif; /* Explicitly set font */
-
-
+  font-family: "Nunito", sans-serif;
   &:hover {
     box-shadow: $shadow-medium;
   }
 }
-
 .user-menu-container {
   position: relative;
   display: inline-block;
 }
-
 .menu-button {
   display: flex;
   align-items: center;
@@ -400,14 +353,11 @@ body {
   cursor: pointer;
   transition: box-shadow 0.2s ease-in-out;
   box-shadow: $shadow-light;
-  font-family: 'Nunito', sans-serif; /* Explicitly set font */
-
+  font-family: "Nunito", sans-serif;
   &:hover {
     box-shadow: $shadow-medium;
     background-color: white;
   }
-
-  /* Changed icon colors to black for the menu and red for dropdown items */
   .menu-icon {
     font-size: 1.2rem;
     color: black;
@@ -417,8 +367,6 @@ body {
     color: black;
   }
 }
-
-/* Base styles for the dropdown menu */
 .dropdown-menu {
   position: absolute;
   top: 100%;
@@ -432,32 +380,28 @@ body {
   list-style: none;
   padding: 0.5rem 0;
   text-align: left;
-  font-family: 'Nunito', sans-serif; /* Explicitly set font */
+  font-family: "Nunito", sans-serif;
 }
-
-/* Transition classes for the dropdown menu */
 .dropdown-fade-enter-active,
 .dropdown-fade-leave-active {
-  transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+  transition:
+    transform 0.2s ease-out,
+    opacity 0.2s ease-out;
 }
-
 .dropdown-fade-enter-from,
 .dropdown-fade-leave-to {
   transform: scale(0.95);
   transform-origin: top right;
   opacity: 0;
 }
-
 .dropdown-fade-enter-to,
 .dropdown-fade-leave-from {
   transform: scale(1);
   opacity: 1;
 }
-
 .dropdown-section {
   padding: 0.5rem 0;
 }
-
 .dropdown-item {
   display: block;
   width: 100%;
@@ -465,26 +409,21 @@ body {
   color: $text-color-dark;
   text-decoration: none;
   font-weight: 500;
-  transition: background-color 0.2s ease-in-out, transform 0.2s ease-out;
-
-  // Use flexbox to align icon and text and add a gap for spacing
+  transition:
+    background-color 0.2s ease-in-out,
+    transform 0.2s ease-out;
   &.with-icon {
     display: flex;
     align-items: center;
     gap: 0.75rem;
   }
-
   &:hover {
-    /* Updated background color to be a transparent gray */
     transform: translateX(5px);
   }
 }
-
-/* Changed dropdown item icon colors to red */
 .dropdown-item i {
   color: red;
 }
-
 .dropdown-divider {
   height: 1px;
   margin: 0.5rem 0;
@@ -492,30 +431,24 @@ body {
   background-color: #e5e7eb;
   border: 0;
 }
-
 .logout-button {
   background: none;
   border: none;
-  font-family: 'Nunito', sans-serif; /* Explicitly set font */
+  font-family: "Nunito", sans-serif;
   font-size: inherit;
   cursor: pointer;
   text-align: left;
 }
-
-// Styles for disabled items
 .disabled {
   color: $text-color-medium;
   cursor: not-allowed;
   pointer-events: none;
   opacity: 0.6;
 }
-
 .app-content {
   padding-top: 0;
   min-height: 300px;
 }
-
-/* New and modified styles for the header search bar */
 .search-bar.header-search-bar {
   display: flex;
   align-items: center;
@@ -526,24 +459,21 @@ body {
   border-radius: 9999px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   font-size: 0.9rem;
-  font-family: 'Nunito', sans-serif; /* Explicitly set font */
+  font-family: "Nunito", sans-serif;
 }
-
 .search-field {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
   padding: 0 0.75rem;
   cursor: pointer;
-
   label {
     font-size: 0.7rem;
     font-weight: 600;
     color: #4b5563;
     white-space: nowrap;
-    font-family: 'Nunito', sans-serif; /* Explicitly set font */
+    font-family: "Nunito", sans-serif;
   }
-  
   .search-input,
   .date-time-group {
     border: none;
@@ -558,37 +488,31 @@ body {
     }
   }
 }
-
 .search-divider {
   width: 1px;
   height: 25px;
   background-color: #e0e0e0;
   margin: 0 0.25rem;
 }
-
 .date-time-group {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: 'Nunito', sans-serif; /* Explicitly set font */
-
+  font-family: "Nunito", sans-serif;
   .date-select,
   .time-select {
     cursor: pointer;
   }
-
   .date-placeholder {
     white-space: nowrap;
   }
 }
-
 .where-field {
   flex-basis: 35%;
   .search-input {
     min-width: 100px;
   }
 }
-
 .from-field,
 .until-field {
   flex-basis: 25%;
@@ -596,7 +520,6 @@ body {
     min-width: 150px;
   }
 }
-
 .search-button {
   background-color: #6a0dad;
   color: white;
@@ -609,21 +532,40 @@ body {
   justify-content: center;
   transition: background-color 0.3s ease;
   font-size: 0.85rem;
-  
   &:hover {
     background-color: darken(#6a0dad, 10%);
   }
-
   .bi-search {
     font-size: 1rem;
   }
 }
-
-/* Added or modified for wider time selectors */
 .time-select {
-    width: 100px; /* Adjust this value as needed */
-    padding: 0.25rem;
-    text-align: right;
-    box-sizing: border-box; /* Ensures padding doesn't affect total width */
+  width: 100px;
+  padding: 0.25rem;
+  text-align: right;
+  box-sizing: border-box;
+}
+
+/* New CSS for the navigation links */
+.header-nav {
+  display: flex;
+  gap: 2rem;
+  @media (max-width: 768px) {
+    display: none; // Hide on smaller screens to prevent clutter
+  }
+}
+
+.nav-link {
+  font-family: "Nunito", sans-serif;
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #555;
+  transition: color 0.2s ease-in-out;
+
+  &:hover,
+  &.router-link-active {
+    color: black;
+  }
 }
 </style>

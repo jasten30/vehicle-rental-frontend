@@ -1,6 +1,4 @@
-// vehicle-rental-frontend/src/router/index.js
 import { createRouter, createWebHistory } from "vue-router";
-import store from "../store"; // Keep this import for the guard
 import { getAuth } from 'firebase/auth';
 
 // Public Views
@@ -17,120 +15,145 @@ import MyBookingsView from "../views/Dashboard/MyBookings.vue";
 import BookingDetailView from "../views/Dashboard/BookingDetailView.vue";
 import ProfileSettingsView from "../views/Dashboard/ProfileSettings.vue";
 import OwnerVehiclesView from "../views/Dashboard/Owner/OwnerVehiclesView.vue";
-// CORRECTED: Import VehicleFormSteps instead of AddEditVehicleView
 import VehicleFormSteps from "../components/forms/VehicleFormSteps.vue";
-// NEW: Import the BookingPaymentView
 import BookingPaymentView from "../views/Booking/BookingPaymentView.vue";
-// NEW: Import the BookingSummaryView (will create placeholder below)
 import BookingSummaryView from "../views/Booking/BookingSummaryView.vue";
-// NEW: Import other dashboard views (will create placeholders below)
 import OwnerBookingsView from "../views/Dashboard/Owner/OwnerBookingsView.vue";
 import AdminVehiclesView from "../views/Dashboard/Admin/AdminVehiclesView.vue";
 import AdminBookingsView from "../views/Dashboard/Admin/AdminBookingsView.vue";
 import AdminUsersView from "../views/Dashboard/Admin/AdminUsersView.vue";
-// CORRECT THE PATH CASE HERE
-import AdminDashboardView from '../views/Dashboard/Admin/AdminDashboardView.vue'; // Corrected import
+import AdminDashboardView from '../views/Dashboard/Admin/AdminDashboardView.vue';
 
-
-const dashboardRoutes = [
-    {
-        path: "/dashboard",
-        component: DashboardLayout,
-        meta: { requiresAuth: true },
-        children: [
-            {
-                path: "my-bookings",
-                name: "MyBookings",
-                component: MyBookingsView,
-                meta: { requiresAuth: true, authorize: ['renter', 'admin', 'owner'] },
-            },
-            {
-                path: "my-bookings/:bookingId",
-                name: "BookingDetails",
-                component: BookingDetailView,
-                props: true,
-                meta: { requiresAuth: true, authorize: ['renter', 'admin', 'owner'] },
-            },
-            {
-                path: "profile-settings",
-                name: "ProfileSettings",
-                component: ProfileSettingsView,
-                meta: { requiresAuth: true, authorize: ['renter', 'admin', 'owner'] },
-            },
-            // Owner specific routes
-            {
-                path: "owner/vehicles",
-                name: "OwnerVehicles",
-                component: OwnerVehiclesView,
-                meta: { requiresAuth: true, authorize: ['owner', 'admin'] },
-            },
-            {
-                // CORRECTED: Use VehicleFormSteps here
-                path: "owner/vehicles/add",
-                name: "AddVehicle",
-                component: VehicleFormSteps,
-                // THIS IS THE NEW LINE: pass an empty object for new vehicles
-                props: { initialVehicle: {} },
-                meta: { requiresAuth: true, authorize: ['owner', 'admin'] },
-            },
-            {
-                // CORRECTED: Use VehicleFormSteps here as well
-                path: "owner/vehicles/edit/:vehicleId",
-                name: "EditVehicle",
-                component: VehicleFormSteps,
-                props: true,
-                meta: { requiresAuth: true, authorize: ['owner', 'admin'] },
-            },
-            // Owner bookings (placeholder)
-            {
-                path: "owner/bookings",
-                name: "OwnerBookings",
-                component: OwnerBookingsView, // Use imported component
-                meta: { requiresAuth: true, authorize: ['owner', 'admin'] },
-            },
-            // Admin specific routes (placeholders)
-            {
-                path: "admin/vehicles",
-                name: "AdminVehicles",
-                component: AdminVehiclesView, // Use imported component
-                meta: { requiresAuth: true, authorize: ['admin'] },
-            },
-            {
-                path: "admin/bookings",
-                name: "AdminBookings",
-                component: AdminBookingsView, // Use imported component
-                meta: { requiresAuth: true, authorize: ['admin'] },
-            },
-            {
-                path: "admin/users",
-                name: "AdminUsers",
-                component: AdminUsersView, // Use imported component
-                meta: { requiresAuth: true, authorize: ['admin'] },
-            },
-            // NEW ADMIN DASHBOARD ROUTE
-            {
-                path: 'admin/dashboard', // Use a unique path like 'admin/dashboard'
-                name: 'AdminDashboard',
-                component: AdminDashboardView, // Use the imported component
-                meta: { requiresAuth: true, authorize: ['admin'] } // Protect with the 'admin' role
-            },
-            {
-                path: "", // Default dashboard route
-                redirect: { name: "MyBookings" },
-            },
-        ],
+const dashboardRoutes = [{
+    path: "/dashboard",
+    component: DashboardLayout,
+    meta: {
+        requiresAuth: true
     },
-];
+    children: [{
+            path: "my-bookings",
+            name: "MyBookings",
+            component: MyBookingsView,
+            meta: {
+                requiresAuth: true,
+                authorize: ['renter', 'admin', 'owner']
+            },
+        },
+        {
+            path: "my-bookings/:bookingId",
+            name: "BookingDetails",
+            component: BookingDetailView,
+            props: true,
+            meta: {
+                requiresAuth: true,
+                authorize: ['renter', 'admin', 'owner']
+            },
+        },
+        {
+            path: "profile-settings",
+            name: "ProfileSettings",
+            component: ProfileSettingsView,
+            meta: {
+                requiresAuth: true,
+                authorize: ['renter', 'admin', 'owner']
+            },
+        },
+        // Owner specific routes
+        {
+            path: "owner/vehicles",
+            name: "OwnerVehicles",
+            component: OwnerVehiclesView,
+            meta: {
+                requiresAuth: true,
+                authorize: ['owner', 'admin']
+            },
+        },
+        {
+            path: "owner/vehicles/add",
+            name: "AddVehicle",
+            component: VehicleFormSteps,
+            props: {
+                initialVehicle: {}
+            },
+            meta: {
+                requiresAuth: true,
+                authorize: ['owner', 'admin']
+            },
+        },
+        {
+            path: "owner/vehicles/edit/:vehicleId",
+            name: "EditVehicle",
+            component: VehicleFormSteps,
+            props: true,
+            meta: {
+                requiresAuth: true,
+                authorize: ['owner', 'admin']
+            },
+        },
+        {
+            path: "owner/bookings",
+            name: "OwnerBookings",
+            component: OwnerBookingsView,
+            meta: {
+                requiresAuth: true,
+                authorize: ['owner', 'admin']
+            },
+        },
+        // Admin specific routes
+        {
+            path: "admin/vehicles",
+            name: "AdminVehicles",
+            component: AdminVehiclesView,
+            meta: {
+                requiresAuth: true,
+                authorize: ['admin']
+            },
+        },
+        {
+            path: "admin/bookings",
+            name: "AdminBookings",
+            component: AdminBookingsView,
+            meta: {
+                requiresAuth: true,
+                authorize: ['admin']
+            },
+        },
+        {
+            path: "admin/users",
+            name: "AdminUsers",
+            component: AdminUsersView,
+            meta: {
+                requiresAuth: true,
+                authorize: ['admin']
+            },
+        },
+        // ADMIN DASHBOARD ROUTE
+        {
+            path: 'admin/dashboard',
+            name: 'AdminDashboard',
+            component: AdminDashboardView,
+            meta: {
+                requiresAuth: true,
+                authorize: ['admin']
+            }
+        },
+        {
+            path: "", // Default dashboard route
+            redirect: {
+                name: "MyBookings"
+            },
+        },
+    ],
+}];
 
-const routes = [
-    {
+const routes = [{
         path: "/",
         name: "Home",
         component: HomeView,
     },
     {
         path: "/vehicles",
-        name: "VehicleList", // Corrected name to match VehicleListView
+        name: "VehicleList",
         component: VehicleListView,
     },
     {
@@ -149,21 +172,27 @@ const routes = [
         name: "Register",
         component: RegisterView,
     },
-    // NEW: Route for payment selection
+    // Route for payment selection
     {
         path: "/booking/payment/:bookingId",
         name: "BookingPayment",
         component: BookingPaymentView,
         props: true,
-        meta: { requiresAuth: true, authorize: ['renter', 'owner', 'admin'] },
+        meta: {
+            requiresAuth: true,
+            authorize: ['renter', 'owner', 'admin']
+        },
     },
-    // NEW: Route for booking summary (after payment selection)
+    // Route for booking summary (after payment selection)
     {
         path: "/booking/summary/:bookingId",
         name: "BookingSummary",
         component: BookingSummaryView,
         props: true,
-        meta: { requiresAuth: true, authorize: ['renter', 'owner', 'admin'] },
+        meta: {
+            requiresAuth: true,
+            authorize: ['renter', 'owner', 'admin']
+        },
     },
     ...dashboardRoutes, // Include dashboard routes
     {
@@ -183,29 +212,37 @@ router.beforeEach(async (to, from, next) => {
     console.log(`[Router Guard] Navigating from ${from.path} to ${to.path}.`);
     const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
     const authorizedRoles = to.meta.authorize;
-    const isAuthenticated = store.getters.isAuthenticated;
-    const userRole = store.getters.userRole;
     const auth = getAuth();
 
-    // Ensure Firebase auth state is ready before proceeding with auth checks
-    await new Promise(resolve => {
+    // Wait for the Firebase auth state to be ready
+    const user = await new Promise(resolve => {
         const unsubscribe = auth.onAuthStateChanged(firebaseUser => {
-            unsubscribe(); // Unsubscribe immediately after the first state change
+            unsubscribe();
             resolve(firebaseUser);
         });
     });
 
-    if (requiresAuth && !isAuthenticated) {
+    if (requiresAuth && !user) {
         console.log('[Router Guard] Not authenticated. Redirecting to login.');
         next('/login');
-    } else if (requiresAuth && isAuthenticated && authorizedRoles) {
-        if (authorizedRoles.includes(userRole)) {
-            console.log('[Router Guard] Authenticated and authorized. Proceeding.');
-            next();
-        } else {
-            console.warn(`[Router Guard] User role '${userRole}' not authorized for route '${to.path}'. Redirecting to dashboard.`);
-            alert('You do not have permission to view this page.');
-            next('/dashboard'); // Redirect to a default dashboard route if not authorized
+    } else if (requiresAuth && user && authorizedRoles) {
+        // CRITICAL FIX: Force refresh the token to get the latest custom claims.
+        // This prevents the issue of using a stale token with outdated role data.
+        try {
+            const idTokenResult = await user.getIdTokenResult(true);
+            const userRole = idTokenResult.claims.role || 'renter'; // Default to 'renter' if no role is found.
+
+            if (authorizedRoles.includes(userRole)) {
+                console.log(`[Router Guard] User role '${userRole}' is authorized. Proceeding.`);
+                next();
+            } else {
+                console.warn(`[Router Guard] User role '${userRole}' not authorized for route '${to.path}'.`);
+                next('/dashboard');
+            }
+        } catch (error) {
+            console.error('[Router Guard] Error fetching ID token:', error);
+            // In case of an error, redirect to login to force a re-authentication
+            next('/login');
         }
     } else {
         console.log('[Router Guard] No auth required or already authenticated. Proceeding.');
