@@ -91,7 +91,6 @@ export default createStore({
         });
       });
     },
-
     async login({ _commit }, credentials) {
       try {
         const backendResponse = await api.login(credentials);
@@ -106,7 +105,6 @@ export default createStore({
         throw error;
       }
     },
-
     async register({ _commit }, userData) {
       try {
         await api.register(userData);
@@ -117,7 +115,6 @@ export default createStore({
         throw error;
       }
     },
-
     async logout({ _commit }) {
       try {
         const auth = getAuth();
@@ -128,18 +125,24 @@ export default createStore({
         console.error('[Vuex Action] Error signing out from Firebase Client SDK:', error);
       }
     },
-
     async fetchAllVehicles({ commit }) {
       try {
         const response = await api.getAllVehicles();
-        commit("SET_ALL_VEHICLES", response.data);
-        return response.data;
+        console.log("[Vuex Action] Raw vehicles from API:", response.data);
+        const normalizedVehicles = response.data.map(vehicle => ({
+          ...vehicle,
+          rentalPricePerDay: parseFloat(vehicle.rentalPricePerDay) || 0,
+          seats: parseInt(vehicle.seats, 10) || 0,
+          year: parseInt(vehicle.year, 10) || 0,
+        }));
+        commit("SET_ALL_VEHICLES", normalizedVehicles);
+        console.log("[Vuex Action] Normalized vehicles committed:", normalizedVehicles);
+        return normalizedVehicles;
       } catch (error) {
         console.error('Failed to fetch vehicles:', error.response?.data?.message || error.message);
         throw error;
       }
     },
-
     async getVehicleById({ commit }, vehicleId) {
       try {
         const response = await api.getVehicleById(vehicleId);
@@ -150,7 +153,6 @@ export default createStore({
         throw error;
       }
     },
-
     async checkVehicleAvailability({ _commit }, payload) {
       try {
         const { vehicleId, startDate, endDate } = payload;
@@ -161,7 +163,6 @@ export default createStore({
         throw error;
       }
     },
-
     async createBooking({ _commit }, bookingData) {
       try {
         const response = await api.createBooking(bookingData);
@@ -171,7 +172,6 @@ export default createStore({
         throw error;
       }
     },
-
     async getVehiclesByOwner({ _commit }) {
       try {
         const response = await api.getVehiclesByOwner();
@@ -181,7 +181,6 @@ export default createStore({
         throw error;
       }
     },
-
     async addVehicle({ _commit }, vehicleData) {
       try {
         const response = await api.addVehicle(vehicleData);
@@ -191,7 +190,6 @@ export default createStore({
         throw error;
       }
     },
-
     async updateVehicle({ _commit }, { id, ...vehicleData }) {
       try {
         const response = await api.updateVehicle(id, vehicleData);
@@ -201,7 +199,6 @@ export default createStore({
         throw error;
       }
     },
-
     async fetchUserProfile({ commit }) {
       try {
         const response = await api.getUserProfile();
@@ -215,7 +212,6 @@ export default createStore({
         throw error;
       }
     },
-
     async updateUserProfile({ _commit }, profileData) {
       try {
         const response = await api.updateUserProfile(profileData);
@@ -234,7 +230,6 @@ export default createStore({
         throw error;
       }
     },
-
     async getBookingById({ _commit }, bookingId) {
       try {
         const response = await api.getBookingById(bookingId);
@@ -244,7 +239,6 @@ export default createStore({
         throw error;
       }
     },
-
     async updateBookingPaymentMethod({ _commit }, { bookingId, paymentMethod, newStatus }) {
       try {
         const response = await api.updateBooking(bookingId, { paymentMethod, newStatus });
@@ -253,6 +247,17 @@ export default createStore({
         console.error('Failed to update booking payment method:', error);
         throw error;
       }
+    },
+
+    // New actions to handle filtering from the component
+    setVehicleFilter({ commit }, payload) {
+      commit('SET_VEHICLE_FILTER', payload);
+    },
+    setVehicleSort({ commit }, payload) {
+      commit('SET_VEHICLE_SORT', payload);
+    },
+    resetVehicleFilters({ commit }) {
+      commit('RESET_VEHICLE_FILTERS');
     },
   },
   getters: {
