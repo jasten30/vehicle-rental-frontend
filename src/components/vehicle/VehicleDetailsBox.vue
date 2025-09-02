@@ -171,12 +171,18 @@ import {
   where,
   onSnapshot,
 } from "firebase/firestore";
+import {
+  getAuth,
+  signInAnonymously,
+  signInWithCustomToken,
+} from "firebase/auth";
 
 const props = defineProps({
   vehicle: Object,
 });
 
 const db = getFirestore();
+const auth = getAuth();
 const appId =
   typeof window.__app_id !== "undefined" ? window.__app_id : "default-app-id";
 
@@ -290,6 +296,7 @@ const fetchHostData = async (ownerId) => {
       console.error("Owner ID is missing from the vehicle document.");
       return;
     }
+    // Corrected Firestore path to match security rules: /users/{userId}
     const hostDocRef = doc(db, "users", ownerId);
     const hostDocSnap = await getDoc(hostDocRef);
     if (hostDocSnap.exists()) {
@@ -373,9 +380,30 @@ const formatCategoryName = (name) => {
 };
 
 onMounted(() => {
-  if (props.vehicle && props.vehicle.ownerId) {
-    fetchHostData(props.vehicle.ownerId);
-    fetchReviews(props.vehicle.id);
+  // Use the custom token to sign in to ensure authentication is successful.
+  if (typeof window.__initial_auth_token !== "undefined") {
+    signInWithCustomToken(auth, window.__initial_auth_token)
+      .then(() => {
+        if (props.vehicle && props.vehicle.ownerId) {
+          fetchHostData(props.vehicle.ownerId);
+          fetchReviews(props.vehicle.id);
+        }
+      })
+      .catch((error) => {
+        console.error("Error signing in with custom token:", error);
+      });
+  } else {
+    // If no custom token is available, sign in anonymously.
+    signInAnonymously(auth)
+      .then(() => {
+        if (props.vehicle && props.vehicle.ownerId) {
+          fetchHostData(props.vehicle.ownerId);
+          fetchReviews(props.vehicle.id);
+        }
+      })
+      .catch((error) => {
+        console.error("Error signing in anonymously:", error);
+      });
   }
 });
 </script>

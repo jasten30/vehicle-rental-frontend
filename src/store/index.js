@@ -11,6 +11,7 @@ export default createStore({
     isAuthenticated: false,
     authLoading: true,
     userRole: null,
+    authToken: null,
     vehicle: null,
     vehicleFilters: {
       make: "",
@@ -31,10 +32,11 @@ export default createStore({
     allVehicles: [],
   },
   mutations: {
-    SET_AUTH_STATE(state, { user, userRole }) {
+    SET_AUTH_STATE(state, { user, userRole, authToken }) {
       state.user = user;
       state.isAuthenticated = !!user;
       state.userRole = userRole;
+      state.authToken = authToken;
       state.authLoading = false;
     },
     SET_AUTH_LOADING(state, loading) {
@@ -66,6 +68,12 @@ export default createStore({
     },
     SET_VEHICLE(state, vehicle) {
       state.vehicle = vehicle;
+    },
+    CLEAR_AUTH(state) {
+      state.user = null;
+      state.isAuthenticated = false;
+      state.userRole = null;
+      state.authToken = null;
     }
   },
   actions: {
@@ -75,30 +83,34 @@ export default createStore({
         onAuthStateChanged(auth, async (user) => {
           if (user) {
             try {
+              const authToken = await user.getIdToken();
+              api.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
               const response = await api.getUserProfile();
               const userRole = response.data.role || "renter";
-              commit("SET_AUTH_STATE", { user, userRole });
+              commit("SET_AUTH_STATE", { user, userRole, authToken });
               console.log("[Vuex Action] Auth state initialized. User is logged in.");
             } catch (error) {
               console.error("[Vuex Action] Failed to fetch user profile after auth change:", error);
-              commit("SET_AUTH_STATE", { user: null, userRole: null });
+              const authToken = await user.getIdToken();
+              commit("SET_AUTH_STATE", { user, userRole: null, authToken });
             }
           } else {
-            commit("SET_AUTH_STATE", { user: null, userRole: null });
+            delete api.defaults.headers.common['Authorization'];
+            commit("CLEAR_AUTH");
             console.log("[Vuex Action] Auth state initialized. User is logged out.");
           }
+          commit("SET_AUTH_LOADING", false);
           resolve();
         });
       });
     },
     async login({ _commit }, credentials) {
+      const auth = getAuth();
       try {
         const backendResponse = await api.login(credentials);
         const customToken = backendResponse.data.token;
-        const auth = getAuth();
         await signInWithCustomToken(auth, customToken);
         console.log("[Vuex Action] Firebase Client SDK signed in successfully.");
-        await router.push("/dashboard");
         return true;
       } catch (error) {
         console.error("[Vuex Action] Login process failed:", error.response?.data?.message || error.message);
@@ -115,10 +127,11 @@ export default createStore({
         throw error;
       }
     },
-    async logout({ _commit }) {
+    async logout({ commit }) {
+      const auth = getAuth();
       try {
-        const auth = getAuth();
         await signOut(auth);
+        commit('CLEAR_AUTH');
         console.log('[Vuex Action] Signed out from Firebase Client SDK.');
         router.push("/login");
       } catch (error) {
@@ -132,7 +145,7 @@ export default createStore({
         const normalizedVehicles = response.data.map(vehicle => ({
           ...vehicle,
           rentalPricePerDay: parseFloat(vehicle.rentalPricePerDay) || 0,
-          seats: parseInt(vehicle.seats, 10) || 0,
+          seats: parseInt(vehicle.seatingCapacity, 10) || 0,
           year: parseInt(vehicle.year, 10) || 0,
         }));
         commit("SET_ALL_VEHICLES", normalizedVehicles);
@@ -207,7 +220,7 @@ export default createStore({
       } catch (error) {
         console.error('Failed to fetch user profile:', error.response?.data?.message || error.message);
         if (error.response && error.response.status === 401) {
-          commit('SET_AUTH_STATE', { user: null, userRole: null });
+          commit('CLEAR_AUTH');
         }
         throw error;
       }
@@ -249,7 +262,6 @@ export default createStore({
       }
     },
 
-    // New actions to handle filtering from the component
     setVehicleFilter({ commit }, payload) {
       commit('SET_VEHICLE_FILTER', payload);
     },

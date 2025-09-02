@@ -52,7 +52,10 @@
           <span class="font-bold">₱ {{ totalPrice.toFixed(2) }}</span>
         </div>
       </div>
-      <button class="book-button" @click="bookNow">Book Now</button>
+      <button class="book-button" @click="bookNow" :disabled="isBooking">
+        <span v-if="isBooking">Booking...</span>
+        <span v-else>Book Now</span>
+      </button>
 
       <!-- NEW SECTION: Pickup and Return Locations -->
       <hr class="summary-divider" />
@@ -201,23 +204,14 @@
         </div>
       </div>
     </div>
-    <!-- Booking Confirmation Modal -->
-    <div v-if="showModal" class="modal-overlay">
-      <div class="modal-content">
-        <h3 class="modal-title">Booking Confirmation</h3>
-        <p class="modal-message">
-          Your booking for {{ vehicle.model }} from {{ startDate }} to
-          {{ endDate }} has been successfully submitted!
-        </p>
-        <button class="modal-button" @click="showModal = false">Close</button>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from "vue";
 import { DateTime } from "luxon";
+import { useRouter } from "vue-router";
+import api from "@/views/services/api";
 
 const props = defineProps({
   vehicle: Object,
@@ -225,9 +219,11 @@ const props = defineProps({
 
 const startDate = ref(null);
 const endDate = ref(null);
-const errorMessage = ref(""); // New ref for error messages
-const showModal = ref(false); // New ref to control modal visibility
+const errorMessage = ref("");
 const serviceFeePercentage = 0.07; // 7% service fee
+const isBooking = ref(false);
+
+const router = useRouter();
 
 // Computed properties
 const numberOfDays = computed(() => {
@@ -267,10 +263,10 @@ const cancellationDate = computed(() => {
   return date.toFormat("MMMM d, yyyy");
 });
 
-// Method to handle the "Book Now" action
-const bookNow = () => {
-  // Clear any previous error message
+// Method to handle the "Book Now" action and route to the payment page
+const bookNow = async () => {
   errorMessage.value = "";
+  if (isBooking.value) return; // Prevent multiple clicks
 
   if (!startDate.value || !endDate.value) {
     errorMessage.value = "Please select both a start and end date.";
@@ -282,9 +278,34 @@ const bookNow = () => {
     return;
   }
 
-  // If validation passes, you would typically call an API here
-  // For now, we'll just show the confirmation modal
-  showModal.value = true;
+  isBooking.value = true;
+  try {
+    const response = await api.createBooking({
+      vehicleId: props.vehicle.id,
+      startDate: startDate.value,
+      endDate: endDate.value,
+      totalPrice: totalPrice.value,
+      serviceFee: serviceFee.value,
+      rentalFee: rentalFee.value,
+      numberOfDays: numberOfDays.value,
+    });
+
+    // Now we have the bookingId from the backend.
+    const bookingId = response.data.id;
+
+    // Navigate using the bookingId as a route parameter.
+    router.push({
+      name: "BookingPayment",
+      params: { bookingId },
+    });
+  } catch (error) {
+    console.error("Booking failed:", error);
+    errorMessage.value =
+      error.response?.data?.message ||
+      "Failed to create booking. Please try again.";
+  } finally {
+    isBooking.value = false;
+  }
 };
 </script>
 
@@ -539,56 +560,5 @@ when the user scrolls down the page, creating a cool animation effect.
   margin-top: -0.5rem;
   margin-bottom: 1rem;
   text-align: center;
-}
-
-/* Modal styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 100;
-}
-
-.modal-content {
-  background-color: white;
-  padding: 2rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  text-align: center;
-  max-width: 400px;
-  width: 90%;
-}
-
-.modal-title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-bottom: 1rem;
-  color: #1f2937;
-}
-
-.modal-message {
-  font-size: 1rem;
-  color: #4b5563;
-  margin-bottom: 1.5rem;
-}
-
-.modal-button {
-  padding: 0.75rem 1.5rem;
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.modal-button:hover {
-  background-color: #2563eb;
 }
 </style>
