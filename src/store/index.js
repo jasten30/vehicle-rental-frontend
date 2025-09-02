@@ -2,8 +2,9 @@ import { createStore } from "vuex";
 import api from "@/views/services/api";
 import router from "../router";
 import { DateTime } from 'luxon';
-import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, signOut, signInWithCustomToken } from 'firebase/auth';
 import owner from './modules/owner';
+import { setAuthToken } from '@/views/services/api';
 
 export default createStore({
   state: {
@@ -84,18 +85,18 @@ export default createStore({
           if (user) {
             try {
               const authToken = await user.getIdToken();
-              api.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
+              setAuthToken(authToken);
               const response = await api.getUserProfile();
               const userRole = response.data.role || "renter";
-              commit("SET_AUTH_STATE", { user, userRole, authToken });
-              console.log("[Vuex Action] Auth state initialized. User is logged in.");
+              commit("SET_AUTH_STATE", { user: response.data, userRole, authToken });
+              console.log("[Vuex Action] User profile fetched successfully!", userRole);
             } catch (error) {
               console.error("[Vuex Action] Failed to fetch user profile after auth change:", error);
-              const authToken = await user.getIdToken();
-              commit("SET_AUTH_STATE", { user, userRole: null, authToken });
+              setAuthToken(null);
+              commit("CLEAR_AUTH");
             }
           } else {
-            delete api.defaults.headers.common['Authorization'];
+            setAuthToken(null);
             commit("CLEAR_AUTH");
             console.log("[Vuex Action] Auth state initialized. User is logged out.");
           }
@@ -104,13 +105,28 @@ export default createStore({
         });
       });
     },
-    async login({ _commit }, credentials) {
+    async login({ commit }, credentials) {
       const auth = getAuth();
       try {
         const backendResponse = await api.login(credentials);
         const customToken = backendResponse.data.token;
-        await signInWithCustomToken(auth, customToken);
-        console.log("[Vuex Action] Firebase Client SDK signed in successfully.");
+        const userCredential = await signInWithCustomToken(auth, customToken);
+        const user = userCredential.user;
+        const authToken = await user.getIdToken();
+        setAuthToken(authToken);
+        const profileResponse = await api.getUserProfile();
+        const userRole = profileResponse.data.role || "renter";
+
+        commit("SET_AUTH_STATE", { user: profileResponse.data, userRole, authToken });
+        console.log("[Vuex Action] Firebase Client SDK signed in and state updated successfully.");
+
+        // This is the crucial navigation fix
+        if (userRole === 'owner') {
+          router.push('/dashboard/owner/vehicles');
+        } else {
+          router.push('/dashboard/my-bookings');
+        }
+
         return true;
       } catch (error) {
         console.error("[Vuex Action] Login process failed:", error.response?.data?.message || error.message);
@@ -128,14 +144,16 @@ export default createStore({
       }
     },
     async logout({ commit }) {
+      commit('CLEAR_AUTH');
       const auth = getAuth();
       try {
         await signOut(auth);
-        commit('CLEAR_AUTH');
+        setAuthToken(null);
         console.log('[Vuex Action] Signed out from Firebase Client SDK.');
         router.push("/login");
       } catch (error) {
         console.error('[Vuex Action] Error signing out from Firebase Client SDK:', error);
+        commit('CLEAR_AUTH');
       }
     },
     async fetchAllVehicles({ commit }) {
@@ -218,7 +236,7 @@ export default createStore({
         commit('SET_AUTH_STATE', { user: response.data, userRole: response.data.role });
         return response.data;
       } catch (error) {
-        console.error('Failed to fetch user profile:', error.response?.data?.message || error.message);
+        console.log('Failed to fetch user profile:', error.response?.data?.message || error.message);
         if (error.response && error.response.status === 401) {
           commit('CLEAR_AUTH');
         }
@@ -261,7 +279,6 @@ export default createStore({
         throw error;
       }
     },
-
     setVehicleFilter({ commit }, payload) {
       commit('SET_VEHICLE_FILTER', payload);
     },

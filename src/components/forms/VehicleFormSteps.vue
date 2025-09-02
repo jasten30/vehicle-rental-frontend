@@ -204,14 +204,13 @@ export default {
   },
   methods: {
     nextStep() {
-      if (this.validateStep()) {
-        if (this.currentStep < this.stepComponents.length) {
-          this.currentStep++;
-        } else {
-          this.submitForm();
-        }
+      // CRITICAL FIX: The parent component should trust the child component's validation.
+      // The child's 'next' event already signifies that it's ready to proceed.
+      // We no longer need to call the parent's `validateStep` here.
+      if (this.currentStep < this.stepComponents.length) {
+        this.currentStep++;
       } else {
-        this.$emit("error", "Please fill in all required fields to proceed.");
+        this.submitForm();
       }
     },
     prevStep() {

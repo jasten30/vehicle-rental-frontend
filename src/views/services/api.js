@@ -1,46 +1,55 @@
-// frontend/src/views/services/api.js
 import axios from 'axios';
-import store from '../../store'; // Corrected path: go up two levels to src/, then into store
 
-// CORRECTED: The base URL now points to port 5001
 const API_BASE_URL = 'http://localhost:5001/api';
 
-const api = axios.create({ // This 'api' variable is what should be used
+const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor to attach Authorization header
-api.interceptors.request.use(
-  (config) => {
-    const token = store.getters.authToken;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-      console.log('[API Interceptor] Token attached:', config.headers.Authorization.substring(0, 30) + '...');
+// A new function to initialize the API service with the store
+export const initApi = (store) => {
+  api.interceptors.request.use(
+    (config) => {
+      const token = store.getters.authToken;
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+        console.log('[API Interceptor] Token attached.');
+      }
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
     }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+  );
 
-// Response interceptor to handle errors (e.g., 401 Unauthorized)
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      console.error('[API Interceptor] Unauthorized response (401). Clearing auth.');
-      store.dispatch('logout'); // Automatically log out user
+  api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (error.response && error.response.status === 401) {
+        console.error('[API Interceptor] Unauthorized response (401). Clearing auth.');
+        store.dispatch('auth/clearAuth');
+      }
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
-  }
-);
+  );
+};
 
-// Export the API methods
+// Method to set the auth token directly
+export const setAuthToken = (token) => {
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common['Authorization'];
+  }
+};
+
+// Export the API methods and the new init function
 export default {
+  initApi,
+  setAuthToken,
   // Auth
   login(credentials) {
     return api.post('/auth/login', credentials);

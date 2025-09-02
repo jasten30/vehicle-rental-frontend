@@ -106,23 +106,14 @@ export default {
       // Clear any previous errors.
       this.$emit("error", "");
 
-      const categories = Object.keys(this.featuresList);
-      for (const category of categories) {
-        // Get the list of feature names for the current category.
-        const categoryFeatures = this.featuresList[category].map((f) => f.name);
-
-        // Check if at least one feature from this category is selected.
-        const hasSelection = categoryFeatures.some((featureName) =>
-          this.selectedFeatures.includes(featureName)
+      // CRITICAL FIX: The previous validation required at least one feature from EVERY category.
+      // This updated logic simply checks if at least one feature has been selected in total.
+      if (this.selectedFeatures.length === 0) {
+        this.$emit(
+          "error",
+          "Please select at least one feature for your vehicle."
         );
-
-        if (!hasSelection) {
-          this.$emit(
-            "error",
-            `Please select at least one feature from the '${category}' category.`
-          );
-          return false;
-        }
+        return false;
       }
       return true;
     },

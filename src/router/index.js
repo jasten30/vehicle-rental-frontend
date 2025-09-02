@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { getAuth } from 'firebase/auth';
+import store from "../store"; // Import the Vuex store
 
 // Public Views
 import HomeView from "../views/HomeView.vue";
@@ -207,45 +207,49 @@ const router = createRouter({
     routes,
 });
 
-// Navigation Guard
+let isInitialAuthCheckComplete = false;
+
+// The central navigation guard
 router.beforeEach(async (to, from, next) => {
-    console.log(`[Router Guard] Navigating from ${from.path} to ${to.path}.`);
+    // On first load, wait for the auth state to be resolved by the Vuex store
+    if (!isInitialAuthCheckComplete) {
+        console.log("[Router Guard] First load detected. Waiting for auth state to be resolved...");
+        await store.dispatch("initializeAuth");
+        isInitialAuthCheckComplete = true;
+        console.log("[Router Guard] Auth state resolved. Rerunning navigation.");
+        // Rerunning the navigation to the original destination
+        next({ ...to, replace: true });
+        return;
+    }
+
     const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
     const authorizedRoles = to.meta.authorize;
-    const auth = getAuth();
+    const isAuth = store.getters.isAuthenticated;
+    const userRole = store.getters.userRole;
 
-    // Wait for the Firebase auth state to be ready
-    const user = await new Promise(resolve => {
-        const unsubscribe = auth.onAuthStateChanged(firebaseUser => {
-            unsubscribe();
-            resolve(firebaseUser);
-        });
-    });
+    console.log(`[Router Guard] Navigating from ${from.path} to ${to.path}. IsAuthenticated: ${isAuth}, UserRole: ${userRole}`);
 
-    if (requiresAuth && !user) {
+    // Redirect authenticated users from login/register pages
+    if (isAuth && (to.name === 'Login' || to.name === 'Register')) {
+        console.log('[Router Guard] Authenticated user attempting to access login/register. Redirecting to dashboard.');
+        if (userRole === 'admin') {
+            next('/dashboard/admin/dashboard');
+        } else if (userRole === 'owner') {
+            next('/dashboard/owner/vehicles');
+        } else {
+            next('/dashboard/my-bookings');
+        }
+    } else if (requiresAuth && !isAuth) {
+        // Redirect unauthenticated users from protected pages
         console.log('[Router Guard] Not authenticated. Redirecting to login.');
         next('/login');
-    } else if (requiresAuth && user && authorizedRoles) {
-        // CRITICAL FIX: Force refresh the token to get the latest custom claims.
-        // This prevents the issue of using a stale token with outdated role data.
-        try {
-            const idTokenResult = await user.getIdTokenResult(true);
-            const userRole = idTokenResult.claims.role || 'renter'; // Default to 'renter' if no role is found.
-
-            if (authorizedRoles.includes(userRole)) {
-                console.log(`[Router Guard] User role '${userRole}' is authorized. Proceeding.`);
-                next();
-            } else {
-                console.warn(`[Router Guard] User role '${userRole}' not authorized for route '${to.path}'.`);
-                next('/dashboard');
-            }
-        } catch (error) {
-            console.error('[Router Guard] Error fetching ID token:', error);
-            // In case of an error, redirect to login to force a re-authentication
-            next('/login');
-        }
+    } else if (requiresAuth && authorizedRoles && !authorizedRoles.includes(userRole)) {
+        // Redirect users with incorrect roles from protected pages
+        console.warn(`[Router Guard] User role '${userRole}' not authorized for route '${to.path}'.`);
+        next('/dashboard');
     } else {
-        console.log('[Router Guard] No auth required or already authenticated. Proceeding.');
+        // Proceed with navigation
+        console.log('[Router Guard] User is authorized. Proceeding.');
         next();
     }
 });
