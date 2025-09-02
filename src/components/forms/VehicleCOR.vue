@@ -1,24 +1,26 @@
 <template>
   <div>
     <h3>Certificate of Registration (COR)</h3>
-    <p class="step-info-text">Please provide the necessary details from your vehicle's Certificate of Registration.</p>
-    
+    <p class="step-info-text">
+      Please provide the necessary details from your vehicle's Certificate of
+      Registration.
+    </p>
+
     <div class="form-group">
       <label for="crNumber">CR Number</label>
-      <input type="text" id="crNumber" v-model="cor.crNumber" required>
-    </div>
-    
-    <div class="form-group">
-      <label for="plateNumber">Plate Number</label>
-      <input type="text" id="plateNumber" v-model="cor.plateNumber" required>
-    </div>
-    
-    <div class="form-group">
-      <label for="dateIssued">Date Issued</label>
-      <input type="date" id="dateIssued" v-model="cor.dateIssued" required>
+      <input type="text" id="crNumber" v-model="cor.crNumber" required />
     </div>
 
-    <!-- Image Upload Section -->
+    <div class="form-group">
+      <label for="plateNumber">Plate Number</label>
+      <input type="text" id="plateNumber" v-model="cor.plateNumber" required />
+    </div>
+
+    <div class="form-group">
+      <label for="dateIssued">Date Issued</label>
+      <input type="date" id="dateIssued" v-model="cor.dateIssued" required />
+    </div>
+
     <div class="form-group upload-section">
       <label>Upload Image of COR</label>
       <input
@@ -28,35 +30,55 @@
         accept="image/*"
         class="hidden-input"
         required
-      >
-      <div 
-        class="upload-box" 
+      />
+      <div
+        class="upload-box"
         @click="triggerFileInput"
         :class="{ 'has-image': cor.crImageUrl }"
       >
         <div v-if="!cor.crImageUrl" class="upload-placeholder">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-6 h-6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+            />
           </svg>
           <p>Click to upload image</p>
         </div>
-        <img v-else :src="cor.crImageUrl" alt="COR Preview" class="uploaded-image">
+        <img
+          v-else
+          :src="cor.crImageUrl"
+          alt="COR Preview"
+          class="uploaded-image"
+        />
       </div>
     </div>
-    <!-- End Image Upload Section -->
-    
-    <div class="button-group-step">
-      <button type="button" @click="$emit('prev')" class="button secondary-button">Previous</button>
-      <button 
-        type="button" 
-        @click="nextStep" 
-        class="button primary-button" 
+    <div v-if="showNavigation" class="button-group-step">
+      <button
+        type="button"
+        @click="$emit('prev')"
+        class="button secondary-button"
+      >
+        Previous
+      </button>
+      <button
+        type="button"
+        @click="nextStep"
+        class="button primary-button"
         :disabled="!isValid"
       >
         Next
       </button>
     </div>
-    
+
     <div v-if="error" class="error-message">
       {{ error }}
     </div>
@@ -71,7 +93,12 @@ export default {
       type: Object,
       required: true,
       default: () => ({}),
-    }
+    },
+    // Added this new prop to control button visibility
+    showNavigation: {
+      type: Boolean,
+      default: true,
+    },
   },
   emits: ['update:corDetails', 'next', 'prev', 'error'],
   data() {
@@ -86,12 +113,16 @@ export default {
       },
       set(value) {
         this.$emit('update:corDetails', value);
-      }
+      },
     },
     isValid() {
-      // Now also checks for the presence of the image URL
-      return this.cor.crNumber && this.cor.plateNumber && this.cor.dateIssued && this.cor.crImageUrl;
-    }
+      return (
+        this.cor.crNumber &&
+        this.cor.plateNumber &&
+        this.cor.dateIssued &&
+        this.cor.crImageUrl
+      );
+    },
   },
   methods: {
     triggerFileInput() {
@@ -105,7 +136,7 @@ export default {
           this.$emit('update:corDetails', {
             ...this.cor,
             crImageUrl: e.target.result,
-            crImageFile: file // Optionally store the file object itself
+            crImageFile: file,
           });
           this.error = '';
         };
@@ -117,7 +148,8 @@ export default {
         this.$emit('next');
         this.error = '';
       } else {
-        this.error = 'Please fill in all Certificate of Registration details and upload an image.';
+        this.error =
+          'Please fill in all Certificate of Registration details and upload an image.';
       }
     },
   },
@@ -149,8 +181,8 @@ h3 {
     color: $text-color-dark;
   }
 
-  input[type="text"],
-  input[type="date"],
+  input[type='text'],
+  input[type='date'],
   select {
     width: 100%;
     padding: 0.75rem;
@@ -188,7 +220,7 @@ h3 {
     padding: 1rem;
     transition: border-color 0.2s ease;
     text-align: center;
-    
+
     &:hover {
       border-color: $primary-color;
     }
@@ -209,7 +241,7 @@ h3 {
         margin-bottom: 0.5rem;
       }
     }
-    
+
     .uploaded-image {
       max-width: 100%;
       max-height: 300px;

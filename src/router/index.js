@@ -8,6 +8,7 @@ import VehicleDetailView from "../views/Vehicle/VehicleDetailView.vue";
 import LoginView from "../views/Auth/LoginView.vue";
 import RegisterView from "../views/Auth/RegisterView.vue";
 import NotFoundView from "../views/NotFoundView.vue";
+import BecomeOwnerApplication from '../views/Auth/BecomeOwnerApplication.vue';
 
 // Dashboard Views
 import DashboardLayout from "../views/Dashboard/DashboardLayout.vue";
@@ -171,6 +172,15 @@ const routes = [{
         path: "/register",
         name: "Register",
         component: RegisterView,
+    },
+    {
+        path: '/become-a-host',
+        name: 'BecomeOwnerApplication',
+        component: BecomeOwnerApplication,
+        meta: {
+        requiresAuth: true,
+        authorize: ['renter'], // Only renters can access this page
+        },
     },
     // Route for payment selection
     {

@@ -1,3 +1,4 @@
+// frontend/src/store/index.js
 import { createStore } from "vuex";
 import api from "@/views/services/api";
 import router from "../router";
@@ -159,16 +160,39 @@ export default createStore({
     async fetchAllVehicles({ commit }) {
       try {
         const response = await api.getAllVehicles();
-        console.log("[Vuex Action] Raw vehicles from API:", response.data);
-        const normalizedVehicles = response.data.map(vehicle => ({
-          ...vehicle,
-          rentalPricePerDay: parseFloat(vehicle.rentalPricePerDay) || 0,
-          seats: parseInt(vehicle.seatingCapacity, 10) || 0,
-          year: parseInt(vehicle.year, 10) || 0,
-        }));
+        
+        const normalizedVehicles = response.data.map(vehicle => {
+          // Start with a copy of the original vehicle data
+          const normalized = { ...vehicle };
+
+          // Ensure numeric fields are numbers
+          normalized.rentalPricePerDay = parseFloat(vehicle.rentalPricePerDay) || 0;
+          normalized.seats = parseInt(vehicle.seatingCapacity, 10) || 0;
+          normalized.year = parseInt(vehicle.year, 10) || 0;
+
+          // --- NEW: ADD DEFAULT VALUES FOR MISSING FIELDS ---
+
+          // Ensure 'make' and 'model' exist
+          normalized.make = vehicle.make || 'Unknown Make';
+          normalized.model = vehicle.model || 'Unknown Model';
+
+          // Ensure 'location' object and city property exist
+          if (!vehicle.location || !vehicle.location.city) {
+            normalized.location = { city: 'Location Unavailable' };
+          }
+
+          // Ensure 'exteriorPhotos' is an array and has at least one image
+          if (!vehicle.exteriorPhotos || vehicle.exteriorPhotos.length === 0) {
+            normalized.exteriorPhotos = ['https://placehold.co/400x300/e2e8f0/666666?text=No+Image'];
+          }
+          
+          return normalized;
+        });
+
         commit("SET_ALL_VEHICLES", normalizedVehicles);
-        console.log("[Vuex Action] Normalized vehicles committed:", normalizedVehicles);
+        console.log("[Vuex Action] Cleaned and normalized vehicles:", normalizedVehicles);
         return normalizedVehicles;
+
       } catch (error) {
         console.error('Failed to fetch vehicles:', error.response?.data?.message || error.message);
         throw error;
@@ -295,6 +319,7 @@ export default createStore({
     authLoading: (state) => state.authLoading,
     userRole: (state) => state.userRole,
     singleVehicle: (state) => state.vehicle,
+    isAuthReady: (state) => !state.authLoading,
     currentVehicleFilters: (state) => state.vehicleFilters,
     allVehicles: (state) => state.allVehicles,
     vehicleSort: (state) => state.vehicleSort,

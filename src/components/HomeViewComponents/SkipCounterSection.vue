@@ -1,28 +1,46 @@
-<!-- frontend/src/components/SkipCounterSection.vue -->
 <template>
   <section class="skip-counter-section">
-    <div class="container">
-      <div class="skip-counter-content">
-        <h2 class="main-title">Rent any car, anywhere, instantly.</h2>
-        <p class="subtitle">Avoid the hassle of the rental counter and find a car to rent almost anywhere you go.</p>
+    <div class="skip-counter-content">
+      <h2 class="main-title">Rent any car, anywhere, instantly.</h2>
+      <p class="subtitle">
+        Avoid the hassle of the rental counter and find a car to rent almost
+        anywhere you go.
+      </p>
+    </div>
+    <div class="airport-pickup-container">
+      <div class="text-content">
+        <h3 class="feature-title">Vehicle pickup made easy</h3>
+        <p class="feature-description">
+          Enjoy convenient vehicle pickup from local hosts anywhere in Cebu,
+          Province.
+        </p>
+        <ul class="feature-list">
+          <li>
+            <i class="bi bi-check-circle-fill check-icon"></i>Forget about
+            waiting in lines or dealing with endless paperwork.
+          </li>
+          <li>
+            <i class="bi bi-check-circle-fill check-icon"></i>Effortlessly
+            locate and access your booked vehicle using our simple website.
+          </li>
+          <li>
+            <i class="bi bi-check-circle-fill check-icon"></i>Travel with peace
+            of mind thanks to round-the-clock support.
+          </li>
+        </ul>
+        <button
+          class="search-for-airports-button"
+          @click="goToVehicleList"
+        >
+          Search for cars
+        </button>
       </div>
-      <div class="airport-pickup-container">
-        <div class="text-content">
-          <h3 class="feature-title">Airport pickup made easy</h3>
-          <p class="feature-description">
-            Enjoy convenient vehicle pickup from local hosts at Mactan-Cebu International Airport.
-          </p>
-          <ul class="feature-list">
-            <li><i class="bi bi-check-circle-fill check-icon"></i>Forget about waiting in lines or dealing with endless paperwork.</li>
-            <li><i class="bi bi-check-circle-fill check-icon"></i>Effortlessly locate and access your booked vehicle using our simple website.</li>
-            <li><i class="bi bi-check-circle-fill check-icon"></i>Travel with peace of mind thanks to round-the-clock support.</li>
-          </ul>
-          <button class="search-for-airports-button">Search for cars at airports</button>
-        </div>
-        <div class="illustration-container">
-          <!-- Placeholder for the illustration -->
-          <img src="https://blog.carousell.ph/wp-content/uploads/PH_BlogCoverImages-8thSet_1024x536-2-696x364.jpg" alt="Airport pickup illustration" class="illustration-image">
-        </div>
+      <div class="illustration-container">
+        <img
+          src="https://blog.carousell.ph/wp-content/uploads/PH_BlogCoverImages-8thSet_1024x536-2-696x364.jpg"
+          alt="Airport pickup illustration"
+          class="illustration-image"
+        />
       </div>
     </div>
   </section>
@@ -31,6 +49,14 @@
 <script>
 export default {
   name: 'SkipCounterSection',
+  // Added methods section to handle navigation
+  methods: {
+    goToVehicleList() {
+      // This navigates to the route named 'VehicleList'
+      // which should be defined in your router configuration.
+      this.$router.push({ name: 'VehicleList' });
+    },
+  },
 };
 </script>
 
@@ -39,7 +65,7 @@ export default {
 @import '../../assets/styles/variables.scss';
 
 .skip-counter-section {
-  padding: 4rem 2rem;
+  padding: 4rem 0; // Changed horizontal padding to 0
   text-align: center;
   background-color: white;
   .main-title {
@@ -69,7 +95,7 @@ export default {
       max-width: 500px;
       flex-basis: 50%;
       @media (max-width: 992px) {
-          text-align: center;
+        text-align: center;
       }
     }
     .feature-title {

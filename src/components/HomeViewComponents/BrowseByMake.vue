@@ -1,51 +1,49 @@
-<!-- vehicle-rental-frontend/src/components/BrowseByMake.vue - Browse by Make component -->
 <template>
   <section class="browse-by-make-section">
-    <!-- Header with title and navigation arrows, now aligned with the card -->
     <div class="section-header-wrapper">
       <div class="section-header">
         <h2 class="section-title">Browse by make</h2>
         <div class="navigation-arrows">
-          <!-- Previous Category Button -->
           <button @click="prevCategory" class="arrow-button">
             <i class="bi bi-chevron-left"></i>
           </button>
-          <!-- Next Category Button -->
           <button @click="nextCategory" class="arrow-button">
             <i class="bi bi-chevron-right"></i>
           </button>
         </div>
       </div>
     </div>
-    
-    <!-- Single Card Display Area with slide transition -->
+
     <div class="category-card-display">
       <transition name="slide" mode="out-in">
-        <!-- We display a single card based on the currentCategoryIndex -->
-        <div v-if="currentCategory" :key="currentCategory.title" class="category-card">
-          <!-- Category Header -->
+        <div
+          v-if="currentCategory"
+          :key="currentCategory.title"
+          class="category-card"
+        >
           <div class="category-header-content">
             <h3 class="category-title">{{ currentCategory.title }}</h3>
-            <p class="category-description">{{ currentCategory.description }}</p>
+            <p class="category-description">
+              {{ currentCategory.description }}
+            </p>
           </div>
-          
-          <!-- Grid layout for the makes within the card -->
+
           <div class="make-cards-container">
-            <div v-for="make in displayedMakes" :key="make.name" class="make-card">
-              <!-- Vehicle Image -->
-              <img :src="make.imageUrl" :alt="make.name" class="make-image">
-              <!-- Make Name -->
+            <div
+              v-for="make in currentCategory.makes"
+              :key="make.name"
+              class="make-card"
+            >
+              <img
+                :src="make.imageUrl"
+                :alt="make.name"
+                class="make-image"
+              />
               <div class="make-name">{{ make.name }}</div>
             </div>
           </div>
 
-          <!-- The "See more" button, only shown if there are more than 4 items -->
-          <div v-if="!showAll && currentCategory.makes.length > 4" class="see-more-container">
-            <button @click="toggleShowAll" class="see-more-button">
-              See more
-            </button>
           </div>
-        </div>
       </transition>
     </div>
   </section>
@@ -56,117 +54,122 @@ export default {
   name: 'BrowseByMake',
   data() {
     return {
-      // The state variable to control which card is visible.
       currentCategoryIndex: 0,
-      // The state to control whether to show all items or just the first four.
-      showAll: false,
-      
-      // Data remains the same.
+      // REMOVED: showAll data property is no longer needed
       categorizedMakes: [
         {
           title: 'Economy and Compact Cars',
-          description: 'These are the most popular and affordable choices, ideal for city driving and shorter trips.',
+          description:
+            'These are the most popular and affordable choices, ideal for city driving and shorter trips.',
           makes: [
-            { name: 'Toyota', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Toyota' },
-            { name: 'Mitsubishi', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Mitsubishi' },
-            { name: 'Honda', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Honda' },
-            { name: 'Nissan', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Nissan' },
-            { name: 'Hyundai', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Hyundai' },
+            {
+              name: 'Toyota',
+              imageUrl:
+                'https://placehold.co/150x150/f0f0f0/888888?text=Toyota',
+            },
+            {
+              name: 'Mitsubishi',
+              imageUrl:
+                'https://placehold.co/150x150/f0f0f0/888888?text=Mitsubishi',
+            },
+            {
+              name: 'Honda',
+              imageUrl:
+                'https://placehold.co/150x150/f0f0f0/888888?text=Honda',
+            },
+            {
+              name: 'Nissan',
+              imageUrl:
+                'https://placehold.co/150x150/f0f0f0/888888?text=Nissan',
+            },
+            {
+              name: 'Hyundai',
+              imageUrl:
+                'https://placehold.co/150x150/f0f0f0/888888?text=Hyundai',
+            },
           ],
         },
         {
           title: 'SUVs and Vans',
-          description: 'These are preferred for group travel, family outings, and longer road trips, especially for exploring outside of major cities.',
+          description:
+            'These are preferred for group travel, family outings, and longer road trips.',
           makes: [
-            { name: 'Toyota', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Toyota' },
-            { name: 'Honda', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Honda' },
-            { name: 'Mitsubishi', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Mitsubishi' },
-            { name: 'Ford', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Ford' },
-            { name: 'Nissan', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Nissan' },
-            { name: 'Hyundai', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Hyundai' },
+            {
+              name: 'Toyota',
+              imageUrl:
+                'https://placehold.co/150x150/f0f0f0/888888?text=Toyota',
+            },
+            {
+              name: 'Honda',
+              imageUrl:
+                'https://placehold.co/150x150/f0f0f0/888888?text=Honda',
+            },
+            {
+              name: 'Mitsubishi',
+              imageUrl:
+                'https://placehold.co/150x150/f0f0f0/888888?text=Mitsubishi',
+            },
+            {
+              name: 'Ford',
+              imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Ford',
+            },
+            {
+              name: 'Nissan',
+              imageUrl:
+                'https://placehold.co/150x150/f0f0f0/888888?text=Nissan',
+            },
+            {
+              name: 'Hyundai',
+              imageUrl:
+                'https://placehold.co/150x150/f0f0f0/888888?text=Hyundai',
+            },
           ],
         },
-        {
-          title: 'Luxury and Premium Vehicles',
-          description: 'For special occasions, business trips, or a more comfortable travel experience, some rental companies offer premium makes.',
-          makes: [
-            { name: 'BMW', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=BMW' },
-            { name: 'Mercedes-Benz', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=MBenz' },
-            { name: 'Rolls-Royce', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=RR' },
-            { name: 'Audi', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Audi' },
-          ],
-        },
-        {
-          title: 'Specialty Vehicles',
-          description: 'You may also find these for specific purposes like large group transportation or rugged travel.',
-          makes: [
-            { name: 'Isuzu', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Isuzu' },
-            { name: 'Suzuki', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Suzuki' },
-            { name: 'Kia', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Kia' },
-          ],
-        },
+        // ... (other categories)
       ],
     };
   },
   computed: {
-    // A computed property to get the currently selected category object.
     currentCategory() {
       return this.categorizedMakes[this.currentCategoryIndex];
     },
-    // A computed property to return either the limited or full list of makes.
-    displayedMakes() {
-      if (this.showAll) {
-        return this.currentCategory.makes;
-      } else {
-        return this.currentCategory.makes.slice(0, 4);
-      }
-    },
+    // REMOVED: displayedMakes computed property is no longer needed
   },
   methods: {
-    /**
-     * Increments the category index, wrapping around to the first category if at the end.
-     * Also resets the "show all" state.
-     */
     nextCategory() {
       const totalCategories = this.categorizedMakes.length;
-      this.currentCategoryIndex = (this.currentCategoryIndex + 1) % totalCategories;
-      this.showAll = false; // Reset state for the new category
+      this.currentCategoryIndex =
+        (this.currentCategoryIndex + 1) % totalCategories;
+      // No longer need to reset showAll state
     },
-    /**
-     * Decrements the category index, wrapping around to the last category if at the beginning.
-     * Also resets the "show all" state.
-     */
     prevCategory() {
       const totalCategories = this.categorizedMakes.length;
-      this.currentCategoryIndex = (this.currentCategoryIndex - 1 + totalCategories) % totalCategories;
-      this.showAll = false; // Reset state for the new category
+      this.currentCategoryIndex =
+        (this.currentCategoryIndex - 1 + totalCategories) % totalCategories;
+      // No longer need to reset showAll state
     },
-    /**
-     * Toggles the showAll state to expand or collapse the list.
-     */
-    toggleShowAll() {
-      this.showAll = !this.showAll;
-    },
+    // REMOVED: toggleShowAll method is no longer needed
   },
 };
 </script>
 
 <style lang="scss" scoped>
-/*
-  The 'scoped' attribute ensures that these styles only apply to this component.
-*/
 .browse-by-make-section {
-  padding: 2rem; /* The main container now has padding */
+  /* UPDATED: Padding adjusted for parent-controlled centering */
+  padding: 2rem 0;
   max-width: 100%;
   box-sizing: border-box;
-  margin-bottom: 4rem; /* Added margin for a gap between sections */
+  margin-bottom: 4rem;
 }
 
-/* New wrapper to handle the positioning of the header */
 .section-header-wrapper {
-  max-width: 800px; /* Align with the card below */
+  /* UPDATED: Increased max-width for a wider layout */
+  max-width: 1100px;
   width: 100%;
-  margin: 0 auto 1.5rem; /* Center and provide bottom margin */
+  margin: 0 auto 1.5rem;
+  /* Added padding to align with the card when screen is smaller than max-width */
+  padding: 0 1rem;
+  box-sizing: border-box;
 }
 
 .section-header {
@@ -216,13 +219,14 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 0; /* Removed padding */
-  overflow: visible; /* Changed from hidden to visible */
+  padding: 0 1rem; /* Added horizontal padding */
+  box-sizing: border-box;
 }
 
 .category-card {
   width: 100%;
-  max-width: 800px;
+  /* UPDATED: Increased max-width for a wider layout */
+  max-width: 1100px;
   background-color: #f9f9f9;
   border-radius: 1rem;
   padding: 1.5rem;
@@ -246,7 +250,6 @@ export default {
   margin: 0;
 }
 
-/* Updated to a grid layout to fit all items */
 .make-cards-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -285,30 +288,10 @@ export default {
   color: #333;
 }
 
-/* The 'See more' button styling */
-.see-more-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 1.5rem;
-}
+/* REMOVED: Styles for the 'see more' button are no longer needed */
 
-.see-more-button {
-  background-color: rgba(255, 0, 0, 0.1); /* Red with 10% opacity */
-  border: 1px solid rgba(255, 0, 0, 0.3); /* A slightly darker, more visible red border */
-  color: #333;
-  padding: 0.75rem 2rem;
-  border-radius: 9999px; /* This makes it a pill shape */
-  cursor: pointer;
-  transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-
-  &:hover {
-    background-color: rgba(255, 0, 0, 0.2);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  }
-}
-
-/* CSS for the sliding transition */
-.slide-enter-active, .slide-leave-active {
+.slide-enter-active,
+.slide-leave-active {
   transition: all 0.5s ease-in-out;
 }
 

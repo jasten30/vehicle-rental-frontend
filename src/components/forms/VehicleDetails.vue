@@ -5,7 +5,6 @@
       Now, fill out the rest of the details about your vehicle.
     </p>
 
-    <!-- Vehicle Details Section -->
     <div class="form-sub-section">
       <div class="form-group">
         <label for="make">Make</label>
@@ -41,7 +40,6 @@
         />
       </div>
 
-      <!-- New Dropdowns for vehicle details -->
       <div class="form-group">
         <label for="vehicleType">Vehicle Type</label>
         <select
@@ -110,8 +108,7 @@
       </div>
     </div>
 
-    <!-- Action Buttons -->
-    <div class="button-group">
+    <div v-if="showNavigation" class="button-group">
       <button
         type="button"
         @click="$emit('prev')"
@@ -137,10 +134,24 @@ export default {
     initialVehicle: {
       type: Object,
       required: true,
+      default: () => ({
+        make: "",
+        model: "",
+        year: null,
+        vehicleType: "",
+        seats: null,
+        transmission: "",
+        fuelType: "",
+      }),
     },
     isEditMode: {
       type: Boolean,
       default: false,
+    },
+    // Add the prop here
+    showNavigation: {
+      type: Boolean,
+      default: true,
     },
   },
   emits: ["update:vehicle", "next", "prev", "error"],
@@ -160,7 +171,6 @@ export default {
       const { make, model, year, seats, vehicleType, transmission, fuelType } =
         this.initialVehicle;
 
-      // Ensure seats is a number and not null or NaN
       const isSeatsValid = typeof seats === "number" && seats > 0;
 
       const isValid =
@@ -227,9 +237,7 @@ export default {
     border: 1px solid #d1d5db;
     border-radius: $border-radius-sm;
     font-size: 1rem;
-    transition:
-      border-color 0.2s ease-in-out,
-      box-shadow 0.2s ease-in-out;
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
     background-color: #ffffff;
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -266,9 +274,7 @@ export default {
   font-size: 1.05rem;
   font-weight: 700;
   cursor: pointer;
-  transition:
-    background-color 0.2s ease-in-out,
-    opacity 0.2s ease-in-out;
+  transition: background-color 0.2s ease-in-out, opacity 0.2s ease-in-out;
   border: none;
 
   &:disabled {

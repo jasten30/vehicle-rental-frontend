@@ -1,34 +1,26 @@
-<!-- vehicle-rental-frontend/src/components/BrowseByCity.vue - Browse by City component -->
 <template>
   <section class="browse-by-city-section">
-    <!-- Header with title and navigation arrows -->
     <div class="section-header">
       <h2 class="section-title">Browse by city</h2>
       <div class="navigation-arrows">
-        <!-- Previous Button -->
         <button @click="scrollLeft" class="arrow-button">
           <i class="bi bi-chevron-left"></i>
         </button>
-        <!-- Next Button -->
         <button @click="scrollRight" class="arrow-button">
           <i class="bi bi-chevron-right"></i>
         </button>
       </div>
     </div>
-    
-    <!-- The single card container -->
+
     <div class="category-card">
-      <!-- The horizontally scrollable container for the cities -->
       <div class="city-cards-container" ref="cityContainer">
         <div v-for="city in allCities" :key="city.name" class="city-card">
-          <!-- City Image with a circular mask -->
           <div class="city-image-container">
-            <img :src="city.imageUrl" :alt="city.name" class="city-image">
+            <img :src="city.imageUrl" :alt="city.name" class="city-image" />
             <div class="city-image-overlay">
               <span class="city-overlay-text">{{ city.name }}</span>
             </div>
           </div>
-          <!-- City Name -->
           <div class="city-name">{{ city.name }}</div>
         </div>
       </div>
@@ -41,64 +33,82 @@ export default {
   name: 'BrowseByCity',
   data() {
     return {
-      // The single list of all cities.
       allCities: [
-        { name: 'Bogo City', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Bogo' },
-        { name: 'Carcar City', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Carcar' },
-        { name: 'Cebu City', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Cebu' },
-        { name: 'Danao City', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Danao' },
-        { name: 'Lapu-Lapu City', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Lapu-Lapu' },
-        { name: 'Mandaue City', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Mandaue' },
-        { name: 'Naga City', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Naga' },
-        { name: 'Talisay City', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Talisay' },
-        { name: 'Toledo City', imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Toledo' },
+        {
+          name: 'Bogo City',
+          imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Bogo',
+        },
+        {
+          name: 'Carcar City',
+          imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Carcar',
+        },
+        {
+          name: 'Cebu City',
+          imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Cebu',
+        },
+        {
+          name: 'Danao City',
+          imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Danao',
+        },
+        {
+          name: 'Lapu-Lapu City',
+          imageUrl:
+            'https://placehold.co/150x150/f0f0f0/888888?text=Lapu-Lapu',
+        },
+        {
+          name: 'Mandaue City',
+          imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Mandaue',
+        },
+        {
+          name: 'Naga City',
+          imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Naga',
+        },
+        {
+          name: 'Talisay City',
+          imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Talisay',
+        },
+        {
+          name: 'Toledo City',
+          imageUrl: 'https://placehold.co/150x150/f0f0f0/888888?text=Toledo',
+        },
       ],
     };
   },
   methods: {
-    /**
-     * Scrolls the city container to the right.
-     */
     scrollRight() {
       const container = this.$refs.cityContainer;
       container.scrollBy({
-        left: 200, // You can adjust this value to change the scroll distance
-        behavior: 'smooth'
+        left: 300, // Increased scroll distance for wider view
+        behavior: 'smooth',
       });
     },
-    /**
-     * Scrolls the city container to the left.
-     */
     scrollLeft() {
       const container = this.$refs.cityContainer;
       container.scrollBy({
-        left: -200, // You can adjust this value to change the scroll distance
-        behavior: 'smooth'
+        left: -300, // Increased scroll distance for wider view
+        behavior: 'smooth',
       });
-    }
+    },
   },
 };
 </script>
 
 <style lang="scss" scoped>
-/*
-  The 'scoped' attribute ensures that these styles only apply to this component.
-*/
 .browse-by-city-section {
   padding: 2rem;
   max-width: 100%;
   box-sizing: border-box;
   margin-bottom: 4rem;
-  background-color:rgb(255, 255, 255);
+  background-color: rgb(255, 255, 255);
 }
 
-/* Header is now a standalone flex container, aligned with the card below. */
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 800px; /* Aligned with the card */
-  margin: 0 auto 1.5rem; /* Center and provide bottom margin */
+  /* UPDATED: Increased max-width from 800px to 1100px */
+  max-width: 1100px;
+  margin: 0 auto 1.5rem;
 }
 
 .section-title {
@@ -139,16 +149,16 @@ export default {
 
 .category-card {
   width: 100%;
-  max-width: 800px;
+  /* UPDATED: Increased max-width from 800px to 1100px */
+  max-width: 1100px;
   margin: 0 auto;
   background-color: #f9f9f9;
   border-radius: 1rem;
   padding: 1.5rem;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  overflow-x: hidden; /* Hide horizontal scrollbar if it appears */
+  overflow-x: hidden;
 }
 
-/* The horizontal scroller container */
 .city-cards-container {
   display: flex;
   flex-wrap: nowrap;
@@ -156,7 +166,7 @@ export default {
   overflow-x: auto;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 1.5rem;
+  padding-bottom: 1.5rem; /* For spacing if scrollbar is visible on some systems */
 }
 
 /* Hide the scrollbar for a cleaner look */
@@ -212,7 +222,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgb(255, 255, 255);
+  background-color: rgba(255, 255, 255, 0.85);
   border-radius: 50%;
   display: flex;
   align-items: center;

@@ -119,7 +119,7 @@
     <div v-else class="vehicle-grid">
       <template v-for="vehicle in displayedVehicles" :key="vehicle.id">
         <!-- Only render the card if the vehicle object is valid -->
-        <VehicleCard v-if="vehicle && vehicle.location" :vehicle="vehicle" />
+        <VehicleCard v-if="vehicle" :vehicle="vehicle" />
       </template>
     </div>
 

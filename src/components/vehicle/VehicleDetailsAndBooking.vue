@@ -1,21 +1,17 @@
+<!-- frontend/src/components/vehicle/VehicleDetailsAndBooking.vue -->
 <template>
   <div v-if="vehicle" class="page-container">
     <div class="details-and-booking-container">
-      <!-- Left Column: Vehicle Details Box -->
       <VehicleDetailsBox :vehicle="vehicle" />
 
-      <!-- Right Column: Booking Box -->
       <BookingBox :vehicle="vehicle" />
     </div>
 
-    <!-- FULL-WIDTH SECTION: Map of Vehicle Location -->
     <div class="full-width-section">
       <h3>Vehicle Location</h3>
-      <!-- The div that will hold our Leaflet map -->
       <div id="map-container" class="vehicle-map"></div>
     </div>
 
-    <!-- FULL-WIDTH SECTION: Recommended Cars -->
     <div class="full-width-section">
       <h3>Recommended Cars</h3>
       <div class="recommended-cars-grid">
@@ -41,33 +37,10 @@
 import { ref, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import { useStore } from "vuex";
-import { getApps, initializeApp } from "firebase/app";
-import {
-  getAuth,
-  signInAnonymously,
-  signInWithCustomToken,
-} from "firebase/auth";
 import VehicleDetailsBox from "./VehicleDetailsBox.vue";
 import BookingBox from "./BookingBox.vue";
 
-// Firebase Global Variables
-const _appId =
-  typeof window.__app_id !== "undefined" ? window.__app_id : "default-app-id";
-const firebaseConfig = JSON.parse(
-  typeof window.__firebase_config !== "undefined"
-    ? window.__firebase_config
-    : "{}"
-);
-const initialAuthToken =
-  typeof window.__initial_auth_token !== "undefined"
-    ? window.__initial_auth_token
-    : "";
 
-// Initialize Firebase only if it hasn't been initialized already
-if (!getApps().length) {
-  initializeApp(firebaseConfig);
-}
-const auth = getAuth();
 const store = useStore();
 const route = useRoute();
 
@@ -143,16 +116,10 @@ onMounted(async () => {
   }
 
   try {
-    if (initialAuthToken) {
-      await signInWithCustomToken(auth, initialAuthToken);
-    } else {
-      await signInAnonymously(auth);
-    }
-
     // Populate recommended cars as soon as the component is mounted
     recommendedCars.value = getRandomCars(3);
 
-    // Fetch the vehicle details from the store
+    // Directly fetch the vehicle details without forcing a login.
     await store.dispatch("getVehicleById", vehicleId);
     vehicle.value = store.state.vehicle;
 
@@ -201,7 +168,7 @@ onMounted(async () => {
       }
     }
   } catch (error) {
-    console.error("Error initializing Firebase or fetching data:", error);
+    console.error("Error fetching vehicle data:", error);
   }
 });
 
@@ -282,7 +249,8 @@ onUnmounted(() => {
 .car-card:hover {
   transform: translateY(-5px);
   box-shadow:
-    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 10px 15px -3px rgba(0, 0,
+    0, 0.1),
     0 4px 6px -4px rgba(0, 0, 0, 0.05);
 }
 

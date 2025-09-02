@@ -2,7 +2,6 @@
   <div class="review-form-container">
     <h4 class="form-title">Leave a Review</h4>
     <form @submit.prevent="submitReview">
-      <!-- Overall Rating Stars -->
       <div class="star-rating-input">
         <label class="input-label">Overall Rating</label>
         <div class="stars">
@@ -16,7 +15,6 @@
         </div>
       </div>
 
-      <!-- Categorical Ratings -->
       <div class="categorical-sliders">
         <div
           v-for="(score, category) in newReview.categoricalRatings"
@@ -37,7 +35,6 @@
         </div>
       </div>
 
-      <!-- Review Comment -->
       <div class="comment-input-group">
         <label for="review-comment" class="input-label">Your Review</label>
         <textarea
@@ -61,20 +58,9 @@
 
 <script setup>
 import { ref, defineProps } from "vue";
-import { getApps, initializeApp } from "firebase/app";
-import {
-  getAuth,
-  signInAnonymously,
-  signInWithCustomToken,
-} from "firebase/auth";
-import {
-  getFirestore,
-  doc,
-  getDoc,
-  collection,
-  addDoc,
-  updateDoc,
-} from "firebase/firestore";
+import { useStore } from "vuex";
+import { useRouter } from "vue-router";
+import { getFirestore, doc, getDoc, collection, addDoc, updateDoc } from "firebase/firestore";
 
 // Define props to receive data from the parent component
 const props = defineProps({
@@ -84,26 +70,14 @@ const props = defineProps({
   },
 });
 
-// Firebase Global Variables
+// Use Vuex store and Vue router
+const store = useStore();
+const router = useRouter();
+
+// Firestore initialization
+const db = getFirestore();
 const appId =
   typeof window.__app_id !== "undefined" ? window.__app_id : "default-app-id";
-const firebaseConfig = JSON.parse(
-  typeof window.__firebase_config !== "undefined"
-    ? window.__firebase_config
-    : "{}"
-);
-const initialAuthToken =
-  typeof window.__initial_auth_token !== "undefined"
-    ? window.__initial_auth_token
-    : "";
-
-// Initialize Firebase only if it hasn't been initialized already
-if (!getApps().length) {
-  initializeApp(firebaseConfig);
-}
-
-const auth = getAuth();
-const db = getFirestore();
 
 // Reactive state for the review form
 const newReview = ref({
@@ -128,6 +102,17 @@ const formatCategoryName = (name) => {
  * Submits a new review to Firestore and updates the vehicle's reviews summary.
  */
 const submitReview = async () => {
+  // Check if user is authenticated before doing anything else
+  if (!store.state.isAuthenticated) {
+    submissionMessage.value = {
+      text: "You must be logged in to leave a review. Redirecting...",
+      class: "message-error",
+    };
+    // Redirect to the login page
+    setTimeout(() => router.push('/login'), 2000);
+    return;
+  }
+  
   if (
     !newReview.value.rating ||
     !newReview.value.comment ||
@@ -148,8 +133,8 @@ const submitReview = async () => {
   };
 
   try {
-    const currentUser = auth.currentUser;
-    const userId = currentUser ? currentUser.uid : "anonymous";
+    // Get the authenticated user's ID from the Vuex store
+    const userId = store.state.user.uid;
 
     // 1. Create the new review document
     const reviewsRef = collection(
@@ -170,8 +155,6 @@ const submitReview = async () => {
     });
 
     // 2. Client-side update of the vehicle's reviews summary
-    // NOTE: For a production app, this should be done with a Firestore Cloud Function
-    // to ensure atomicity and avoid race conditions. This client-side code is for demonstration.
     const vehicleDocRef = doc(db, "vehicles", props.vehicleId);
     const vehicleSnapshot = await getDoc(vehicleDocRef);
     const currentReviewsSummary = vehicleSnapshot.data().reviewsSummary || {

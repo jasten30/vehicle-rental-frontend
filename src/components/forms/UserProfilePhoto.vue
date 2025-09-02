@@ -2,8 +2,7 @@
   <div>
     <h3>Your Profile Photo</h3>
     <p class="step-info-text">Please upload a clear profile photo of yourself.</p>
-    
-    <!-- Profile Photo Upload Section -->
+
     <div class="form-group upload-section">
       <label>Upload Profile Photo</label>
       <input
@@ -13,35 +12,55 @@
         accept="image/*"
         class="hidden-input"
         required
-      >
-      <div 
-        class="upload-box" 
+      />
+      <div
+        class="upload-box"
         @click="triggerProfilePhotoInput"
         :class="{ 'has-image': profileImageUrl }"
       >
         <div v-if="!profileImageUrl" class="upload-placeholder">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-6 h-6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+            />
           </svg>
           <p>Click to upload photo</p>
         </div>
-        <img v-else :src="profileImageUrl" alt="Profile Photo Preview" class="uploaded-image">
+        <img
+          v-else
+          :src="profileImageUrl"
+          alt="Profile Photo Preview"
+          class="uploaded-image"
+        />
       </div>
     </div>
-    <!-- End Profile Photo Upload Section -->
-    
-    <div class="button-group-step">
-      <button type="button" @click="$emit('prev')" class="button secondary-button">Previous</button>
-      <button 
-        type="button" 
-        @click="nextStep" 
-        class="button primary-button" 
+    <div v-if="showNavigation" class="button-group-step">
+      <button
+        type="button"
+        @click="$emit('prev')"
+        class="button secondary-button"
+      >
+        Previous
+      </button>
+      <button
+        type="button"
+        @click="nextStep"
+        class="button primary-button"
         :disabled="!isValid"
       >
         Next
       </button>
     </div>
-    
+
     <div v-if="error" class="error-message">
       {{ error }}
     </div>
@@ -52,10 +71,19 @@
 export default {
   name: 'UserProfilePhoto',
   props: {
+    // Note: It's good practice to use v-model for form components.
+    // I've kept your prop name for consistency.
     userProfileImageUrl: {
       type: String,
-      required: true,
-    }
+      // `required` might cause issues if the initial value is null.
+      // `default: null` is often safer.
+      default: null,
+    },
+    // Added this new prop to control button visibility
+    showNavigation: {
+      type: Boolean,
+      default: true,
+    },
   },
   emits: ['update:userProfileImageUrl', 'next', 'prev', 'error'],
   data() {
@@ -67,12 +95,12 @@ export default {
   computed: {
     isValid() {
       return !!this.profileImageUrl;
-    }
+    },
   },
   watch: {
     userProfileImageUrl(newVal) {
       this.profileImageUrl = newVal;
-    }
+    },
   },
   methods: {
     triggerProfilePhotoInput() {
@@ -148,7 +176,7 @@ h3 {
     padding: 1rem;
     transition: border-color 0.2s ease;
     text-align: center;
-    
+
     &:hover {
       border-color: $primary-color;
     }
@@ -169,7 +197,7 @@ h3 {
         margin-bottom: 0.5rem;
       }
     }
-    
+
     .uploaded-image {
       max-width: 100%;
       max-height: 300px;

@@ -1,23 +1,23 @@
-<!-- frontend/src/components/forms/DriversLicense.vue -->
 <template>
   <div class="form-section step-5">
-    <h3>Step 5: Driver's License Details</h3>
-    <p class="step-info-text">Please provide your driver's license number and upload a clear photo of your license. Your privacy is important to us.</p>
-    
-    <!-- Driver's License Number Input -->
+    <h3>Driver's License Details</h3>
+    <p class="step-info-text">
+      Please provide your driver's license number and upload a clear photo of
+      your license. Your privacy is important to us.
+    </p>
+
     <div class="form-group">
       <label for="licenseNumber">Driver's License Number</label>
-      <input 
-        type="text" 
-        id="licenseNumber" 
+      <input
+        type="text"
+        id="licenseNumber"
         v-model="localDriversLicense.number"
         placeholder="e.g., L12-34-567890"
         required
         @input="emitUpdate"
-      >
+      />
     </div>
-    
-    <!-- Driver's License Photo Upload -->
+
     <div class="form-group upload-section">
       <label>Upload Driver's License Photo</label>
       <input
@@ -27,33 +27,51 @@
         accept="image/*"
         class="hidden-input"
         required
-      >
-      <div 
-        class="upload-box" 
+      />
+      <div
+        class="upload-box"
         @click="triggerLicensePhotoInput"
         :class="{ 'has-image': localDriversLicense.imageUrl }"
       >
         <div v-if="!localDriversLicense.imageUrl" class="upload-placeholder">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-6 h-6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+            />
           </svg>
           <p>Click to upload photo</p>
         </div>
-        <img v-else :src="localDriversLicense.imageUrl" alt="Driver's License Preview" class="uploaded-image">
+        <img
+          v-else
+          :src="localDriversLicense.imageUrl"
+          alt="Driver's License Preview"
+          class="uploaded-image"
+        />
       </div>
     </div>
-    
-    <div class="button-group-step">
-      <button type="button" @click="$emit('prev')" class="button secondary-button">Previous</button>
-      <button 
-        type="button" 
-        @click="nextStep" 
-        class="button primary-button" 
+
+    <div v-if="showNavigation" class="button-group-step">
+      <button
+        type="button"
+        @click="$emit('prev')"
+        class="button secondary-button"
       >
+        Previous
+      </button>
+      <button type="button" @click="nextStep" class="button primary-button">
         Next
       </button>
     </div>
-    
+
     <div v-if="error" class="error-message">
       {{ error }}
     </div>
@@ -67,7 +85,11 @@ export default {
     initialDriversLicense: {
       type: Object,
       required: true,
-    }
+    },
+    showNavigation: {
+      type: Boolean,
+      default: true,
+    },
   },
   emits: ['update:driversLicense', 'next', 'prev', 'error'],
   data() {
@@ -95,19 +117,23 @@ export default {
       this.$emit('update:driversLicense', this.localDriversLicense);
     },
     nextStep() {
-      // Add the console.log() here to check the data
-      console.log('DriversLicense component data:', JSON.stringify(this.localDriversLicense, null, 2));
+      console.log(
+        'DriversLicense component data:',
+        JSON.stringify(this.localDriversLicense, null, 2)
+      );
 
       if (this.localDriversLicense.number && this.localDriversLicense.imageUrl) {
         this.$emit('next');
         this.error = '';
       } else {
-        this.error = 'Please fill in your license number and upload a photo before proceeding.';
+        this.error =
+          'Please fill in your license number and upload a photo before proceeding.';
       }
     },
   },
 };
 </script>
+
 <style lang="scss" scoped>
 @import '@/assets/styles/variables.scss';
 
@@ -134,7 +160,7 @@ h3 {
   }
 }
 
-input[type="text"] {
+input[type='text'] {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid #d1d5db;
@@ -170,7 +196,7 @@ input[type="text"] {
     padding: 1rem;
     transition: border-color 0.2s ease;
     text-align: center;
-    
+
     &:hover {
       border-color: $primary-color;
     }
@@ -191,7 +217,7 @@ input[type="text"] {
         margin-bottom: 0.5rem;
       }
     }
-    
+
     .uploaded-image {
       max-width: 100%;
       max-height: 300px;

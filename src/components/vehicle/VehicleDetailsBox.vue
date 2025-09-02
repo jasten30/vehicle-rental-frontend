@@ -37,7 +37,6 @@
       </div>
     </div>
     <hr class="divider" />
-    <!-- Details Section with a 2x2 grid of categorized features -->
     <div class="details-list">
       <h4>Vehicle Features</h4>
       <div v-if="hasFeatures" class="features-grid-container">
@@ -78,7 +77,6 @@
       </div>
     </div>
     <hr class="divider" />
-    <!-- NEW SECTION: Included in the Price -->
     <div class="included-in-price-section">
       <h4 class="included-title">Rental Perks</h4>
       <div class="included-content-grid">
@@ -104,7 +102,6 @@
     </div>
     <hr class="divider" />
 
-    <!-- NEW SECTION: Ratings and Reviews with progress bars -->
     <div class="ratings-and-reviews-section">
       <h4 class="section-title">Ratings and reviews</h4>
       <div class="ratings-summary">
@@ -135,7 +132,6 @@
     </div>
     <hr class="divider" />
 
-    <!-- NEW SECTION: Rules of the road -->
     <div class="rules-section">
       <h3>Rules of the road</h3>
       <p>
@@ -171,18 +167,14 @@ import {
   where,
   onSnapshot,
 } from "firebase/firestore";
-import {
-  getAuth,
-  signInAnonymously,
-  signInWithCustomToken,
-} from "firebase/auth";
+
+// Note: Unused Firebase Auth imports have been removed.
 
 const props = defineProps({
   vehicle: Object,
 });
 
 const db = getFirestore();
-const auth = getAuth();
 const appId =
   typeof window.__app_id !== "undefined" ? window.__app_id : "default-app-id";
 
@@ -380,30 +372,11 @@ const formatCategoryName = (name) => {
 };
 
 onMounted(() => {
-  // Use the custom token to sign in to ensure authentication is successful.
-  if (typeof window.__initial_auth_token !== "undefined") {
-    signInWithCustomToken(auth, window.__initial_auth_token)
-      .then(() => {
-        if (props.vehicle && props.vehicle.ownerId) {
-          fetchHostData(props.vehicle.ownerId);
-          fetchReviews(props.vehicle.id);
-        }
-      })
-      .catch((error) => {
-        console.error("Error signing in with custom token:", error);
-      });
-  } else {
-    // If no custom token is available, sign in anonymously.
-    signInAnonymously(auth)
-      .then(() => {
-        if (props.vehicle && props.vehicle.ownerId) {
-          fetchHostData(props.vehicle.ownerId);
-          fetchReviews(props.vehicle.id);
-        }
-      })
-      .catch((error) => {
-        console.error("Error signing in anonymously:", error);
-      });
+  // Directly fetch data without forcing a login.
+  // The component now relies on the existing auth state of the user.
+  if (props.vehicle && props.vehicle.ownerId) {
+    fetchHostData(props.vehicle.ownerId);
+    fetchReviews(props.vehicle.id);
   }
 });
 </script>

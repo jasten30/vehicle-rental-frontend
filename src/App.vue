@@ -7,7 +7,6 @@
           ><span class="cycle-text">CYCLE</span>
         </h1>
       </router-link>
-      <!-- New Navigation buttons in the center -->
       <nav class="header-nav">
         <router-link to="/" class="nav-link">Home</router-link>
         <router-link to="/vehicles" class="nav-link">Vehicles</router-link>
@@ -16,11 +15,11 @@
       </nav>
       <div class="header-right">
         <router-link
-          to="/dashboard/owner/vehicles"
           v-if="$route.name !== 'VehicleList'"
+          :to="hostLinkTarget"
           class="become-host-button"
         >
-          Become a host
+          {{ hostLinkText }}
         </router-link>
         <div class="user-menu-container">
           <button class="menu-button" @click="toggleMenu" ref="menuButton">
@@ -84,11 +83,11 @@
                   <i class="bi bi-gear-fill"></i>Account
                 </router-link>
                 <router-link
-                  to="/dashboard/owner/vehicles"
+                  :to="hostLinkTarget"
                   class="dropdown-item with-icon"
                   @click="closeMenu"
                 >
-                  <i class="bi bi-car-front-fill"></i>Become A Host
+                  <i class="bi bi-car-front-fill"></i>{{ hostLinkText }}
                 </router-link>
               </div>
               <hr v-if="isAuthenticated" class="dropdown-divider" />
@@ -134,10 +133,10 @@
 </template>
 
 <script>
-import { mapGetters, mapActions } from "vuex";
-import DateRangePicker from "./components/HomeViewComponents/DateRangePicker.vue";
+import { mapGetters, mapActions } from 'vuex';
+import DateRangePicker from './components/HomeViewComponents/DateRangePicker.vue';
 export default {
-  name: "App",
+  name: 'App',
   components: {
     DateRangePicker,
   },
@@ -145,15 +144,31 @@ export default {
     return {
       isMenuOpen: false,
       isPickerVisible: false,
-      location: "",
-      fromDate: "",
-      fromTime: "",
-      untilDate: "",
-      untilTime: "",
+      location: '',
+      fromDate: '',
+      fromTime: '',
+      untilDate: '',
+      untilTime: '',
     };
   },
   computed: {
-    ...mapGetters(["isAuthenticated", "userRole"]),
+    ...mapGetters(['isAuthenticated', 'userRole']),
+    hostLinkText() {
+      if (this.isAuthenticated && this.userRole === 'owner') {
+        return 'List your car'; // Text for existing owners
+      }
+      return 'Become a host'; // Text for renters and guests
+    },
+    hostLinkTarget() {
+      if (this.isAuthenticated && this.userRole === 'owner') {
+        // For owners, link to the form to add a new vehicle.
+        // Make sure you have a route named 'OwnerVehicleForm'.
+        return { name: 'AddVehicle' };
+      }
+      // For renters and guests, link to the application page.
+      // Make sure you have a route named 'BecomeOwnerApplication'.
+      return { name: 'BecomeOwnerApplication' };
+    },
     timeOptions() {
       const times = [];
       const now = new Date();
@@ -162,7 +177,7 @@ export default {
         const date = new Date(now.getTime() + i * 30 * 60 * 1000);
         const hours = date.getHours();
         const minutes = date.getMinutes();
-        const ampm = hours >= 12 ? "PM" : "AM";
+        const ampm = hours >= 12 ? 'PM' : 'AM';
         const formattedHours = hours % 12 === 0 ? 12 : hours % 12;
         const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
         times.push(`${formattedHours}:${formattedMinutes} ${ampm}`);
@@ -171,7 +186,7 @@ export default {
     },
   },
   methods: {
-    ...mapActions(["logout"]),
+    ...mapActions(['logout']),
     handleLogout() {
       this.logout();
       this.closeMenu();
@@ -200,33 +215,32 @@ export default {
     setInitialDateTime() {
       const now = new Date();
       const options = {
-        timeZone: "Asia/Manila",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
+        timeZone: 'Asia/Manila',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
         hour12: false,
       };
-      const pstDateTime = now.toLocaleString("en-US", options);
-      const [datePart, timePart] = pstDateTime.split(", ");
-      const [month, day, year] = datePart.split("/");
-      const [hour, minute] = timePart.split(":");
+      const pstDateTime = now.toLocaleString('en-US', options);
+      const [datePart, timePart] = pstDateTime.split(', ');
+      const [month, day, year] = datePart.split('/');
+      const [hour, minute] = timePart.split(':');
       this.fromDate = `${year}-${month}-${day}`;
       const initialFromTimeIndex = Math.floor(
         (parseInt(hour) * 60 + parseInt(minute)) / 30
       );
-      this.fromTime = this.timeOptions[initialFromTimeIndex] || "12:00 AM";
+      this.fromTime = this.timeOptions[initialFromTimeIndex] || '12:00 AM';
       const untilDateObj = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-      const pstUntilDateTime = untilDateObj.toLocaleString("en-US", options);
-      const [untilDatePart, untilTimePart] = pstUntilDateTime.split(", ");
-      const [untilMonth, untilDay, untilYear] = untilDatePart.split("/");
-      const [untilHour, untilMinute] = untilTimePart.split(":");
+      const pstUntilDateTime = untilDateObj.toLocaleString('en-US', options);
+      const [untilDatePart] = pstUntilDateTime.split(', ');
+      const [untilMonth, untilDay, untilYear] = untilDatePart.split('/');
       this.untilDate = `${untilYear}-${untilMonth}-${untilDay}`;
       const initialUntilTimeIndex = Math.floor(
-        (parseInt(untilHour) * 60 + parseInt(untilMinute)) / 30
+        (parseInt(hour) * 60 + parseInt(minute)) / 30
       );
-      this.untilTime = this.timeOptions[initialUntilTimeIndex] || "12:00 AM";
+      this.untilTime = this.timeOptions[initialUntilTimeIndex] || '12:00 AM';
     },
     searchVehicles() {
       const query = {
@@ -236,26 +250,26 @@ export default {
         untilDate: this.untilDate,
         untilTime: this.untilTime,
       };
-      this.$router.push({ name: "VehicleList", query });
+      this.$router.push({ name: 'VehicleList', query });
     },
   },
   mounted() {
-    document.addEventListener("click", this.closeMenuOnClickOutside);
+    document.addEventListener('click', this.closeMenuOnClickOutside);
     this.setInitialDateTime();
   },
   beforeUnmount() {
-    document.removeEventListener("click", this.closeMenuOnClickOutside);
+    document.removeEventListener('click', this.closeMenuOnClickOutside);
   },
 };
 </script>
 
 <style lang="scss">
-@import url("https://fonts.googleapis.com/css2?family=Anton&family=Nunito:wght@400;700;900&display=swap");
-@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css");
-@import "./assets/styles/variables.scss";
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Nunito:wght@400;700;900&display=swap');
+@import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css');
+@import './assets/styles/variables.scss';
 body {
   margin: 0;
-  font-family: "Nunito", sans-serif;
+  font-family: 'Nunito', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: white;
@@ -286,7 +300,7 @@ body {
   position: relative;
   cursor: pointer;
   &::before {
-    content: "";
+    content: '';
     position: absolute;
     top: -0.5rem;
     bottom: -0.5rem;
@@ -298,7 +312,7 @@ body {
   }
 }
 .app-title {
-  font-family: "Anton", sans-serif;
+  font-family: 'Anton', sans-serif;
   font-size: 2.2rem;
   font-weight: 400;
   margin: 0;
@@ -333,7 +347,7 @@ body {
   cursor: pointer;
   transition: box-shadow 0.2s ease-in-out;
   box-shadow: $shadow-light;
-  font-family: "Nunito", sans-serif;
+  font-family: 'Nunito', sans-serif;
   &:hover {
     box-shadow: $shadow-medium;
   }
@@ -353,7 +367,7 @@ body {
   cursor: pointer;
   transition: box-shadow 0.2s ease-in-out;
   box-shadow: $shadow-light;
-  font-family: "Nunito", sans-serif;
+  font-family: 'Nunito', sans-serif;
   &:hover {
     box-shadow: $shadow-medium;
     background-color: white;
@@ -380,13 +394,11 @@ body {
   list-style: none;
   padding: 0.5rem 0;
   text-align: left;
-  font-family: "Nunito", sans-serif;
+  font-family: 'Nunito', sans-serif;
 }
 .dropdown-fade-enter-active,
 .dropdown-fade-leave-active {
-  transition:
-    transform 0.2s ease-out,
-    opacity 0.2s ease-out;
+  transition: transform 0.2s ease-out, opacity 0.2s ease-out;
 }
 .dropdown-fade-enter-from,
 .dropdown-fade-leave-to {
@@ -409,9 +421,7 @@ body {
   color: $text-color-dark;
   text-decoration: none;
   font-weight: 500;
-  transition:
-    background-color 0.2s ease-in-out,
-    transform 0.2s ease-out;
+  transition: background-color 0.2s ease-in-out, transform 0.2s ease-out;
   &.with-icon {
     display: flex;
     align-items: center;
@@ -434,7 +444,7 @@ body {
 .logout-button {
   background: none;
   border: none;
-  font-family: "Nunito", sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-size: inherit;
   cursor: pointer;
   text-align: left;
@@ -459,7 +469,7 @@ body {
   border-radius: 9999px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   font-size: 0.9rem;
-  font-family: "Nunito", sans-serif;
+  font-family: 'Nunito', sans-serif;
 }
 .search-field {
   display: flex;
@@ -472,7 +482,7 @@ body {
     font-weight: 600;
     color: #4b5563;
     white-space: nowrap;
-    font-family: "Nunito", sans-serif;
+    font-family: 'Nunito', sans-serif;
   }
   .search-input,
   .date-time-group {
@@ -498,7 +508,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: "Nunito", sans-serif;
+  font-family: 'Nunito', sans-serif;
   .date-select,
   .time-select {
     cursor: pointer;
@@ -556,7 +566,7 @@ body {
 }
 
 .nav-link {
-  font-family: "Nunito", sans-serif;
+  font-family: 'Nunito', sans-serif;
   text-decoration: none;
   font-size: 1rem;
   font-weight: 600;

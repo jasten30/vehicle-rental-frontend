@@ -1,9 +1,8 @@
 <template>
   <div class="form-section step-11">
-    <h3>Step 11: Vehicle Photos</h3>
+    <h3>Vehicle Photos</h3>
     <p class="step-info-text">Upload clear photos of your vehicle's exterior and interior to attract more renters. A profile photo is required to display your vehicle in search results.</p>
 
-    <!-- Profile Photo Section -->
     <div class="photo-section">
       <h4>Vehicle Profile Photo</h4>
       <p class="section-info">This photo will be the main image on your vehicle's listing card.</p>
@@ -29,7 +28,6 @@
       </div>
     </div>
     
-    <!-- Exterior Photos Section -->
     <div class="photo-section">
       <h4>Exterior Photos</h4>
       <p class="section-info">Upload photos of the car's exterior from different angles.</p>
@@ -60,7 +58,6 @@
       </div>
     </div>
 
-    <!-- Interior Photos Section -->
     <div class="photo-section">
       <h4>Interior Photos</h4>
       <p class="section-info">Upload photos of the car's interior, including the dashboard and seats.</p>
@@ -91,8 +88,7 @@
       </div>
     </div>
     
-    <!-- Action Buttons -->
-    <div class="button-group">
+    <div v-if="showNavigation" class="button-group">
       <button type="button" @click="$emit('prev')" class="button secondary-button">Previous</button>
       <button 
         type="button" 
@@ -118,15 +114,21 @@ export default {
       type: Object,
       required: true,
     },
+    // Add the prop here
+    showNavigation: {
+      type: Boolean,
+      default: true,
+    },
   },
   emits: ['next', 'prev', 'update:vehicle', 'error'],
   data() {
+    const initialVehicle = this.initialVehicle || {};
     return {
       localVehicle: {
-        ...this.initialVehicle,
-        profilePhotoUrl: this.initialVehicle.profilePhotoUrl || '',
-        exteriorPhotos: this.initialVehicle.exteriorPhotos || [],
-        interiorPhotos: this.initialVehicle.interiorPhotos || [],
+        ...initialVehicle,
+        profilePhotoUrl: initialVehicle.profilePhotoUrl || '',
+        exteriorPhotos: initialVehicle.exteriorPhotos || [],
+        interiorPhotos: initialVehicle.interiorPhotos || [],
       },
       error: '',
     };
@@ -134,11 +136,12 @@ export default {
   watch: {
     initialVehicle: {
       handler(newVal) {
+        const updatedVehicle = newVal || {};
         this.localVehicle = {
-          ...newVal,
-          profilePhotoUrl: newVal.profilePhotoUrl || '',
-          exteriorPhotos: newVal.exteriorPhotos || [],
-          interiorPhotos: newVal.interiorPhotos || [],
+          ...updatedVehicle,
+          profilePhotoUrl: updatedVehicle.profilePhotoUrl || '',
+          exteriorPhotos: updatedVehicle.exteriorPhotos || [],
+          interiorPhotos: updatedVehicle.interiorPhotos || [],
         };
       },
       deep: true,
