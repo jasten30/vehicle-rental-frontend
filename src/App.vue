@@ -42,8 +42,22 @@
                   >Sign up</router-link
                 >
               </div>
-              <hr v-if="!isAuthenticated" class="dropdown-divider" />
+
+              <div v-if="isAuthenticated" class="dropdown-section user-info-header">
+                <img v-if="user.profilePhotoUrl" :src="user.profilePhotoUrl" alt="User Avatar" class="dropdown-avatar" />
+                <img v-else :src="initialsImage" alt="User Initials" class="dropdown-avatar" />
+                <div class="user-details">
+                  <router-link :to="{ name: 'ProfileSettings' }" class="profile-link" @click="closeMenu">
+                    <h6 class="dropdown-header user-name-header">
+                      Hello, {{ user.name || 'User' }}
+                    </h6>
+                  </router-link>
+                  <span class="user-email-text">{{ user.email }}</span>
+                </div>
+              </div>
+
               <div v-if="isAuthenticated" class="dropdown-section">
+                <h6 class="dropdown-header">My RentCycle</h6>
                 <router-link
                   to="/favorites"
                   class="dropdown-item with-icon"
@@ -66,37 +80,46 @@
                   <i class="bi bi-envelope-fill"></i>Inbox
                 </router-link>
               </div>
-              <hr v-if="isAuthenticated" class="dropdown-divider" />
-              <div v-if="isAuthenticated" class="dropdown-section">
+
+              <hr v-if="isAuthenticated && userRole === 'owner'" class="dropdown-divider" />
+              
+              <div v-if="isAuthenticated && userRole === 'owner'" class="dropdown-section">
+                <h6 class="dropdown-header">Hosting</h6>
                 <router-link
-                  to="/profile"
+                  to="/dashboard/owner/vehicles"
                   class="dropdown-item with-icon"
                   @click="closeMenu"
                 >
-                  <i class="bi bi-person-fill"></i>Profile
+                  <i class="bi bi-card-checklist"></i>My Listings
                 </router-link>
                 <router-link
-                  to="/account"
+                  to="/dashboard/earnings"
                   class="dropdown-item with-icon"
                   @click="closeMenu"
                 >
-                  <i class="bi bi-gear-fill"></i>Account
+                  <i class="bi bi-cash-stack"></i>Earnings
+                </router-link>
+                <router-link
+                  to="/dashboard/calendar"
+                  class="dropdown-item with-icon"
+                  @click="closeMenu"
+                >
+                  <i class="bi bi-calendar-check-fill"></i>Calendar
                 </router-link>
                 <router-link
                   :to="hostLinkTarget"
                   class="dropdown-item with-icon"
                   @click="closeMenu"
                 >
-                  <i class="bi bi-car-front-fill"></i>{{ hostLinkText }}
+                  <i class="bi bi-plus-circle-fill"></i>List a New Car
                 </router-link>
               </div>
-              <hr v-if="isAuthenticated" class="dropdown-divider" />
+
+              <hr class="dropdown-divider" />
+
               <div class="dropdown-section">
                 <router-link to="#" class="dropdown-item with-icon">
                   <i class="bi bi-key"></i>How RentCycle Works
-                </router-link>
-                <router-link to="#" class="dropdown-item with-icon">
-                  <i class="bi bi-gift-fill"></i>Gift Cards
                 </router-link>
                 <router-link to="#" class="dropdown-item with-icon">
                   <i class="bi bi-headset"></i>Contact Support
@@ -105,7 +128,9 @@
                   <i class="bi bi-file-earmark-text"></i>Legal
                 </router-link>
               </div>
+
               <hr v-if="isAuthenticated" class="dropdown-divider" />
+
               <div v-if="isAuthenticated" class="dropdown-section">
                 <button
                   @click="handleLogout"
@@ -135,6 +160,7 @@
 <script>
 import { mapGetters, mapActions } from 'vuex';
 import DateRangePicker from './components/HomeViewComponents/DateRangePicker.vue';
+
 export default {
   name: 'App',
   components: {
@@ -152,21 +178,18 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(['isAuthenticated', 'userRole']),
+    ...mapGetters(['isAuthenticated', 'userRole', 'user']),
     hostLinkText() {
       if (this.isAuthenticated && this.userRole === 'owner') {
-        return 'List your car'; // Text for existing owners
+        return 'List your car';
       }
-      return 'Become a host'; // Text for renters and guests
+      return 'Become a host';
     },
     hostLinkTarget() {
       if (this.isAuthenticated && this.userRole === 'owner') {
-        // For owners, link to the form to add a new vehicle.
-        // Make sure you have a route named 'OwnerVehicleForm'.
-        return { name: 'AddVehicle' };
+        // FIX: The correct route name is OwnerVehicles
+        return { name: 'OwnerVehicles' };
       }
-      // For renters and guests, link to the application page.
-      // Make sure you have a route named 'BecomeOwnerApplication'.
       return { name: 'BecomeOwnerApplication' };
     },
     timeOptions() {
@@ -183,6 +206,32 @@ export default {
         times.push(`${formattedHours}:${formattedMinutes} ${ampm}`);
       }
       return times;
+    },
+    initialsImage() {
+      const name = this.user?.name || 'User';
+      const initials = name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2);
+
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      const size = 100;
+      canvas.width = size;
+      canvas.height = size;
+
+      context.fillStyle = '#C0C0C0';
+      context.fillRect(0, 0, size, size);
+
+      context.fillStyle = '#FFFFFF';
+      context.font = `bold ${size / 2}px Nunito`;
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText(initials, size / 2, size / 2);
+
+      return canvas.toDataURL();
     },
   },
   methods: {
@@ -381,6 +430,15 @@ body {
     color: black;
   }
 }
+
+.user-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-left: -0.5rem;
+}
+
 .dropdown-menu {
   position: absolute;
   top: 100%;
@@ -411,6 +469,71 @@ body {
   transform: scale(1);
   opacity: 1;
 }
+
+.user-info-header {
+  display: flex;
+  flex-direction: column; /* Stacks children vertically */
+  align-items: center; /* Centers items horizontally in a column */
+  justify-content: center; /* Centers items vertically in a column (if space allows) */
+  padding: 0.75rem 1.5rem;
+  text-align: center; // Centers text content within the header
+}
+
+.dropdown-avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid $primary-color;
+  margin-bottom: 0.5rem; // Add a small gap between avatar and text
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center; // Centers items if it also uses flex
+}
+
+.user-name-header,
+.user-email-text {
+  font-family: 'Nunito', sans-serif;
+  margin: 0;
+}
+
+.user-name-header {
+  font-size: 1rem;
+  font-weight: 700;
+  color: $text-color-dark;
+  text-transform: capitalize;
+  border: none;
+  padding: 0;
+}
+
+// Add this new style for the profile link
+.profile-link {
+  text-decoration: none; // Ensures no underline by default
+  color: inherit; // Inherit color from parent (user-name-header)
+
+  &:hover {
+    text-decoration: underline; // Add underline on hover
+  }
+}
+
+.user-email-text {
+  font-size: 0.85rem;
+  color: $text-color-medium;
+}
+
+.dropdown-header {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: $text-color-medium;
+  padding: 0 1.5rem 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e5e7eb;
+}
+
 .dropdown-section {
   padding: 0.5rem 0;
 }
@@ -556,12 +679,11 @@ body {
   box-sizing: border-box;
 }
 
-/* New CSS for the navigation links */
 .header-nav {
   display: flex;
   gap: 2rem;
   @media (max-width: 768px) {
-    display: none; // Hide on smaller screens to prevent clutter
+    display: none;
   }
 }
 

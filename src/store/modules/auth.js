@@ -1,139 +1,142 @@
 // frontend/src/store/modules/auth.js
 
-import api from "@/views/services/api";
-import router from "@/router";
-import { getAuth, signInWithEmailAndPassword, signOut } from 'firebase/auth'; // Import signInWithEmailAndPassword
+import {
+  getAuth,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+} from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/firebase/init'; // Ensure this path is correct
+import router from '@/router';
+import api from '@/services/api'; // Keep for non-auth actions if needed
 
 const state = () => ({
-  authToken: localStorage.getItem("authToken") || null,
-  user: JSON.parse(localStorage.getItem("user")) || null,
-  isAuthenticated: !!localStorage.getItem("authToken"),
-  userRole: localStorage.getItem("userRole") || null,
+  user: null, // User profile from Firestore
+  isAuthReady: false, // Tracks if the initial auth check is complete
 });
 
 const mutations = {
-  SET_AUTH_TOKEN(state, token) {
-    state.authToken = token;
-    state.isAuthenticated = !!token;
-    if (token) {
-      localStorage.setItem("authToken", token);
-    } else {
-      localStorage.removeItem("authToken");
-    }
-  },
-  SET_USER_INFO(state, user) {
+  SET_USER(state, user) {
     state.user = user;
+    // Local storage can be a backup but shouldn't be the primary source of truth
     if (user) {
-      localStorage.setItem("user", JSON.stringify(user));
-      state.userRole = user.role || "renter";
-      localStorage.setItem("userRole", user.role || "renter");
+      localStorage.setItem('user', JSON.stringify(user));
     } else {
-      localStorage.removeItem("user");
-      state.userRole = null;
-      localStorage.removeItem("userRole");
+      localStorage.removeItem('user');
     }
   },
-  CLEAR_AUTH(state) {
-    state.authToken = null;
+  SET_AUTH_READY(state) {
+    state.isAuthReady = true;
+  },
+  CLEAR_USER(state) {
     state.user = null;
-    state.isAuthenticated = false;
-    state.userRole = null;
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("user");
-    localStorage.removeItem("userRole");
+    localStorage.removeItem('user');
   },
 };
 
 const actions = {
-  async login({ commit }, credentials) {
+  /**
+   * This is the crucial action that runs when the app starts.
+   * It checks with Firebase to see if a user is already logged in.
+   */
+  initializeAuth({ commit }) {
+    return new Promise((resolve) => {
+      const auth = getAuth();
+      onAuthStateChanged(auth, async (firebaseUser) => {
+        if (firebaseUser) {
+          // User is signed in, fetch their profile from Firestore
+          await store.dispatch('auth/fetchUserProfile', firebaseUser.uid);
+        } else {
+          // User is signed out
+          commit('CLEAR_USER');
+        }
+        commit('SET_AUTH_READY'); // Signal that the initial check is done
+        resolve();
+      });
+    });
+  },
+
+  /**
+   * Fetches a user's profile from your Firestore 'users' collection.
+   */
+  async fetchUserProfile({ commit }, userId) {
+    if (!userId) {
+      // This is where your original error was coming from.
+      // This check prevents trying to fetch a profile without an ID.
+      console.error('No user ID available to fetch profile.');
+      commit('CLEAR_USER');
+      return;
+    }
+    try {
+      const userProfileRef = doc(db, 'users', userId);
+      const userProfileDoc = await getDoc(userProfileRef);
+
+      if (userProfileDoc.exists()) {
+        const userProfile = { uid: userId, ...userProfileDoc.data() };
+        commit('SET_USER', userProfile);
+      } else {
+        console.error('User is authenticated, but no profile was found in Firestore!');
+        // Handle this case - maybe the user document failed to be created on signup.
+        commit('CLEAR_USER');
+      }
+    } catch (error) {
+       console.error('Failed to fetch user profile:', error);
+       commit('CLEAR_USER');
+    }
+  },
+
+  /**
+   * Logs a user in with Firebase and then fetches their profile.
+   */
+  async login({ dispatch }, credentials) {
     try {
       const auth = getAuth();
-      // --- CRUCIAL FIX: Use Firebase's client-side login directly ---
-      const userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
-      const firebaseUser = userCredential.user;
-
-      // Get the ID token, which contains the custom claims
-      const idToken = await firebaseUser.getIdToken();
-      
-      // Get the user's role from the token's claims
-      const idTokenResult = await firebaseUser.getIdTokenResult();
-      const userRole = idTokenResult.claims.role || 'renter';
-
-      // Fetch the full user profile from the backend using the new ID token
-      // You will need to create a new endpoint for this on your backend.
-      const backendResponse = await api.getUserProfileByIdToken(idToken);
-      const userDetailsFromBackend = backendResponse.data;
-
-      // Update the user info with the role from the token
-      userDetailsFromBackend.role = userRole;
-
-      commit("SET_AUTH_TOKEN", idToken);
-      commit("SET_USER_INFO", userDetailsFromBackend);
-
-      await router.push("/dashboard");
-      return true;
-    } catch (error) {
-      console.error(
-        "[Vuex Auth] Login failed:",
-        error.message
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        credentials.email,
+        credentials.password
       );
+      // After successful Firebase login, fetch our custom profile data
+      await dispatch('fetchUserProfile', userCredential.user.uid);
+      await router.push('/dashboard');
+    } catch (error) {
+      console.error('[Vuex Auth] Login failed:', error.message);
       throw error;
     }
   },
-  async register({ _commit }, userData) {
-    try {
-      const response = await api.register(userData);
-      router.push("/login");
-      return response.data;
-    } catch (error) {
-      console.error(
-        "[Vuex Auth] Registration failed:",
-        error.response?.data?.message || error.message
-      );
-      throw error;
-    }
-  },
+
   async logout({ commit }) {
     const auth = getAuth();
     try {
       await signOut(auth);
+      commit('CLEAR_USER');
+      router.push('/login');
     } catch (error) {
       console.error('[Vuex Auth] Error signing out from Firebase:', error);
-    } finally {
-      commit("CLEAR_AUTH");
-      router.push("/login");
     }
   },
-  async fetchUserProfile({ commit }) {
+
+  async register({ _commit }, userData) {
+    // Your register action seems to call a custom backend endpoint.
+    // Ensure that endpoint also creates a corresponding document
+    // in your Firestore 'users' collection.
     try {
-      const response = await api.getUserProfile();
-      commit('SET_USER_INFO', response.data);
+      const response = await api.register(userData);
+      router.push('/login');
       return response.data;
     } catch (error) {
-      console.error('[Vuex Auth] Failed to fetch user profile:', error.response?.data?.message || error.message);
-      if (error.response && error.response.status === 401) {
-        commit('CLEAR_AUTH');
-      }
-      throw error;
-    }
-  },
-  async updateUserProfile({ commit }, profileData) {
-    try {
-      const response = await api.updateUserProfile(profileData);
-      commit('SET_USER_INFO', response.data.user);
-      return response.data.user;
-    } catch (error) {
-      console.error('[Vuex Auth] Failed to update user profile:', error.response?.data?.message || error.message);
+      console.error('[Vuex Auth] Registration failed:', error.response?.data?.message || error.message);
       throw error;
     }
   },
 };
 
 const getters = {
-  isAuthenticated: (state) => state.isAuthenticated,
-  authToken: (state) => state.authToken,
+  isAuthenticated: (state) => !!state.user,
   user: (state) => state.user,
-  userRole: (state) => state.userRole,
+  userRole: (state) => state.user?.role || null,
+  isAuthReady: (state) => state.isAuthReady,
 };
 
 export default {

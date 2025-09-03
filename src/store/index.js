@@ -1,9 +1,14 @@
 // frontend/src/store/index.js
-import { createStore } from "vuex";
-import api from "@/views/services/api";
-import router from "../router";
+import { createStore } from 'vuex';
+import api from '@/views/services/api';
+import router from '../router';
 import { DateTime } from 'luxon';
-import { getAuth, onAuthStateChanged, signOut, signInWithCustomToken } from 'firebase/auth';
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut,
+  signInWithCustomToken,
+} from 'firebase/auth';
 import owner from './modules/owner';
 import { setAuthToken } from '@/views/services/api';
 
@@ -16,15 +21,15 @@ export default createStore({
     authToken: null,
     vehicle: null,
     vehicleFilters: {
-      make: "",
-      model: "",
+      make: '',
+      model: '',
       year: null,
-      location: "",
+      location: '',
       minPrice: null,
       maxPrice: null,
       availabilityStartDate: null,
       availabilityEndDate: null,
-      vehicleType: "",
+      vehicleType: '',
       seats: null,
     },
     vehicleSort: {
@@ -53,15 +58,15 @@ export default createStore({
     },
     RESET_VEHICLE_FILTERS(state) {
       state.vehicleFilters = {
-        make: "",
-        model: "",
+        make: '',
+        model: '',
         year: null,
-        location: "",
+        location: '',
         minPrice: null,
         maxPrice: null,
         availabilityStartDate: null,
         availabilityEndDate: null,
-        vehicleType: "",
+        vehicleType: '',
         seats: null,
       };
     },
@@ -76,7 +81,7 @@ export default createStore({
       state.isAuthenticated = false;
       state.userRole = null;
       state.authToken = null;
-    }
+    },
   },
   actions: {
     initializeAuth({ commit }) {
@@ -88,20 +93,35 @@ export default createStore({
               const authToken = await user.getIdToken();
               setAuthToken(authToken);
               const response = await api.getUserProfile();
-              const userRole = response.data.role || "renter";
-              commit("SET_AUTH_STATE", { user: response.data, userRole, authToken });
-              console.log("[Vuex Action] User profile fetched successfully!", userRole);
+
+              console.log('Final check of API response data:', response.data);
+
+              const userRole = response.data.role || 'renter';
+              commit('SET_AUTH_STATE', {
+                user: response.data,
+                userRole,
+                authToken,
+              });
+              console.log(
+                '[Vuex Action] User profile fetched successfully!',
+                userRole
+              );
             } catch (error) {
-              console.error("[Vuex Action] Failed to fetch user profile after auth change:", error);
+              console.error(
+                '[Vuex Action] Failed to fetch user profile after auth change:',
+                error
+              );
               setAuthToken(null);
-              commit("CLEAR_AUTH");
+              commit('CLEAR_AUTH');
             }
           } else {
             setAuthToken(null);
-            commit("CLEAR_AUTH");
-            console.log("[Vuex Action] Auth state initialized. User is logged out.");
+            commit('CLEAR_AUTH');
+            console.log(
+              '[Vuex Action] Auth state initialized. User is logged out.'
+            );
           }
-          commit("SET_AUTH_LOADING", false);
+          commit('SET_AUTH_LOADING', false);
           resolve();
         });
       });
@@ -116,10 +136,16 @@ export default createStore({
         const authToken = await user.getIdToken();
         setAuthToken(authToken);
         const profileResponse = await api.getUserProfile();
-        const userRole = profileResponse.data.role || "renter";
+        const userRole = profileResponse.data.role || 'renter';
 
-        commit("SET_AUTH_STATE", { user: profileResponse.data, userRole, authToken });
-        console.log("[Vuex Action] Firebase Client SDK signed in and state updated successfully.");
+        commit('SET_AUTH_STATE', {
+          user: profileResponse.data,
+          userRole,
+          authToken,
+        });
+        console.log(
+          '[Vuex Action] Firebase Client SDK signed in and state updated successfully.'
+        );
 
         // This is the crucial navigation fix
         if (userRole === 'owner') {
@@ -130,17 +156,23 @@ export default createStore({
 
         return true;
       } catch (error) {
-        console.error("[Vuex Action] Login process failed:", error.response?.data?.message || error.message);
+        console.error(
+          '[Vuex Action] Login process failed:',
+          error.response?.data?.message || error.message
+        );
         throw error;
       }
     },
     async register({ _commit }, userData) {
       try {
         await api.register(userData);
-        router.push("/login");
+        router.push('/login');
         return true;
       } catch (error) {
-        console.error("[Vuex Action] Registration API call failed:", error.response?.data?.message || error.message);
+        console.error(
+          '[Vuex Action] Registration API call failed:',
+          error.response?.data?.message || error.message
+        );
         throw error;
       }
     },
@@ -151,22 +183,26 @@ export default createStore({
         await signOut(auth);
         setAuthToken(null);
         console.log('[Vuex Action] Signed out from Firebase Client SDK.');
-        router.push("/login");
+        router.push('/login');
       } catch (error) {
-        console.error('[Vuex Action] Error signing out from Firebase Client SDK:', error);
+        console.error(
+          '[Vuex Action] Error signing out from Firebase Client SDK:',
+          error
+        );
         commit('CLEAR_AUTH');
       }
     },
     async fetchAllVehicles({ commit }) {
       try {
         const response = await api.getAllVehicles();
-        
-        const normalizedVehicles = response.data.map(vehicle => {
+
+        const normalizedVehicles = response.data.map((vehicle) => {
           // Start with a copy of the original vehicle data
           const normalized = { ...vehicle };
 
           // Ensure numeric fields are numbers
-          normalized.rentalPricePerDay = parseFloat(vehicle.rentalPricePerDay) || 0;
+          normalized.rentalPricePerDay =
+            parseFloat(vehicle.rentalPricePerDay) || 0;
           normalized.seats = parseInt(vehicle.seatingCapacity, 10) || 0;
           normalized.year = parseInt(vehicle.year, 10) || 0;
 
@@ -183,38 +219,55 @@ export default createStore({
 
           // Ensure 'exteriorPhotos' is an array and has at least one image
           if (!vehicle.exteriorPhotos || vehicle.exteriorPhotos.length === 0) {
-            normalized.exteriorPhotos = ['https://placehold.co/400x300/e2e8f0/666666?text=No+Image'];
+            normalized.exteriorPhotos = [
+              'https://placehold.co/400x300/e2e8f0/666666?text=No+Image',
+            ];
           }
-          
+
           return normalized;
         });
 
-        commit("SET_ALL_VEHICLES", normalizedVehicles);
-        console.log("[Vuex Action] Cleaned and normalized vehicles:", normalizedVehicles);
+        commit('SET_ALL_VEHICLES', normalizedVehicles);
+        console.log(
+          '[Vuex Action] Cleaned and normalized vehicles:',
+          normalizedVehicles
+        );
         return normalizedVehicles;
-
       } catch (error) {
-        console.error('Failed to fetch vehicles:', error.response?.data?.message || error.message);
+        console.error(
+          'Failed to fetch vehicles:',
+          error.response?.data?.message || error.message
+        );
         throw error;
       }
     },
     async getVehicleById({ commit }, vehicleId) {
       try {
         const response = await api.getVehicleById(vehicleId);
-        commit("SET_VEHICLE", response.data);
+        commit('SET_VEHICLE', response.data);
         return response.data;
       } catch (error) {
-        console.error('Failed to fetch vehicle by ID:', error.response?.data?.message || error.message);
+        console.error(
+          'Failed to fetch vehicle by ID:',
+          error.response?.data?.message || error.message
+        );
         throw error;
       }
     },
     async checkVehicleAvailability({ _commit }, payload) {
       try {
         const { vehicleId, startDate, endDate } = payload;
-        const response = await api.checkVehicleAvailability(vehicleId, startDate, endDate);
+        const response = await api.checkVehicleAvailability(
+          vehicleId,
+          startDate,
+          endDate
+        );
         return { ...response.data };
       } catch (error) {
-        console.error('[Vuex Action] Failed to check availability:', error.response?.data?.message || error.message);
+        console.error(
+          '[Vuex Action] Failed to check availability:',
+          error.response?.data?.message || error.message
+        );
         throw error;
       }
     },
@@ -223,7 +276,10 @@ export default createStore({
         const response = await api.createBooking(bookingData);
         return response.data;
       } catch (error) {
-        console.error('[Vuex Action] Failed to create booking:', error.response?.data?.message || error.message);
+        console.error(
+          '[Vuex Action] Failed to create booking:',
+          error.response?.data?.message || error.message
+        );
         throw error;
       }
     },
@@ -232,7 +288,10 @@ export default createStore({
         const response = await api.getVehiclesByOwner();
         return response.data;
       } catch (error) {
-        console.error('Failed to fetch owner vehicles:', error.response?.data?.message || error.message);
+        console.error(
+          'Failed to fetch owner vehicles:',
+          error.response?.data?.message || error.message
+        );
         throw error;
       }
     },
@@ -241,7 +300,10 @@ export default createStore({
         const response = await api.addVehicle(vehicleData);
         return response.data;
       } catch (error) {
-        console.error('Failed to add vehicle:', error.response?.data?.message || error.message);
+        console.error(
+          'Failed to add vehicle:',
+          error.response?.data?.message || error.message
+        );
         throw error;
       }
     },
@@ -250,17 +312,26 @@ export default createStore({
         const response = await api.updateVehicle(id, vehicleData);
         return response.data;
       } catch (error) {
-        console.error('Failed to update vehicle:', error.response?.data?.message || error.message);
+        console.error(
+          'Failed to update vehicle:',
+          error.response?.data?.message || error.message
+        );
         throw error;
       }
     },
     async fetchUserProfile({ commit }) {
       try {
         const response = await api.getUserProfile();
-        commit('SET_AUTH_STATE', { user: response.data, userRole: response.data.role });
+        commit('SET_AUTH_STATE', {
+          user: response.data,
+          userRole: response.data.role,
+        });
         return response.data;
       } catch (error) {
-        console.log('Failed to fetch user profile:', error.response?.data?.message || error.message);
+        console.log(
+          'Failed to fetch user profile:',
+          error.response?.data?.message || error.message
+        );
         if (error.response && error.response.status === 401) {
           commit('CLEAR_AUTH');
         }
@@ -272,7 +343,10 @@ export default createStore({
         const response = await api.updateUserProfile(profileData);
         return response.data.user;
       } catch (error) {
-        console.error('Failed to update user profile:', error.response?.data?.message || error.message);
+        console.error(
+          'Failed to update user profile:',
+          error.response?.data?.message || error.message
+        );
         throw error;
       }
     },
@@ -281,7 +355,10 @@ export default createStore({
         const response = await api.getPaymentStatus(bookingId);
         return response.data;
       } catch (error) {
-        console.error('Failed to get payment status:', error.response?.data?.message || error.message);
+        console.error(
+          'Failed to get payment status:',
+          error.response?.data?.message || error.message
+        );
         throw error;
       }
     },
@@ -294,9 +371,15 @@ export default createStore({
         throw error;
       }
     },
-    async updateBookingPaymentMethod({ _commit }, { bookingId, paymentMethod, newStatus }) {
+    async updateBookingPaymentMethod(
+      { _commit },
+      { bookingId, paymentMethod, newStatus }
+    ) {
       try {
-        const response = await api.updateBooking(bookingId, { paymentMethod, newStatus });
+        const response = await api.updateBooking(bookingId, {
+          paymentMethod,
+          newStatus,
+        });
         return response.data;
       } catch (error) {
         console.error('Failed to update booking payment method:', error);
@@ -324,34 +407,77 @@ export default createStore({
     allVehicles: (state) => state.allVehicles,
     vehicleSort: (state) => state.vehicleSort,
     filteredAndSortedVehicles: (state) => {
-      let vehicles = Array.isArray(state.allVehicles) ? [...state.allVehicles] : [];
+      let vehicles = Array.isArray(state.allVehicles)
+        ? [...state.allVehicles]
+        : [];
       const filters = state.vehicleFilters;
-      if (filters.vehicleType) { vehicles = vehicles.filter(v => v.vehicleType && v.vehicleType.toLowerCase().includes(filters.vehicleType.toLowerCase())); }
+      if (filters.vehicleType) {
+        vehicles = vehicles.filter(
+          (v) =>
+            v.vehicleType &&
+            v.vehicleType.toLowerCase().includes(filters.vehicleType.toLowerCase())
+        );
+      }
       if (filters.seats !== null && !isNaN(filters.seats)) {
         const seatsFilterValue = parseInt(filters.seats, 10);
-        vehicles = vehicles.filter(v => {
-          if (v.seatingCapacity === undefined) { return false; }
+        vehicles = vehicles.filter((v) => {
+          if (v.seatingCapacity === undefined) {
+            return false;
+          }
           const vehicleSeats = parseInt(v.seatingCapacity, 10);
-          if (seatsFilterValue === 7) { return vehicleSeats >= 7; } else { return vehicleSeats === seatsFilterValue; }
+          if (seatsFilterValue === 7) {
+            return vehicleSeats >= 7;
+          } else {
+            return vehicleSeats === seatsFilterValue;
+          }
         });
       }
-      if (filters.make) { vehicles = vehicles.filter(v => v.make && v.make.toLowerCase().includes(filters.make.toLowerCase())); }
-      if (filters.model) { vehicles = vehicles.filter(v => v.model && v.model.toLowerCase().includes(filters.model.toLowerCase())); }
-      if (filters.year !== null && !isNaN(filters.year)) { vehicles = vehicles.filter(v => v.year === parseInt(filters.year)); }
-      if (filters.location) { vehicles = vehicles.filter(v => v.location && v.location.toLowerCase().includes(filters.location.toLowerCase())); }
-      if (filters.minPrice !== null && !isNaN(filters.minPrice)) { vehicles = vehicles.filter(v => v.rentalPricePerDay >= parseFloat(filters.minPrice)); }
-      if (filters.maxPrice !== null && !isNaN(filters.maxPrice)) { vehicles = vehicles.filter(v => v.rentalPricePerDay <= parseFloat(filters.maxPrice)); }
+      if (filters.make) {
+        vehicles = vehicles.filter(
+          (v) => v.make && v.make.toLowerCase().includes(filters.make.toLowerCase())
+        );
+      }
+      if (filters.model) {
+        vehicles = vehicles.filter(
+          (v) =>
+            v.model && v.model.toLowerCase().includes(filters.model.toLowerCase())
+        );
+      }
+      if (filters.year !== null && !isNaN(filters.year)) {
+        vehicles = vehicles.filter((v) => v.year === parseInt(filters.year));
+      }
+      if (filters.location) {
+        vehicles = vehicles.filter(
+          (v) =>
+            v.location &&
+            v.location.toLowerCase().includes(filters.location.toLowerCase())
+        );
+      }
+      if (filters.minPrice !== null && !isNaN(filters.minPrice)) {
+        vehicles = vehicles.filter(
+          (v) => v.rentalPricePerDay >= parseFloat(filters.minPrice)
+        );
+      }
+      if (filters.maxPrice !== null && !isNaN(filters.maxPrice)) {
+        vehicles = vehicles.filter(
+          (v) => v.rentalPricePerDay <= parseFloat(filters.maxPrice)
+        );
+      }
       if (filters.availabilityStartDate && filters.availabilityEndDate) {
         const reqStart = DateTime.fromISO(filters.availabilityStartDate);
         const reqEnd = DateTime.fromISO(filters.availabilityEndDate);
         if (reqStart.isValid && reqEnd.isValid) {
-          vehicles = vehicles.filter(vehicle => {
-            if (!vehicle.availability || vehicle.availability.length === 0) { return true; }
-            const isOverlappingUnavailable = vehicle.availability.some(range => {
-              const availStart = DateTime.fromISO(range.start);
-              const availEnd = DateTime.fromISO(range.end);
-              return (reqStart <= availEnd) && (reqEnd >= availStart);
-            });
+          vehicles = vehicles.filter((vehicle) => {
+            if (!vehicle.availability || vehicle.availability.length === 0) {
+              return true;
+            }
+            const isOverlappingUnavailable = vehicle.availability.some(
+              (range) => {
+                const availStart = DateTime.fromISO(range.start);
+                const availEnd = DateTime.fromISO(range.end);
+                return reqStart <= availEnd && reqEnd >= availStart;
+              }
+            );
             return !isOverlappingUnavailable;
           });
         }
@@ -366,8 +492,12 @@ export default createStore({
             valA = (valA || '').toLowerCase();
             valB = (valB || '').toLowerCase();
           }
-          if (valA < valB) { return sortOrder === 'asc' ? -1 : 1; }
-          if (valA > valB) { return sortOrder === 'asc' ? 1 : -1; }
+          if (valA < valB) {
+            return sortOrder === 'asc' ? -1 : 1;
+          }
+          if (valA > valB) {
+            return sortOrder === 'asc' ? 1 : -1;
+          }
           return 0;
         });
       }
