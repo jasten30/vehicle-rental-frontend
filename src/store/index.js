@@ -93,19 +93,12 @@ export default createStore({
               const authToken = await user.getIdToken();
               setAuthToken(authToken);
               const response = await api.getUserProfile();
-
-              console.log('Final check of API response data:', response.data);
-
               const userRole = response.data.role || 'renter';
               commit('SET_AUTH_STATE', {
                 user: response.data,
                 userRole,
                 authToken,
               });
-              console.log(
-                '[Vuex Action] User profile fetched successfully!',
-                userRole
-              );
             } catch (error) {
               console.error(
                 '[Vuex Action] Failed to fetch user profile after auth change:',
@@ -117,9 +110,6 @@ export default createStore({
           } else {
             setAuthToken(null);
             commit('CLEAR_AUTH');
-            console.log(
-              '[Vuex Action] Auth state initialized. User is logged out.'
-            );
           }
           commit('SET_AUTH_LOADING', false);
           resolve();
@@ -127,8 +117,8 @@ export default createStore({
       });
     },
     async login({ commit }, credentials) {
-      const auth = getAuth();
       try {
+        const auth = getAuth();
         const backendResponse = await api.login(credentials);
         const customToken = backendResponse.data.token;
         const userCredential = await signInWithCustomToken(auth, customToken);
@@ -143,17 +133,14 @@ export default createStore({
           userRole,
           authToken,
         });
-        console.log(
-          '[Vuex Action] Firebase Client SDK signed in and state updated successfully.'
-        );
 
-        // This is the crucial navigation fix
         if (userRole === 'owner') {
           router.push('/dashboard/owner/vehicles');
+        } else if (userRole === 'admin') {
+          router.push('/dashboard/admin/dashboard');
         } else {
           router.push('/dashboard/my-bookings');
         }
-
         return true;
       } catch (error) {
         console.error(
@@ -182,7 +169,6 @@ export default createStore({
       try {
         await signOut(auth);
         setAuthToken(null);
-        console.log('[Vuex Action] Signed out from Firebase Client SDK.');
         router.push('/login');
       } catch (error) {
         console.error(
@@ -195,43 +181,25 @@ export default createStore({
     async fetchAllVehicles({ commit }) {
       try {
         const response = await api.getAllVehicles();
-
         const normalizedVehicles = response.data.map((vehicle) => {
-          // Start with a copy of the original vehicle data
           const normalized = { ...vehicle };
-
-          // Ensure numeric fields are numbers
           normalized.rentalPricePerDay =
             parseFloat(vehicle.rentalPricePerDay) || 0;
           normalized.seats = parseInt(vehicle.seatingCapacity, 10) || 0;
           normalized.year = parseInt(vehicle.year, 10) || 0;
-
-          // --- NEW: ADD DEFAULT VALUES FOR MISSING FIELDS ---
-
-          // Ensure 'make' and 'model' exist
           normalized.make = vehicle.make || 'Unknown Make';
           normalized.model = vehicle.model || 'Unknown Model';
-
-          // Ensure 'location' object and city property exist
           if (!vehicle.location || !vehicle.location.city) {
             normalized.location = { city: 'Location Unavailable' };
           }
-
-          // Ensure 'exteriorPhotos' is an array and has at least one image
           if (!vehicle.exteriorPhotos || vehicle.exteriorPhotos.length === 0) {
             normalized.exteriorPhotos = [
               'https://placehold.co/400x300/e2e8f0/666666?text=No+Image',
             ];
           }
-
           return normalized;
         });
-
         commit('SET_ALL_VEHICLES', normalizedVehicles);
-        console.log(
-          '[Vuex Action] Cleaned and normalized vehicles:',
-          normalizedVehicles
-        );
         return normalizedVehicles;
       } catch (error) {
         console.error(
@@ -247,10 +215,7 @@ export default createStore({
         commit('SET_VEHICLE', response.data);
         return response.data;
       } catch (error) {
-        console.error(
-          'Failed to fetch vehicle by ID:',
-          error.response?.data?.message || error.message
-        );
+        console.error('Failed to fetch vehicle by ID:', error);
         throw error;
       }
     },
@@ -264,10 +229,7 @@ export default createStore({
         );
         return { ...response.data };
       } catch (error) {
-        console.error(
-          '[Vuex Action] Failed to check availability:',
-          error.response?.data?.message || error.message
-        );
+        console.error('Failed to check vehicle availability:', error);
         throw error;
       }
     },
@@ -276,10 +238,7 @@ export default createStore({
         const response = await api.createBooking(bookingData);
         return response.data;
       } catch (error) {
-        console.error(
-          '[Vuex Action] Failed to create booking:',
-          error.response?.data?.message || error.message
-        );
+        console.error('Failed to create booking:', error);
         throw error;
       }
     },
@@ -288,10 +247,7 @@ export default createStore({
         const response = await api.getVehiclesByOwner();
         return response.data;
       } catch (error) {
-        console.error(
-          'Failed to fetch owner vehicles:',
-          error.response?.data?.message || error.message
-        );
+        console.error('Failed to fetch owner vehicles:', error);
         throw error;
       }
     },
@@ -300,10 +256,7 @@ export default createStore({
         const response = await api.addVehicle(vehicleData);
         return response.data;
       } catch (error) {
-        console.error(
-          'Failed to add vehicle:',
-          error.response?.data?.message || error.message
-        );
+        console.error('Failed to add vehicle:', error);
         throw error;
       }
     },
@@ -312,36 +265,37 @@ export default createStore({
         const response = await api.updateVehicle(id, vehicleData);
         return response.data;
       } catch (error) {
-        console.error(
-          'Failed to update vehicle:',
-          error.response?.data?.message || error.message
-        );
+        console.error('Failed to update vehicle:', error);
         throw error;
       }
     },
-    async fetchUserProfile({ commit }) {
+    async fetchUserProfile({ commit, state }) {
       try {
         const response = await api.getUserProfile();
         commit('SET_AUTH_STATE', {
           user: response.data,
           userRole: response.data.role,
+          authToken: state.authToken,
         });
         return response.data;
       } catch (error) {
-        console.log(
-          'Failed to fetch user profile:',
-          error.response?.data?.message || error.message
-        );
         if (error.response && error.response.status === 401) {
           commit('CLEAR_AUTH');
         }
         throw error;
       }
     },
-    async updateUserProfile({ _commit }, profileData) {
+    async updateUserProfile({ commit, state }, profileData) {
       try {
         const response = await api.updateUserProfile(profileData);
-        return response.data.user;
+        const updatedUser = response.data.user;
+
+        commit('SET_AUTH_STATE', {
+          user: updatedUser,
+          userRole: updatedUser.role,
+          authToken: state.authToken,
+        });
+        return updatedUser;
       } catch (error) {
         console.error(
           'Failed to update user profile:',
@@ -355,10 +309,7 @@ export default createStore({
         const response = await api.getPaymentStatus(bookingId);
         return response.data;
       } catch (error) {
-        console.error(
-          'Failed to get payment status:',
-          error.response?.data?.message || error.message
-        );
+        console.error('Failed to get payment status:', error);
         throw error;
       }
     },
@@ -450,7 +401,7 @@ export default createStore({
         vehicles = vehicles.filter(
           (v) =>
             v.location &&
-            v.location.toLowerCase().includes(filters.location.toLowerCase())
+            v.location.city.toLowerCase().includes(filters.location.toLowerCase())
         );
       }
       if (filters.minPrice !== null && !isNaN(filters.minPrice)) {
