@@ -1,4 +1,3 @@
-// frontend/src/store/index.js
 import { createStore } from 'vuex';
 import api from '@/views/services/api';
 import router from '../router';
@@ -20,6 +19,7 @@ export default createStore({
     userRole: null,
     authToken: null,
     vehicle: null,
+    allBookings: [],
     vehicleFilters: {
       make: '',
       model: '',
@@ -45,6 +45,9 @@ export default createStore({
       state.userRole = userRole;
       state.authToken = authToken;
       state.authLoading = false;
+    },
+    SET_ALL_BOOKINGS(state, bookings) {
+      state.allBookings = bookings;
     },
     SET_AUTH_LOADING(state, loading) {
       state.authLoading = loading;
@@ -100,10 +103,7 @@ export default createStore({
                 authToken,
               });
             } catch (error) {
-              console.error(
-                '[Vuex Action] Failed to fetch user profile after auth change:',
-                error
-              );
+              console.error('[Vuex] Failed to initialize auth:', error);
               setAuthToken(null);
               commit('CLEAR_AUTH');
             }
@@ -127,26 +127,31 @@ export default createStore({
         setAuthToken(authToken);
         const profileResponse = await api.getUserProfile();
         const userRole = profileResponse.data.role || 'renter';
-
         commit('SET_AUTH_STATE', {
           user: profileResponse.data,
           userRole,
           authToken,
         });
-
-        if (userRole === 'owner') {
-          router.push('/dashboard/owner/vehicles');
-        } else if (userRole === 'admin') {
+        if (userRole === 'admin') {
           router.push('/dashboard/admin/dashboard');
+        } else if (userRole === 'owner') {
+          router.push('/dashboard/owner/vehicles');
         } else {
           router.push('/dashboard/my-bookings');
         }
         return true;
       } catch (error) {
-        console.error(
-          '[Vuex Action] Login process failed:',
-          error.response?.data?.message || error.message
-        );
+        console.error('[Vuex] Login failed:', error);
+        throw error;
+      }
+    },
+    async fetchAllBookings({ commit }) {
+      try {
+        const response = await api.getAllBookings();
+        commit('SET_ALL_BOOKINGS', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('[Vuex] Failed to fetch all bookings:', error);
         throw error;
       }
     },
@@ -156,10 +161,7 @@ export default createStore({
         router.push('/login');
         return true;
       } catch (error) {
-        console.error(
-          '[Vuex Action] Registration API call failed:',
-          error.response?.data?.message || error.message
-        );
+        console.error('[Vuex] Registration failed:', error);
         throw error;
       }
     },
@@ -171,10 +173,7 @@ export default createStore({
         setAuthToken(null);
         router.push('/login');
       } catch (error) {
-        console.error(
-          '[Vuex Action] Error signing out from Firebase Client SDK:',
-          error
-        );
+        console.error('[Vuex] Firebase sign out failed:', error);
         commit('CLEAR_AUTH');
       }
     },
@@ -202,10 +201,7 @@ export default createStore({
         commit('SET_ALL_VEHICLES', normalizedVehicles);
         return normalizedVehicles;
       } catch (error) {
-        console.error(
-          'Failed to fetch vehicles:',
-          error.response?.data?.message || error.message
-        );
+        console.error('[Vuex] Failed to fetch all vehicles:', error);
         throw error;
       }
     },
@@ -215,7 +211,7 @@ export default createStore({
         commit('SET_VEHICLE', response.data);
         return response.data;
       } catch (error) {
-        console.error('Failed to fetch vehicle by ID:', error);
+        console.error('[Vuex] Failed to fetch vehicle by ID:', error);
         throw error;
       }
     },
@@ -229,7 +225,7 @@ export default createStore({
         );
         return { ...response.data };
       } catch (error) {
-        console.error('Failed to check vehicle availability:', error);
+        console.error('[Vuex] Failed to check vehicle availability:', error);
         throw error;
       }
     },
@@ -238,7 +234,7 @@ export default createStore({
         const response = await api.createBooking(bookingData);
         return response.data;
       } catch (error) {
-        console.error('Failed to create booking:', error);
+        console.error('[Vuex] Failed to create booking:', error);
         throw error;
       }
     },
@@ -247,7 +243,7 @@ export default createStore({
         const response = await api.getVehiclesByOwner();
         return response.data;
       } catch (error) {
-        console.error('Failed to fetch owner vehicles:', error);
+        console.error('[Vuex] Failed to fetch owner vehicles:', error);
         throw error;
       }
     },
@@ -256,7 +252,7 @@ export default createStore({
         const response = await api.addVehicle(vehicleData);
         return response.data;
       } catch (error) {
-        console.error('Failed to add vehicle:', error);
+        console.error('[Vuex] Failed to add vehicle:', error);
         throw error;
       }
     },
@@ -265,7 +261,7 @@ export default createStore({
         const response = await api.updateVehicle(id, vehicleData);
         return response.data;
       } catch (error) {
-        console.error('Failed to update vehicle:', error);
+        console.error('[Vuex] Failed to update vehicle:', error);
         throw error;
       }
     },
@@ -289,7 +285,6 @@ export default createStore({
       try {
         const response = await api.updateUserProfile(profileData);
         const updatedUser = response.data.user;
-
         commit('SET_AUTH_STATE', {
           user: updatedUser,
           userRole: updatedUser.role,
@@ -297,10 +292,7 @@ export default createStore({
         });
         return updatedUser;
       } catch (error) {
-        console.error(
-          'Failed to update user profile:',
-          error.response?.data?.message || error.message
-        );
+        console.error('[Vuex] Failed to update user profile:', error);
         throw error;
       }
     },
@@ -309,7 +301,7 @@ export default createStore({
         const response = await api.getPaymentStatus(bookingId);
         return response.data;
       } catch (error) {
-        console.error('Failed to get payment status:', error);
+        console.error('[Vuex] Failed to get payment status:', error);
         throw error;
       }
     },
@@ -318,7 +310,7 @@ export default createStore({
         const response = await api.getBookingById(bookingId);
         return response.data;
       } catch (error) {
-        console.error('Failed to get booking by ID:', error);
+        console.error('[Vuex] Failed to get booking by ID:', error);
         throw error;
       }
     },
@@ -333,7 +325,7 @@ export default createStore({
         });
         return response.data;
       } catch (error) {
-        console.error('Failed to update booking payment method:', error);
+        console.error('[Vuex] Failed to update booking payment method:', error);
         throw error;
       }
     },
@@ -356,6 +348,7 @@ export default createStore({
     isAuthReady: (state) => !state.authLoading,
     currentVehicleFilters: (state) => state.vehicleFilters,
     allVehicles: (state) => state.allVehicles,
+    allBookings: (state) => state.allBookings,
     vehicleSort: (state) => state.vehicleSort,
     filteredAndSortedVehicles: (state) => {
       let vehicles = Array.isArray(state.allVehicles)

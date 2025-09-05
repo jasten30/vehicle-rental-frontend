@@ -1,117 +1,47 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5001/api';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
+// Create a configured instance of axios
+const apiClient = axios.create({
+  baseURL: 'http://localhost:5001/api', // Your backend's base URL
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// A new function to initialize the API service with the store
-export const initApi = (store) => {
-  api.interceptors.request.use(
-    (config) => {
-      const token = store.getters.authToken;
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-        console.log('[API Interceptor] Token attached.');
-      }
-      return config;
-    },
-    (error) => {
-      return Promise.reject(error);
-    }
-  );
-
-  api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-      if (error.response && error.response.status === 401) {
-        console.error('[API Interceptor] Unauthorized response (401). Clearing auth.');
-        store.dispatch('auth/clearAuth');
-      }
-      return Promise.reject(error);
-    }
-  );
-};
-
-// Method to set the auth token directly
+// Function to set the authentication token for all subsequent requests
 export const setAuthToken = (token) => {
   if (token) {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   } else {
-    delete api.defaults.headers.common['Authorization'];
+    delete apiClient.defaults.headers.common['Authorization'];
   }
 };
 
-// Export the API methods and the new init function
+// Define all your API calls in this exported object
 export default {
-  initApi,
-  setAuthToken,
   // Auth
-  login(credentials) {
-    return api.post('/auth/login', credentials);
-  },
-  register(userData) {
-    return api.post('/auth/register', userData);
-  },
+  login: (credentials) => apiClient.post('/auth/login', credentials),
+  register: (userData) => apiClient.post('/auth/register', userData),
+
+  // Users
+  getUserProfile: () => apiClient.get('/users/profile'),
+  updateUserProfile: (profileData) => apiClient.put('/users/profile', profileData),
+  getAllUsers: () => apiClient.get('/users/all-users'),
+  updateUserRole: (userId, role) => apiClient.put(`/users/update-role/${userId}`, { role }),
 
   // Vehicles
-  getAllVehicles() {
-    return api.get('/vehicles');
-  },
-  getVehicleById(id) {
-    return api.get(`/vehicles/${id}`);
-  },
-  getVehiclesByOwner() {
-    return api.get(`/vehicles/my-listings`);
-  },
-  addVehicle(vehicleData) {
-    return api.post('/vehicles', vehicleData);
-  },
-  updateVehicle(id, vehicleData) {
-    return api.put(`/vehicles/${id}`, vehicleData);
-  },
-  // Bookings
-  createBooking(bookingData) {
-    return api.post('/bookings', bookingData);
-  },
-  checkVehicleAvailability(vehicleId, startDate, endDate) {
-    return api.get(`/bookings/availability/${vehicleId}?startDate=${startDate}&endDate=${endDate}`);
-  },
-  initiateManualPayment(payload) {
-    return api.post('/payment/initiate-manual-payment', payload);
-  },
-  confirmManualQrPayment(bookingId) {
-    return api.post('/payment/confirm-manual-qr-payment', { bookingId });
-  },
-  cancelBooking(bookingId) {
-    return api.post('/payment/cancel-booking', { bookingId });
-  },
-  getPaymentStatus(bookingId) {
-    return api.get(`/payment/status/${bookingId}`);
-  },
-  getBookingsByUser(userId) {
-    return api.get(`/bookings/user/${userId}`);
-  },
-  getBookingById(bookingId) {
-    return api.get(`/bookings/${bookingId}`);
-  },
-  updateBooking(bookingId, updatedData) {
-    return api.put(`/bookings/${bookingId}/payment-method`, updatedData);
-  },
-  // NEW: Admin/Owner action to update booking status
-  updateBookingStatusAdmin(bookingId, newStatus) {
-    return api.put('/payment/update-status', { bookingId, newStatus });
-  },
+  getAllVehicles: () => apiClient.get('/vehicles'),
+  getVehicleById: (vehicleId) => apiClient.get(`/vehicles/${vehicleId}`),
+  addVehicle: (vehicleData) => apiClient.post('/vehicles', vehicleData),
+  updateVehicle: (vehicleId, vehicleData) => apiClient.put(`/vehicles/${vehicleId}`, vehicleData),
 
-  // User Profile
-  getUserProfile() {
-    return api.get('/users/profile');
-  },
-  updateUserProfile(profileData) {
-    return api.put('/users/profile', profileData);
-  },
+  // Bookings
+  checkVehicleAvailability: (vehicleId, startDate, endDate) =>
+    apiClient.get(`/bookings/availability/${vehicleId}?startDate=${startDate}&endDate=${endDate}`),
+  createBooking: (bookingData) => apiClient.post('/bookings', bookingData),
+  getBookingById: (bookingId) => apiClient.get(`/bookings/${bookingId}`),
+  updateBooking: (bookingId, updateData) => apiClient.put(`/bookings/${bookingId}`, updateData),
+  
+  // NEW: Function to get all bookings for the admin panel
+  getAllBookings: () => apiClient.get('/bookings/all'),
 };

@@ -1,47 +1,102 @@
 <template>
   <div class="vehicle-image-gallery">
-    <!-- Main Image -->
-    <img :src="mainImageUrl || getPlaceholderImage(800, 600, 'ffffff', '333333', 'No Image')"
+    <img
+      :src="mainImage"
       :alt="`${vehicleMake} ${vehicleModel}`"
       class="main-vehicle-image"
       @click="openModal"
-      @error="$event.target.src = getPlaceholderImage(800, 600, 'ffffff', '333333', 'No Image')">
-    
-    <!-- Thumbnail Grid -->
+      @error="
+        $event.target.src =
+          'https://placehold.co/800x600/e2e8f0/666666?text=Image+Not+Found'
+      "
+    />
+
     <div class="thumbnail-grid">
-      <div v-for="(thumb, index) in thumbnailUrls.slice(0, 2)" :key="index" class="thumbnail-container" @click="openModal">
-        <img :src="thumb" alt="Vehicle thumbnail" class="thumbnail-image">
-        <!-- The show-all-button is now on the second thumbnail (index 1) -->
-        <button v-if="index === 1" @click.stop="openModal" class="show-all-button">
+      <div
+        v-for="(thumb, index) in displayThumbnails"
+        :key="index"
+        class="thumbnail-container"
+        @click="openModal"
+      >
+        <img :src="thumb" alt="Vehicle thumbnail" class="thumbnail-image" />
+        <button
+          v-if="index === 1"
+          @click.stop="openModal"
+          class="show-all-button"
+        >
           Show all photos
         </button>
       </div>
     </div>
 
-    <!-- The Main Modal (Masonry Gallery) -->
     <transition name="modal-fade">
       <div v-if="isModalOpen" class="modal-overlay" @click="closeModal">
         <div class="modal-content" @click.stop>
           <button @click="closeModal" class="modal-close-button">&times;</button>
-          <div class="modal-image-grid">
-            <img v-for="(image, index) in allImages" 
-              :key="index"
-              :src="image" 
-              :alt="`Vehicle photo ${index + 1}`" 
-              class="modal-image"
-              @click="openFullScreen(index)">
+
+          <div class="modal-photo-section">
+            <h3 class="modal-section-title">Main Photo</h3>
+            <div class="modal-photo-grid single">
+              <img
+                :src="mainImage"
+                :alt="`${vehicleMake} ${vehicleModel}`"
+                class="modal-image"
+                @click="openFullScreen(mainImage)"
+              />
+            </div>
+          </div>
+
+          <div v-if="interiorPhotos.length > 0" class="modal-photo-section">
+            <h3 class="modal-section-title">Interior Photos</h3>
+            <div class="modal-photo-grid">
+              <img
+                v-for="(image, index) in interiorPhotos"
+                :key="`interior-${index}`"
+                :src="image"
+                alt="Vehicle interior"
+                class="modal-image"
+                @click="openFullScreen(image)"
+              />
+            </div>
+          </div>
+
+          <div v-if="otherExteriorPhotos.length > 0" class="modal-photo-section">
+            <h3 class="modal-section-title">Exterior Photos</h3>
+            <div class="modal-photo-grid">
+              <img
+                v-for="(image, index) in otherExteriorPhotos"
+                :key="`exterior-${index}`"
+                :src="image"
+                alt="Vehicle exterior"
+                class="modal-image"
+                @click="openFullScreen(image)"
+              />
+            </div>
           </div>
         </div>
       </div>
     </transition>
 
-    <!-- The Full-Screen Image Modal -->
     <transition name="fullscreen-fade">
-      <div v-if="isFullScreenOpen" class="fullscreen-overlay" @click="closeFullScreen">
-        <button @click.stop="closeFullScreen" class="fullscreen-close-button">&times;</button>
-        <button @click.stop="prevImage" class="nav-button prev-button">&#10094;</button>
-        <img :src="allImages[currentImageIndex]" class="fullscreen-image" @click.stop>
-        <button @click.stop="nextImage" class="nav-button next-button">&#10095;</button>
+      <div
+        v-if="isFullScreenOpen"
+        class="fullscreen-overlay"
+        @click="closeFullScreen"
+      >
+        <button @click.stop="closeFullScreen" class="fullscreen-close-button">
+          &times;
+        </button>
+        <button @click.stop="prevImage" class="nav-button prev-button">
+          &#10094;
+        </button>
+        <img
+          :src="allImagesForSlider[currentImageIndex]"
+          class="fullscreen-image"
+          @click.stop
+        />
+        <button @click.stop="nextImage" class="nav-button next-button">
+          &#10095;
+        </button>
       </div>
     </transition>
   </div>
@@ -51,11 +106,12 @@
 export default {
   name: 'VehicleImageGallery',
   props: {
-    mainImageUrl: {
-      type: String,
-      default: '',
+    // Props are updated to be more semantic
+    exteriorPhotos: {
+      type: Array,
+      default: () => [],
     },
-    thumbnailUrls: {
+    interiorPhotos: {
       type: Array,
       default: () => [],
     },
@@ -76,38 +132,57 @@ export default {
     };
   },
   computed: {
-    allImages() {
-      // Combines the main image with the thumbnails for the modal view
-      const images = [...this.thumbnailUrls];
-      if (this.mainImageUrl) {
-        images.unshift(this.mainImageUrl);
-      }
-      return images;
+    mainImage() {
+      return this.exteriorPhotos.length > 0
+        ? this.exteriorPhotos[0]
+        : 'https://placehold.co/800x600/e2e8f0/666666?text=No+Main+Image';
+    },
+    otherExteriorPhotos() {
+      return this.exteriorPhotos.slice(1);
+    },
+    displayThumbnails() {
+      const thumbs = [];
+      const placeholder =
+        'https://placehold.co/400x300/e2e8f0/666666?text=Photo';
+      // First thumbnail is the first interior photo
+      thumbs.push(
+        this.interiorPhotos.length > 0 ? this.interiorPhotos[0] : placeholder
+      );
+      // Second thumbnail is the second exterior photo
+      thumbs.push(
+        this.exteriorPhotos.length > 1 ? this.exteriorPhotos[1] : placeholder
+      );
+      return thumbs;
+    },
+    allImagesForSlider() {
+      return [...this.exteriorPhotos, ...this.interiorPhotos];
     },
   },
   methods: {
-    getPlaceholderImage(width, height, bgColor, textColor, text) {
-      // The background color is now 'ffffff' (white) to match the page background
-      return `https://placehold.co/${width}x${height}/${bgColor}/${textColor}?text=${text}`;
-    },
     openModal() {
       this.isModalOpen = true;
     },
     closeModal() {
       this.isModalOpen = false;
     },
-    openFullScreen(index) {
-      this.currentImageIndex = index;
+    openFullScreen(clickedImageUrl) {
+      const index = this.allImagesForSlider.findIndex(
+        (image) => image === clickedImageUrl
+      );
+      this.currentImageIndex = index !== -1 ? index : 0;
       this.isFullScreenOpen = true;
     },
     closeFullScreen() {
       this.isFullScreenOpen = false;
     },
     nextImage() {
-      this.currentImageIndex = (this.currentImageIndex + 1) % this.allImages.length;
+      this.currentImageIndex =
+        (this.currentImageIndex + 1) % this.allImagesForSlider.length;
     },
     prevImage() {
-      this.currentImageIndex = (this.currentImageIndex - 1 + this.allImages.length) % this.allImages.length;
+      this.currentImageIndex =
+        (this.currentImageIndex - 1 + this.allImagesForSlider.length) %
+        this.allImagesForSlider.length;
     },
   },
 };
@@ -116,6 +191,7 @@ export default {
 <style lang="scss" scoped>
 @import '../../assets/styles/variables.scss';
 
+/* On-page grid styles (unchanged) */
 .vehicle-image-gallery {
   display: grid;
   grid-template-columns: 3fr 1fr;
@@ -123,59 +199,30 @@ export default {
   gap: 0.5rem;
   align-items: stretch;
   overflow: hidden;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
-  }
 }
-
 .main-vehicle-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: $border-radius-md;
-  box-shadow: $shadow-medium;
-  grid-column: 1 / 2;
-  grid-row: 1 / 2;
   cursor: pointer;
-
-  @media (max-width: 768px) {
-    grid-column: 1 / 2;
-    grid-row: auto;
-    height: 300px;
-  }
 }
-
 .thumbnail-grid {
   display: grid;
-  grid-template-columns: 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 0.5rem;
-  
-  @media (max-width: 768px) {
-    display: none;
-  }
 }
-
 .thumbnail-container {
   position: relative;
   overflow: hidden;
   border-radius: $border-radius-md;
   cursor: pointer;
 }
-
 .thumbnail-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s ease;
 }
-
-.thumbnail-container:hover .thumbnail-image {
-  transform: scale(1.05);
-}
-
 .show-all-button {
   position: absolute;
   bottom: 0.5rem;
@@ -185,17 +232,39 @@ export default {
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 9999px;
-  font-size: 0.8rem;
   cursor: pointer;
-  transition: background-color 0.2s ease;
-  z-index: 10;
 }
 
-.show-all-button:hover {
-  background-color: rgba(0, 0, 0, 0.9);
+/* NEW: Modal Content Styles */
+.modal-photo-section {
+  margin-bottom: 2rem;
+}
+.modal-section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: $text-color-dark;
+  margin-bottom: 1rem;
+}
+.modal-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  &.single {
+    grid-template-columns: 1fr;
+    img {
+      max-height: 500px;
+    }
+  }
+}
+.modal-image {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: $border-radius-md;
+  cursor: pointer;
 }
 
-/* Main Modal (Masonry) Styles */
+/* Modal Overlay Styles (unchanged) */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -208,53 +277,26 @@ export default {
   align-items: center;
   z-index: 1000;
 }
-
 .modal-content {
-  position: relative;
   width: 90%;
+  max-width: 1200px;
   max-height: 90vh;
   padding: 2rem;
   background: white;
   border-radius: $border-radius-lg;
   overflow-y: auto;
 }
-
 .modal-close-button {
   position: absolute;
   top: 1rem;
   right: 1.5rem;
   background: none;
   border: none;
-  color: #333;
   font-size: 2rem;
-  font-weight: bold;
-  cursor: pointer;
-  z-index: 1001;
-}
-
-.modal-image-grid {
-  column-count: 3;
-  column-gap: 1rem;
-
-  @media (max-width: 1024px) {
-    column-count: 2;
-  }
-  @media (max-width: 768px) {
-    column-count: 1;
-  }
-}
-
-.modal-image {
-  width: 100%;
-  height: auto;
-  margin-bottom: 1rem;
-  border-radius: $border-radius-md;
-  object-fit: cover;
-  break-inside: avoid-column;
   cursor: pointer;
 }
 
-/* Full-Screen Modal Styles */
+/* Full-Screen Slider Styles (unchanged) */
 .fullscreen-overlay {
   position: fixed;
   top: 0;
@@ -267,26 +309,21 @@ export default {
   align-items: center;
   z-index: 2000;
 }
-
 .fullscreen-image {
-  max-width: 90%;
-  max-height: 90%;
+  max-width: 90vw;
+  max-height: 90vh;
   object-fit: contain;
 }
-
 .fullscreen-close-button {
   position: absolute;
   top: 1rem;
   right: 2rem;
-  background: none;
-  border: none;
   color: white;
   font-size: 3rem;
-  font-weight: bold;
+  background: none;
+  border: none;
   cursor: pointer;
-  z-index: 2001;
 }
-
 .nav-button {
   position: absolute;
   top: 50%;
@@ -298,29 +335,15 @@ export default {
   border-radius: 50%;
   cursor: pointer;
   font-size: 1.5rem;
-  z-index: 2001;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.4);
-  }
 }
-
-.prev-button {
-  left: 1rem;
-}
-
-.next-button {
-  right: 1rem;
-}
-
-/* Modal and Full-screen Transitions */
+.prev-button { left: 1rem; }
+.next-button { right: 1rem; }
 .modal-fade-enter-active, .modal-fade-leave-active,
 .fullscreen-fade-enter-active, .fullscreen-fade-leave-active {
   transition: opacity 0.3s ease;
 }
-.modal-fade-enter, .modal-fade-leave-to,
-.fullscreen-fade-enter, .fullscreen-fade-leave-to {
+.modal-fade-enter-from, .modal-fade-leave-to,
+.fullscreen-fade-enter-from, .fullscreen-fade-leave-to {
   opacity: 0;
 }
 </style>

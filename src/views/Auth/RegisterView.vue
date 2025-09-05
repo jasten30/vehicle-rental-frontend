@@ -1,8 +1,32 @@
-<!-- vehicle-rental-frontend/src/views/Auth/RegisterView.vue -->
 <template>
   <div class="register-container">
-    <h2 class="register-title">Register for RentCycle</h2>
+    <h2 class="register-title">Create your RentCycle Account</h2>
     <form @submit.prevent="handleRegister" class="register-form">
+      <div class="name-grid">
+        <div class="form-group">
+          <label for="firstName">First Name:</label>
+          <input
+            type="text"
+            id="firstName"
+            v-model="firstName"
+            required
+            class="form-input"
+            placeholder="Juan"
+          />
+        </div>
+        <div class="form-group">
+          <label for="lastName">Last Name:</label>
+          <input
+            type="text"
+            id="lastName"
+            v-model="lastName"
+            required
+            class="form-input"
+            placeholder="dela Cruz"
+          />
+        </div>
+      </div>
+
       <div class="form-group">
         <label for="email">Email:</label>
         <input
@@ -36,16 +60,9 @@
           placeholder="Confirm your password"
         />
       </div>
-      <div class="form-group">
-        <label for="role">Register as:</label>
-        <select id="role" v-model="role" class="form-input">
-          <option value="renter">Renter</option>
-          <option value="owner">Owner (requires admin approval)</option>
-        </select>
-      </div>
 
       <button type="submit" :disabled="loading" class="register-button">
-        {{ loading ? "Registering..." : "Register" }}
+        {{ loading ? 'Registering...' : 'Create Account' }}
       </button>
       <p v-if="error" class="error-message">{{ error }}</p>
     </form>
@@ -56,46 +73,47 @@
 </template>
 
 <script>
-import { mapActions } from "vuex"; // Import mapActions helper
+import { mapActions } from 'vuex';
 
 export default {
-  name: "RegisterView",
+  name: 'RegisterView',
   data() {
     return {
-      email: "",
-      password: "",
-      confirmPassword: "",
-      role: "renter", // Default role
+      firstName: '', // Added
+      lastName: '',  // Added
+      email: '',
+      password: '',
+      confirmPassword: '',
+      // 'role' is no longer needed here
       loading: false,
       error: null,
     };
   },
   methods: {
-    ...mapActions(["register"]), // Map the 'register' action from the store
+    ...mapActions(['register']),
 
     async handleRegister() {
       this.loading = true;
-      this.error = null; // Clear previous errors
+      this.error = null;
 
       if (this.password !== this.confirmPassword) {
-        this.error = "Passwords do not match.";
+        this.error = 'Passwords do not match.';
         this.loading = false;
         return;
       }
 
       try {
         await this.register({
+          firstName: this.firstName,
+          lastName: this.lastName,
           email: this.email,
           password: this.password,
-          role: this.role,
-          // You can add other fields like displayName, phoneNumber, etc., here if your backend supports them
+          // The 'role' is no longer sent from the frontend
         });
-        // Registration action handles redirection to login page
       } catch (err) {
         this.error =
           err.response?.data?.message ||
-          "An unexpected error occurred during registration. Please try again.";
-        console.error("Registration component error:", err);
+          'An unexpected error occurred. Please try again.';
       } finally {
         this.loading = false;
       }
@@ -105,8 +123,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-/* Scoped styles for RegisterView.vue */
-@import "../../assets/styles/variables.scss"; // Ensure this path is correct
+@import '../../assets/styles/variables.scss';
 
 .register-container {
   background-color: $card-background;
@@ -132,8 +149,15 @@ export default {
   gap: 1rem;
 }
 
+// NEW: Style for the name grid
+.name-grid {
+  display: flex;
+  gap: 1rem;
+}
+
 .form-group {
   text-align: left;
+  flex: 1; // Allows fields in a grid to take equal space
 }
 
 .form-group label {

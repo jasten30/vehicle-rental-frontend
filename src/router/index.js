@@ -11,6 +11,7 @@ import NotFoundView from '../views/NotFoundView.vue';
 import BecomeOwnerApplication from '../views/Auth/BecomeOwnerApplication.vue';
 
 // Dashboard Views
+import AdminLayout from '../views/Dashboard/Admin/AdminLayout.vue';
 import DashboardLayout from '../views/Dashboard/DashboardLayout.vue';
 import MyBookingsView from '../views/Dashboard/MyBookings.vue';
 import BookingDetailView from '../views/Dashboard/BookingDetailView.vue';
@@ -24,6 +25,8 @@ import AdminVehiclesView from '../views/Dashboard/Admin/AdminVehiclesView.vue';
 import AdminBookingsView from '../views/Dashboard/Admin/AdminBookingsView.vue';
 import AdminUsersView from '../views/Dashboard/Admin/AdminUsersView.vue';
 import AdminDashboardView from '../views/Dashboard/Admin/AdminDashboardView.vue';
+// NEW: Import the component for the host applications page
+import AdminHostApplicationsView from '../views/Dashboard/Admin/AdminHostApplicationsView.vue';
 
 const dashboardRoutes = [
   {
@@ -61,6 +64,7 @@ const dashboardRoutes = [
           authorize: ['renter', 'admin', 'owner'],
         },
       },
+      // Owner specific routes
       {
         path: 'owner/vehicles',
         name: 'OwnerVehicles',
@@ -101,41 +105,43 @@ const dashboardRoutes = [
           authorize: ['owner', 'admin'],
         },
       },
+      // Admin specific routes
       {
-        path: 'admin/vehicles',
-        name: 'AdminVehicles',
-        component: AdminVehiclesView,
-        meta: {
-          requiresAuth: true,
-          authorize: ['admin'],
-        },
-      },
-      {
-        path: 'admin/bookings',
-        name: 'AdminBookings',
-        component: AdminBookingsView,
-        meta: {
-          requiresAuth: true,
-          authorize: ['admin'],
-        },
-      },
-      {
-        path: 'admin/users',
-        name: 'AdminUsers',
-        component: AdminUsersView,
-        meta: {
-          requiresAuth: true,
-          authorize: ['admin'],
-        },
-      },
-      {
-        path: 'admin/dashboard',
-        name: 'AdminDashboard',
-        component: AdminDashboardView,
-        meta: {
-          requiresAuth: true,
-          authorize: ['admin'],
-        },
+        path: 'admin',
+        component: AdminLayout, // Use the new layout for all admin pages
+        redirect: { name: 'AdminDashboard' }, // Default to dashboard
+        children: [
+          {
+            path: 'dashboard',
+            name: 'AdminDashboard',
+            component: AdminDashboardView,
+            meta: { requiresAuth: true, authorize: ['admin'] },
+          },
+          {
+            path: 'users',
+            name: 'AdminUsers',
+            component: AdminUsersView,
+            meta: { requiresAuth: true, authorize: ['admin'] },
+          },
+          {
+            path: 'vehicles',
+            name: 'AdminVehicles',
+            component: AdminVehiclesView,
+            meta: { requiresAuth: true, authorize: ['admin'] },
+          },
+          {
+            path: 'bookings',
+            name: 'AdminBookings',
+            component: AdminBookingsView,
+            meta: { requiresAuth: true, authorize: ['admin'] },
+          },
+          {
+            path: 'host-applications',
+            name: 'AdminHostApplications',
+            component: AdminHostApplicationsView,
+            meta: { requiresAuth: true, authorize: ['admin'] },
+          },
+        ],
       },
       {
         path: '',
@@ -224,18 +230,14 @@ const router = createRouter({
 
 // The central navigation guard
 router.beforeEach(async (to, from, next) => {
-  // Calls the getter from the root store
   const isAuthReady = store.getters.isAuthReady;
 
   if (!isAuthReady) {
-    // Dispatches the action from the root store
     await store.dispatch('initializeAuth');
   }
 
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
   const authorizedRoles = to.meta.authorize;
-
-  // Gets the latest state from the root store
   const isAuthenticated = store.getters.isAuthenticated;
   const userRole = store.getters.userRole;
 

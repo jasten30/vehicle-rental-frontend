@@ -1,6 +1,6 @@
 <template>
   <div id="app" class="app-container">
-    <header class="app-header">
+    <header class="app-header" v-if="userRole !== 'admin'">
       <router-link to="/" class="app-title-link">
         <h1 class="app-title">
           <span class="rent-text">RENT</span
@@ -43,11 +43,28 @@
                 >
               </div>
 
-              <div v-if="isAuthenticated" class="dropdown-section user-info-header">
-                <img v-if="user.profilePhotoUrl" :src="user.profilePhotoUrl" alt="User Avatar" class="dropdown-avatar" />
-                <img v-else :src="initialsImage" alt="User Initials" class="dropdown-avatar" />
+              <div
+                v-if="isAuthenticated"
+                class="dropdown-section user-info-header"
+              >
+                <img
+                  v-if="user.profilePhotoUrl"
+                  :src="user.profilePhotoUrl"
+                  alt="User Avatar"
+                  class="dropdown-avatar"
+                />
+                <img
+                  v-else
+                  :src="initialsImage"
+                  alt="User Initials"
+                  class="dropdown-avatar"
+                />
                 <div class="user-details">
-                  <router-link :to="{ name: 'ProfileSettings' }" class="profile-link" @click="closeMenu">
+                  <router-link
+                    :to="{ name: 'ProfileSettings' }"
+                    class="profile-link"
+                    @click="closeMenu"
+                  >
                     <h6 class="dropdown-header user-name-header">
                       Hello, {{ user.name || 'User' }}
                     </h6>
@@ -81,9 +98,15 @@
                 </router-link>
               </div>
 
-              <hr v-if="isAuthenticated && userRole === 'owner'" class="dropdown-divider" />
-              
-              <div v-if="isAuthenticated && userRole === 'owner'" class="dropdown-section">
+              <hr
+                v-if="isAuthenticated && userRole === 'owner'"
+                class="dropdown-divider"
+              />
+
+              <div
+                v-if="isAuthenticated && userRole === 'owner'"
+                class="dropdown-section"
+              >
                 <h6 class="dropdown-header">Hosting</h6>
                 <router-link
                   to="/dashboard/owner/vehicles"
@@ -187,8 +210,7 @@ export default {
     },
     hostLinkTarget() {
       if (this.isAuthenticated && this.userRole === 'owner') {
-        // FIX: The correct route name is OwnerVehicles
-        return { name: 'OwnerVehicles' };
+        return { name: 'AddVehicle' };
       }
       return { name: 'BecomeOwnerApplication' };
     },
@@ -286,10 +308,7 @@ export default {
       const [untilDatePart] = pstUntilDateTime.split(', ');
       const [untilMonth, untilDay, untilYear] = untilDatePart.split('/');
       this.untilDate = `${untilYear}-${untilMonth}-${untilDay}`;
-      const initialUntilTimeIndex = Math.floor(
-        (parseInt(hour) * 60 + parseInt(minute)) / 30
-      );
-      this.untilTime = this.timeOptions[initialUntilTimeIndex] || '12:00 AM';
+      this.untilTime = this.fromTime;
     },
     searchVehicles() {
       const query = {
@@ -430,7 +449,6 @@ body {
     color: black;
   }
 }
-
 .user-avatar {
   width: 2.25rem;
   height: 2.25rem;
@@ -438,7 +456,6 @@ body {
   object-fit: cover;
   margin-left: -0.5rem;
 }
-
 .dropdown-menu {
   position: absolute;
   top: 100%;
@@ -469,37 +486,32 @@ body {
   transform: scale(1);
   opacity: 1;
 }
-
 .user-info-header {
   display: flex;
-  flex-direction: column; /* Stacks children vertically */
-  align-items: center; /* Centers items horizontally in a column */
-  justify-content: center; /* Centers items vertically in a column (if space allows) */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 0.75rem 1.5rem;
-  text-align: center; // Centers text content within the header
+  text-align: center;
 }
-
 .dropdown-avatar {
   width: 3rem;
   height: 3rem;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid $primary-color;
-  margin-bottom: 0.5rem; // Add a small gap between avatar and text
+  margin-bottom: 0.5rem;
 }
-
 .user-details {
   display: flex;
   flex-direction: column;
-  align-items: center; // Centers items if it also uses flex
+  align-items: center;
 }
-
 .user-name-header,
 .user-email-text {
   font-family: 'Nunito', sans-serif;
   margin: 0;
 }
-
 .user-name-header {
   font-size: 1rem;
   font-weight: 700;
@@ -508,22 +520,17 @@ body {
   border: none;
   padding: 0;
 }
-
-// Add this new style for the profile link
 .profile-link {
-  text-decoration: none; // Ensures no underline by default
-  color: inherit; // Inherit color from parent (user-name-header)
-
+  text-decoration: none;
+  color: inherit;
   &:hover {
-    text-decoration: underline; // Add underline on hover
+    text-decoration: underline;
   }
 }
-
 .user-email-text {
   font-size: 0.85rem;
   color: $text-color-medium;
 }
-
 .dropdown-header {
   font-size: 0.9rem;
   font-weight: 700;
@@ -533,7 +540,6 @@ body {
   letter-spacing: 0.05em;
   border-bottom: 1px solid #e5e7eb;
 }
-
 .dropdown-section {
   padding: 0.5rem 0;
 }

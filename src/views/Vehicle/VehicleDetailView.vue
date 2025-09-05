@@ -13,15 +13,13 @@
 
     <div v-else-if="vehicle" class="vehicle-details-content">
       <div class="card-body">
-        <!-- Image Gallery now uses computed properties to get images -->
         <VehicleImageGallery
-          :main-image-url="mainImageUrl"
-          :thumbnail-urls="thumbnailUrls"
+          :exterior-photos="vehicle.exteriorPhotos"
+          :interior-photos="vehicle.interiorPhotos"
           :vehicle-make="vehicle.make"
           :vehicle-model="vehicle.model"
         />
 
-        <!-- NEW: Section to display vehicle information -->
         <div class="vehicle-info-section card">
           <h1 class="vehicle-name">{{ vehicle.make }} {{ vehicle.model }}</h1>
           <p class="vehicle-year">{{ vehicle.year }}</p>
@@ -68,7 +66,6 @@
           </div>
         </div>
 
-        <!-- Booking component remains the same -->
         <VehicleDetailsAndBooking
           :vehicle="vehicle"
           v-model:booking-form="bookingForm"
@@ -83,18 +80,18 @@
 </template>
 
 <script>
-import { mapActions, mapGetters } from "vuex";
-import { DateTime } from "luxon";
-import VehicleImageGallery from "@/components/vehicle/VehicleImageGallery.vue";
-import VehicleDetailsAndBooking from "@/components/vehicle/VehicleDetailsAndBooking.vue";
+import { mapActions, mapGetters } from 'vuex';
+import { DateTime } from 'luxon';
+import VehicleImageGallery from '@/components/vehicle/VehicleImageGallery.vue';
+import VehicleDetailsAndBooking from '@/components/vehicle/VehicleDetailsAndBooking.vue';
 
 export default {
-  name: "VehicleDetailView",
+  name: 'VehicleDetailView',
   components: {
     VehicleImageGallery,
     VehicleDetailsAndBooking,
   },
-  props: ["id"],
+  props: ['id'],
   data() {
     return {
       loading: true,
@@ -110,81 +107,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(["isAuthenticated", "user"]),
-    // Helper to get a placeholder image URL
-    getPlaceholderImage() {
-      return (width, height, bgColor, textColor, text) => {
-        return `https://placehold.co/${width}x${height}/${bgColor}/${textColor}?text=${text}`;
-      };
-    },
-    // Dynamically get the main image from the vehicle data
-    mainImageUrl() {
-      const defaultUrl = this.getPlaceholderImage(
-        800,
-        600,
-        "e2e8f0",
-        "666666",
-        "Main+Image"
-      );
-      if (
-        this.vehicle &&
-        this.vehicle.exteriorPhotos &&
-        this.vehicle.exteriorPhotos.length > 0
-      ) {
-        return this.vehicle.exteriorPhotos[0];
-      }
-      return defaultUrl;
-    },
-    // Dynamically get the thumbnail images from the vehicle data,
-    // following the specific order requested by the user
-    thumbnailUrls() {
-      const urls = [];
-      const defaultUrl = this.getPlaceholderImage(
-        400,
-        300,
-        "e2e8f0",
-        "666666",
-        "Image+Not+Found"
-      );
-
-      // First thumbnail: First interior photo
-      if (
-        this.vehicle &&
-        this.vehicle.interiorPhotos &&
-        this.vehicle.interiorPhotos.length > 0
-      ) {
-        urls.push(this.vehicle.interiorPhotos[0]);
-      } else {
-        urls.push(defaultUrl);
-      }
-
-      // Second thumbnail: Second exterior photo
-      if (
-        this.vehicle &&
-        this.vehicle.exteriorPhotos &&
-        this.vehicle.exteriorPhotos.length > 1
-      ) {
-        urls.push(this.vehicle.exteriorPhotos[1]);
-      } else {
-        urls.push(defaultUrl);
-      }
-
-      // Add a couple more placeholders if needed, to match the gallery component's expectations
-      // This makes the gallery look complete even with only 1 or 2 photos
-      for (let i = urls.length; i < 4; i++) {
-        urls.push(
-          this.getPlaceholderImage(
-            400,
-            300,
-            "a0a0a0",
-            "333333",
-            `Thumb+${i + 1}`
-          )
-        );
-      }
-
-      return urls;
-    },
+    ...mapGetters(['isAuthenticated', 'user']),
   },
   watch: {
     id: {
@@ -198,9 +121,9 @@ export default {
   },
   methods: {
     ...mapActions([
-      "getVehicleById",
-      "checkVehicleAvailability",
-      "createBooking",
+      'getVehicleById',
+      'checkVehicleAvailability',
+      'createBooking',
     ]),
 
     async fetchVehicle() {
@@ -210,15 +133,10 @@ export default {
       try {
         const fetchedVehicle = await this.getVehicleById(this.id);
         this.vehicle = fetchedVehicle;
-        console.log("[VehicleDetailView] Fetched vehicle:", this.vehicle);
       } catch (error) {
-        console.error(
-          "[VehicleDetailView] Error fetching vehicle details:",
-          error
-        );
         this.errorMessage =
           error.response?.data?.message ||
-          "Failed to load vehicle details. Please try again.";
+          'Failed to load vehicle details. Please try again.';
       } finally {
         this.loading = false;
       }
@@ -228,22 +146,16 @@ export default {
       this.bookingErrorMessage = null;
       this.bookingSuccessMessage = null;
 
-      console.log("[VehicleDetailView] Starting bookVehicle process...");
-
       if (!this.isAuthenticated) {
-        this.bookingErrorMessage = "Please log in to book a vehicle.";
-        console.log(
-          "[VehicleDetailView] User not authenticated. Redirecting to login."
-        );
-        this.$router.push("/login");
+        this.bookingErrorMessage = 'Please log in to book a vehicle.';
+        this.$router.push('/login');
         this.bookingLoading = false;
         return;
       }
 
       if (!this.bookingForm.startDate || !this.bookingForm.endDate) {
         this.bookingErrorMessage =
-          "Please select both pick-up and return dates.";
-        console.log("[VehicleDetailView] Dates not selected.");
+          'Please select both pick-up and return dates.';
         this.bookingLoading = false;
         return;
       }
@@ -253,8 +165,7 @@ export default {
 
       if (!startDate.isValid || !endDate.isValid || startDate > endDate) {
         this.bookingErrorMessage =
-          "Invalid date range. Ensure return date is after pick-up date.";
-        console.log("[VehicleDetailView] Invalid date range.");
+          'Invalid date range. Ensure return date is after pick-up date.';
         this.bookingLoading = false;
         return;
       }
@@ -263,31 +174,13 @@ export default {
       const isoEndDate = endDate.toISODate();
 
       try {
-        console.log("[VehicleDetailView] Calling checkVehicleAvailability...");
         const availabilityResponse = await this.checkVehicleAvailability({
           vehicleId: this.vehicle.id,
           startDate: isoStartDate,
           endDate: isoEndDate,
         });
 
-        console.log(
-          "[VehicleDetailView] Received Availability Response (from Vuex action):",
-          availabilityResponse
-        );
-        console.log(
-          "[VehicleDetailView] Type of availabilityResponse.isAvailable:",
-          typeof availabilityResponse.isAvailable
-        );
-        console.log(
-          "[VehicleDetailView] Value of availabilityResponse.isAvailable:",
-          availabilityResponse.isAvailable
-        );
-
         if (availabilityResponse.isAvailable === true) {
-          console.log(
-            "[VehicleDetailView] Vehicle is available. Proceeding to create booking..."
-          );
-
           const bookingPayload = {
             vehicleId: this.vehicle.id,
             renterId: this.user.uid,
@@ -296,60 +189,36 @@ export default {
             totalCost: availabilityResponse.totalCost,
             downpaymentAmount: availabilityResponse.downpaymentAmount,
             fullPaymentAmount: availabilityResponse.fullPaymentAmount,
-            paymentStatus: "pending_payment_selection",
+            paymentStatus: 'pending_payment_selection',
             paymentDetails: {},
           };
 
-          console.log(
-            "[VehicleDetailView] Calling createBooking with payload:",
+          const createBookingResponse = await this.createBooking(
             bookingPayload
           );
-          const createBookingResponse =
-            await this.createBooking(bookingPayload);
-          console.log(
-            "[VehicleDetailView] createBooking Response:",
-            createBookingResponse
-          );
-
           const bookingId = createBookingResponse.id;
 
           if (bookingId) {
-            console.log(
-              `[VehicleDetailView] Booking created successfully. Redirecting to BookingPayment for bookingId: ${bookingId}`
-            );
             this.$router.push({
-              name: "BookingPayment",
+              name: 'BookingPayment',
               params: { bookingId: bookingId },
             });
           } else {
             this.bookingErrorMessage =
-              "Booking created but no booking ID received. Please try again.";
-            console.error(
-              "[VehicleDetailView] Booking created but no booking ID:",
-              createBookingResponse
-            );
+              'Booking created but no booking ID received. Please try again.';
           }
         } else {
           this.bookingErrorMessage =
             availabilityResponse.message ||
-            "Vehicle is not available for the selected dates.";
-          console.log(
-            "[VehicleDetailView] Vehicle not available. Message:",
-            this.bookingErrorMessage
-          );
+            'Vehicle is not available for the selected dates.';
         }
       } catch (error) {
-        console.error(
-          "[VehicleDetailView] Error during booking process (catch block):",
-          error
-        );
         this.bookingErrorMessage =
           error.response?.data?.message ||
-          "Failed to book vehicle. Please try again.";
+          'Failed to book vehicle. Please try again.';
         this.bookingSuccessMessage = null;
       } finally {
         this.bookingLoading = false;
-        console.log("[VehicleDetailView] bookVehicle process finished.");
       }
     },
   },
@@ -360,15 +229,15 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import "../../assets/styles/variables.scss";
+@import '../../assets/styles/variables.scss';
 /* Import Font Awesome */
-@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
 
 .vehicle-detail-container {
   padding: 1.5rem;
   width: 100%;
   background-color: #fff;
-  font-family: "Inter", sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 
 .loading-message,
