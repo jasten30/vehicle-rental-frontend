@@ -27,21 +27,30 @@ export default {
   getUserProfile: () => apiClient.get('/users/profile'),
   updateUserProfile: (profileData) => apiClient.put('/users/profile', profileData),
   getAllUsers: () => apiClient.get('/users/all-users'),
-  updateUserRole: (userId, role) => apiClient.put(`/users/update-role/${userId}`, { role }),
+  updateUserRole: (userId, role) =>
+    apiClient.put(`/users/update-role/${userId}`, { role }),
 
   // Vehicles
   getAllVehicles: () => apiClient.get('/vehicles'),
   getVehicleById: (vehicleId) => apiClient.get(`/vehicles/${vehicleId}`),
   addVehicle: (vehicleData) => apiClient.post('/vehicles', vehicleData),
-  updateVehicle: (vehicleId, vehicleData) => apiClient.put(`/vehicles/${vehicleId}`, vehicleData),
+  updateVehicle: (vehicleId, vehicleData) =>
+    apiClient.put(`/vehicles/${vehicleId}`, vehicleData),
+  getVehiclesByOwner: () => apiClient.get('/vehicles/my-listings'),
 
   // Bookings
   checkVehicleAvailability: (vehicleId, startDate, endDate) =>
-    apiClient.get(`/bookings/availability/${vehicleId}?startDate=${startDate}&endDate=${endDate}`),
+    apiClient.get(
+      `/bookings/availability/${vehicleId}?startDate=${startDate}&endDate=${endDate}`
+    ),
   createBooking: (bookingData) => apiClient.post('/bookings', bookingData),
   getBookingById: (bookingId) => apiClient.get(`/bookings/${bookingId}`),
-  updateBooking: (bookingId, updateData) => apiClient.put(`/bookings/${bookingId}`, updateData),
-  
-  // NEW: Function to get all bookings for the admin panel
-  getAllBookings: () => apiClient.get('/bookings/all'),
+  getAllBookings: (params) => apiClient.get('/bookings/all', { params }),
+  getOwnerBookings: () => apiClient.get('/bookings/owner'),
+
+  // Specific booking update functions
+  updateBookingStatus: (bookingId, data) =>
+    apiClient.put(`/bookings/${bookingId}/status`, data),
+  updateBookingPaymentMethod: (bookingId, data) =>
+    apiClient.put(`/bookings/${bookingId}/payment-method`, data),
 };

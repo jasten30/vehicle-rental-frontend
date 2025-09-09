@@ -16,16 +16,17 @@ import DashboardLayout from '../views/Dashboard/DashboardLayout.vue';
 import MyBookingsView from '../views/Dashboard/MyBookings.vue';
 import BookingDetailView from '../views/Dashboard/BookingDetailView.vue';
 import ProfileSettingsView from '../views/Dashboard/ProfileSettings.vue';
+import EarningsView from '../views/Dashboard/Owner/EarningsView.vue';
 import OwnerVehiclesView from '../views/Dashboard/Owner/OwnerVehiclesView.vue';
 import VehicleFormSteps from '../components/forms/VehicleFormSteps.vue';
 import BookingPaymentView from '../views/Booking/BookingPaymentView.vue';
+import PaymentVerificationView from '../views/Booking/BookingPaymentVerificationView.vue';
 import BookingSummaryView from '../views/Booking/BookingSummaryView.vue';
 import OwnerBookingsView from '../views/Dashboard/Owner/OwnerBookingsView.vue';
 import AdminVehiclesView from '../views/Dashboard/Admin/AdminVehiclesView.vue';
 import AdminBookingsView from '../views/Dashboard/Admin/AdminBookingsView.vue';
 import AdminUsersView from '../views/Dashboard/Admin/AdminUsersView.vue';
 import AdminDashboardView from '../views/Dashboard/Admin/AdminDashboardView.vue';
-// NEW: Import the component for the host applications page
 import AdminHostApplicationsView from '../views/Dashboard/Admin/AdminHostApplicationsView.vue';
 
 const dashboardRoutes = [
@@ -69,6 +70,15 @@ const dashboardRoutes = [
         path: 'owner/vehicles',
         name: 'OwnerVehicles',
         component: OwnerVehiclesView,
+        meta: {
+          requiresAuth: true,
+          authorize: ['owner', 'admin'],
+        },
+      },
+      {
+        path: 'earnings',
+        name: 'Earnings',
+        component: EarningsView,
         meta: {
           requiresAuth: true,
           authorize: ['owner', 'admin'],
@@ -204,6 +214,13 @@ const routes = [
       requiresAuth: true,
       authorize: ['renter', 'owner', 'admin'],
     },
+  },
+  {
+    path: '/booking/verify-payment/:bookingId',
+    name: 'PaymentVerification',
+    component: PaymentVerificationView,
+    props: true,
+    meta: { requiresAuth: true },
   },
   {
     path: '/booking/summary/:bookingId',

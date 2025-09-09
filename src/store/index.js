@@ -145,13 +145,13 @@ export default createStore({
         throw error;
       }
     },
-    async fetchAllBookings({ commit }) {
+    async fetchAllBookings({ commit }, params = {}) {
       try {
-        const response = await api.getAllBookings();
+        const response = await api.getAllBookings(params);
         commit('SET_ALL_BOOKINGS', response.data);
         return response.data;
       } catch (error) {
-        console.error('[Vuex] Failed to fetch all bookings:', error);
+        console.error('Failed to fetch all bookings:', error);
         throw error;
       }
     },
@@ -319,7 +319,7 @@ export default createStore({
       { bookingId, paymentMethod, newStatus }
     ) {
       try {
-        const response = await api.updateBooking(bookingId, {
+        const response = await api.updateBookingPaymentMethod(bookingId, {
           paymentMethod,
           newStatus,
         });

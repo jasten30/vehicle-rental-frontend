@@ -1,11 +1,8 @@
-// src/store/modules/owner.js
-import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import api from '@/views/services/api'; // Use your central API service
 
 const state = {
   ownerBookings: [],
-  ownerBookingsStatus: 'loading',
+  ownerBookingsStatus: 'loading', // 'loading', 'success', 'error'
   ownerBookingsError: null,
 };
 
@@ -22,51 +19,43 @@ const mutations = {
 };
 
 const actions = {
+  // This action now uses rootGetters correctly and calls your api service
   async fetchOwnerBookings({ commit, rootGetters }) {
     commit('setOwnerBookingsStatus', 'loading');
     commit('setOwnerBookingsError', null);
-    
-    const token = rootGetters.authToken; // Correctly accessing authToken
+
+    // This will now work because we added the getter in Step 1
+    const token = rootGetters.authToken;
     console.log("[Owner Vuex Module] Token obtained from rootGetters:", token ? "Token present" : "Token is NULL or UNDEFINED");
 
     if (!token) {
-        commit('setOwnerBookingsError', 'Authentication token not found.');
-        commit('setOwnerBookingsStatus', 'error');
-        return;
+      commit('setOwnerBookingsError', 'Authentication token not found.');
+      commit('setOwnerBookingsStatus', 'error');
+      return;
     }
 
     try {
-      console.log("[Owner Vuex Module] Attempting to fetch owner bookings from backend...");
-      const response = await axios.get(`${API_BASE_URL}/bookings/owner`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // This now uses your centralized api.js, which already has the auth header
+      const response = await api.getOwnerBookings(); 
       commit('setOwnerBookings', response.data);
-      // FIX: Corrected typo here from setOwnerBookagersStatus to setOwnerBookingsStatus
-      commit('setOwnerBookingsStatus', 'success'); 
+      commit('setOwnerBookingsStatus', 'success');
     } catch (error) {
       console.error('Error fetching owner bookings:', error);
-      commit('setOwnerBookingsError', error.response?.data?.message || error.message || 'Failed to fetch owner bookings.');
+      const errorMessage = error.response?.data?.message || 'Failed to fetch owner bookings.';
+      commit('setOwnerBookingsError', errorMessage);
       commit('setOwnerBookingsStatus', 'error');
     }
   },
 
-  async confirmBookingDownpayment({ _commit, rootGetters }, bookingId) {
-    const token = rootGetters.authToken; // Correctly accessing authToken
-    if (!token) {
-        console.error("Token not found. Cannot confirm booking.");
-        throw new Error('Authentication token not found.');
-    }
-
+  async confirmBookingDownpayment({ _commit }, bookingId) {
+    // This action can also be updated to use your api service
     try {
-      await axios.put(`${API_BASE_URL}/bookings/${bookingId}/status`, {
+      await api.updateBooking(bookingId, {
         newStatus: 'downpayment_received',
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
-
     } catch (error) {
       console.error(`Error confirming downpayment for booking ${bookingId}:`, error);
-      throw error; 
+      throw error;
     }
   },
 };

@@ -1,96 +1,94 @@
 <template>
   <div class="profile-container">
-    <div class="profile-content">
+    <div v-if="!profileData" class="loading-state">
+      <p>Loading profile...</p>
+    </div>
+
+    <div v-else class="profile-content">
       <div class="profile-left-section">
-        <div v-if="!profileData" class="loading-state">
-          <p>Loading profile...</p>
+        <div class="profile-photo-container">
+          <img
+            v-if="profileData.profilePhotoUrl"
+            :src="profileData.profilePhotoUrl"
+            alt="Profile Photo"
+            class="profile-photo"
+          />
+          <img
+            v-else
+            :src="initialsDataUrl"
+            alt="Profile Initials"
+            class="profile-photo initials-photo"
+          />
         </div>
 
-        <div v-else>
-          <div class="profile-photo-container">
-            <img
-              v-if="profileData.profilePhotoUrl"
-              :src="profileData.profilePhotoUrl"
-              alt="Profile Photo"
-              class="profile-photo"
-            />
-            <img
-              v-else
-              :src="initialsDataUrl"
-              alt="Profile Initials"
-              class="profile-photo initials-photo"
-            />
-          </div>
-
-          <div class="profile-info-header">
-            <h4>{{ profileData.firstName }} {{ profileData.lastName }}</h4>
-            <button
-              v-if="isOwnProfile"
-              @click="openEditModal"
-              class="edit-button"
+        <div class="profile-info-header">
+          <h4>{{ profileData.firstName }} {{ profileData.lastName }}</h4>
+          <button
+            v-if="isOwnProfile"
+            @click="openEditModal"
+            class="edit-button"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"
-                />
-                <path
-                  fill-rule="evenodd"
-                  d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-            </button>
-          </div>
+              <path
+                d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"
+              />
+              <path
+                fill-rule="evenodd"
+                d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </button>
+        </div>
 
-          <div class="profile-info-block">
-            <h4>Address</h4>
-            <p>{{ formattedAddress }}</p>
-          </div>
+        <div class="profile-info-block">
+          <h4>Address</h4>
+          <p>{{ formattedAddress }}</p>
+        </div>
 
-          <div class="profile-info-block">
-            <h4>Joined</h4>
-            <p>{{ formattedJoinDate }}</p>
-          </div>
+        <div class="profile-info-block">
+          <h4>Joined</h4>
+          <p>{{ formattedJoinDate }}</p>
+        </div>
 
-          <div class="profile-info-block">
-            <h4>Verified info</h4>
-            <ul class="verification-list">
-              <li class="verification-item">
-                <div class="item-label">
-                  <span v-if="isApprovedToDrive" class="check-icon">✓</span>
-                  <span v-else class="cross-icon">×</span>
-                  Approved to drive
-                </div>
-              </li>
-              <li class="verification-item">
-                <div class="item-label">
-                  <span v-if="isMobileVerified" class="check-icon">✓</span>
-                  <span v-else class="cross-icon">×</span>
-                  Mobile Number
-                </div>
-                <span class="item-value">{{ profileData.phoneNumber }}</span>
-              </li>
-              <li class="verification-item">
-                <div class="item-label">
-                  <span v-if="isEmailVerified" class="check-icon">✓</span>
-                  <span v-else class="cross-icon">×</span>
-                  Email Address
-                </div>
-                <span class="item-value">{{ profileData.email }}</span>
-              </li>
-            </ul>
-          </div>
+        <div class="profile-info-block">
+          <h4>Verified info</h4>
+          <ul class="verification-list">
+            <li class="verification-item">
+              <div class="item-label">
+                <span v-if="isApprovedToDrive" class="check-icon">✓</span>
+                <span v-else class="cross-icon">×</span>
+                Approved to drive
+              </div>
+            </li>
+            <li class="verification-item">
+              <div class="item-label">
+                <span v-if="isMobileVerified" class="check-icon">✓</span>
+                <span v-else class="cross-icon">×</span>
+                Mobile Number
+              </div>
+              <span class="item-value">{{ profileData.phoneNumber }}</span>
+            </li>
+            <li class="verification-item">
+              <div class="item-label">
+                <span v-if="isEmailVerified" class="check-icon">✓</span>
+                <span v-else class="cross-icon">×</span>
+                Email Address
+              </div>
+              <span class="item-value">{{ profileData.email }}</span>
+            </li>
+          </ul>
+        </div>
 
-          <div class="profile-info-block">
-            <h4>About</h4>
-            <p class="about-text">
-              {{ profileData.about || 'No information provided.' }}
-            </p>
-          </div>
+        <div class="profile-info-block">
+          <h4>About</h4>
+          <p class="about-text">
+            {{ profileData.about || 'No information provided.' }}
+          </p>
         </div>
       </div>
 
@@ -109,6 +107,7 @@
     </div>
 
     <EditProfileModal
+      v-if="profileData"
       :is-open="isEditModalOpen"
       :profile-data="profileData"
       @close="isEditModalOpen = false"

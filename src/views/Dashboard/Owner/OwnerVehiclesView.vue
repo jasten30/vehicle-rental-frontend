@@ -27,45 +27,35 @@
         Add New Vehicle
       </button>
     </div>
-    <div v-else class="vehicle-list">
-      <div v-for="vehicle in vehicles" :key="vehicle.id" class="vehicle-card">
-        <img
-          :src="
-            vehicle.imageUrl ||
-            getPlaceholderImage(200, 150, 'cccccc', '333333', 'No Image')
-          "
-          :alt="`${vehicle.make} ${vehicle.model}`"
-          class="vehicle-image"
-          @error="
-            vehicle.imageUrl = getPlaceholderImage(
-              200,
-              150,
-              'cccccc',
-              '333333',
-              'No Image'
-            )
-          "
-        />
-        <div class="vehicle-details">
-          <h3>{{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})</h3>
-          <p><strong>License Plate:</strong> {{ vehicle.licensePlate }}</p>
-          <p><strong>Daily Rate:</strong> ₱{{ vehicle.rentalPricePerDay }}</p>
-          <p><strong>Location:</strong> {{ vehicle.location }}</p>
-          <p><strong>Status:</strong> {{ vehicle.status }}</p>
-        </div>
-        <div class="vehicle-actions">
-          <button
-            @click="editVehicle(vehicle.id)"
-            class="button secondary-button"
-          >
-            Edit
-          </button>
-          <button
-            @click="deleteVehicle(vehicle.id)"
-            class="button cancel-button"
-          >
-            Delete
-          </button>
+    <div v-else class="vehicle-list-wrapper">
+      <div class="vehicle-list">
+        <div v-for="vehicle in vehicles" :key="vehicle.id" class="vehicle-card">
+          <img
+            :src="getVehicleImageUrl(vehicle)"
+            :alt="`${vehicle.make} ${vehicle.model}`"
+            class="vehicle-image"
+          />
+          <div class="vehicle-details">
+            <h3>{{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})</h3>
+            <p><strong>License Plate:</strong> {{ vehicle.licensePlate }}</p>
+            <p><strong>Daily Rate:</strong> ₱{{ vehicle.rentalPricePerDay }}</p>
+            <p><strong>Location:</strong> {{ formatLocation(vehicle.location) }}</p>
+            <p><strong>Status:</strong> {{ vehicle.status }}</p>
+          </div>
+          <div class="vehicle-actions">
+            <button
+              @click="editVehicle(vehicle.id)"
+              class="button secondary-button"
+            >
+              Edit
+            </button>
+            <button
+              @click="deleteVehicle(vehicle.id)"
+              class="button cancel-button"
+            >
+              Delete
+            </button>
+          </div>
         </div>
       </div>
       <button
@@ -79,10 +69,10 @@
 </template>
 
 <script>
-import { getAuth } from "firebase/auth";
+import { mapActions } from 'vuex';
 
 export default {
-  name: "OwnerVehiclesView",
+  name: 'OwnerVehiclesView',
   data() {
     return {
       loading: true,
@@ -91,77 +81,71 @@ export default {
     };
   },
   created() {
-    // The router guard now ensures the user is logged in.
-    // We can directly call the fetch method.
     this.fetchOwnerVehicles();
   },
   methods: {
-    getPlaceholderImage(width, height, bgColor, textColor, text) {
-      return `https://placehold.co/${width}x${height}/${bgColor}/${textColor}?text=${text}`;
+    ...mapActions(['getVehiclesByOwner']), // Mapped the Vuex action
+
+    // NEW: Helper method to safely get the vehicle image
+    getVehicleImageUrl(vehicle) {
+      if (vehicle.exteriorPhotos && vehicle.exteriorPhotos.length > 0) {
+        return vehicle.exteriorPhotos[0];
+      }
+      // Fallback placeholder image
+      return 'https://placehold.co/300x200/e2e8f0/666666?text=No+Image';
     },
+
+    // NEW: Helper method to format the location object
+    formatLocation(location) {
+      if (location && location.barangay && location.city && location.province) {
+        return `${location.barangay}, ${location.city}, ${location.province}`;
+      }
+      if (typeof location === 'string') {
+        return location; // Fallback for old string-based locations
+      }
+      return 'Location not set';
+    },
+
     async fetchOwnerVehicles() {
       this.loading = true;
       this.errorMessage = null;
       try {
-        const auth = getAuth();
-        const user = auth.currentUser;
-
-        if (!user || !user.uid) {
-          throw new Error("User not authenticated or UID not available.");
-        }
-
-        // The token should now be up-to-date thanks to the router guard.
-        const userAuthToken = await user.getIdToken();
-
-        const response = await fetch(
-          "http://localhost:5001/api/vehicles/my-listings",
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${userAuthToken}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        const fetchedVehicles = await response.json();
+        // UPDATED: Now uses the consistent Vuex action
+        const fetchedVehicles = await this.getVehiclesByOwner();
         this.vehicles = fetchedVehicles;
-        console.log(
-          "[OwnerVehiclesView] Fetched owner vehicles:",
-          this.vehicles
-        );
       } catch (error) {
         console.error(
-          "[OwnerVehiclesView] Error fetching owner vehicles:",
+          '[OwnerVehiclesView] Error fetching owner vehicles:',
           error
         );
         this.errorMessage =
-          error.message ||
-          "Failed to load your vehicle listings. Please try again.";
+          'Failed to load your vehicle listings. Please try again.';
       } finally {
         this.loading = false;
       }
     },
     goToAddVehicle() {
-      this.$router.push("/dashboard/owner/vehicles/add");
+      this.$router.push({ name: 'AddVehicle' });
     },
     editVehicle(vehicleId) {
-      this.$router.push(`/dashboard/owner/vehicles/edit/${vehicleId}`);
+      this.$router.push({
+        name: 'EditVehicle',
+        params: { vehicleId: vehicleId },
+      });
     },
     deleteVehicle(vehicleId) {
+      // TODO: Implement delete logic
       console.log(
         `[OwnerVehiclesView] Attempting to delete vehicle with ID: ${vehicleId}`
       );
+      alert('Delete functionality not yet implemented.');
     },
   },
 };
 </script>
 
 <style lang="scss" scoped>
-@import "../../../assets/styles/variables.scss";
+@import '../../../assets/styles/variables.scss';
 
 .owner-vehicles-container {
   padding: 1.5rem;
@@ -191,11 +175,16 @@ export default {
   padding: 0.75rem;
   margin-bottom: 1rem;
 }
+.vehicle-list-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 .vehicle-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
-  margin-top: 1.5rem;
+  width: 100%;
 }
 .vehicle-card {
   background-color: $card-background;
@@ -221,7 +210,7 @@ export default {
   h3 {
     font-size: 1.3rem;
     color: $primary-color;
-    margin-bottom: 0.75rem;
+    margin: 0 0 0.75rem 0;
   }
   p {
     font-size: 0.95rem;
@@ -229,6 +218,7 @@ export default {
     margin-bottom: 0.4rem;
     strong {
       font-weight: 600;
+      color: $text-color-medium;
     }
   }
 }
@@ -287,7 +277,5 @@ export default {
 .add-new-button {
   margin-top: 2rem;
   width: fit-content;
-  justify-self: center;
-  grid-column: 1 / -1; /* Span across all columns */
 }
 </style>
