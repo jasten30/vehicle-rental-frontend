@@ -85,6 +85,9 @@ export default createStore({
       state.userRole = null;
       state.authToken = null;
     },
+      SET_ALL_USERS(state, users) { 
+      state.allUsers = users;
+    },
   },
   actions: {
     initializeAuth({ commit }) {
@@ -329,6 +332,75 @@ export default createStore({
         throw error;
       }
     },
+    async confirmBookingPayment({ _commit }, bookingId) {
+        try {
+          const response = await api.confirmBookingPayment(bookingId);
+          return response.data;
+        } catch (error) {
+          console.error('Failed to confirm booking payment:', error);
+          throw error;
+        }
+      },
+      async fetchAllUsers({ commit }) {
+      try {
+        const response = await api.getAllUsers();
+        commit('SET_ALL_USERS', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('[Vuex] Failed to fetch all users:', error);
+        throw error;
+      }
+    },
+    async fetchBookingsByUser({ _commit }, userId) {
+      try {
+        const response = await api.fetchBookingsByUser(userId);
+        return response.data;
+      } catch (error) {
+        console.error('[Vuex] Failed to fetch user bookings:', error);
+        throw error;
+      }
+    },
+    async sendEmailVerificationCode() {
+      try {
+        await api.sendEmailVerificationCode();
+      } catch (error) {
+        console.error('Failed to send email verification code:', error);
+        throw error;
+      }
+    },
+    async verifyEmailCode({ _commit }, code) {
+      try {
+        await api.verifyEmailCode(code);
+      } catch (error) {
+        console.error('Failed to verify email code:', error);
+        throw error;
+      }
+    },
+    // Action for phone-based login
+    async tokenLogin({ dispatch }) {
+      try {
+        const response = await api.tokenLogin();
+        const customToken = response.data.token;
+        
+        const auth = getAuth();
+        await signInWithCustomToken(auth, customToken);
+        
+        // After signing in, fetch the user profile to populate the store
+        await dispatch('fetchUserProfile');
+        
+        const userRole = this.getters.userRole;
+        if (userRole === 'admin') {
+          router.push('/dashboard/admin/dashboard');
+        } else if (userRole === 'owner') {
+          router.push('/dashboard/owner/vehicles');
+        } else {
+          router.push('/dashboard/my-bookings');
+        }
+      } catch (error) {
+        console.error('[Vuex] Token login failed:', error);
+        throw error;
+      }
+    },
     setVehicleFilter({ commit }, payload) {
       commit('SET_VEHICLE_FILTER', payload);
     },
@@ -348,6 +420,7 @@ export default createStore({
     isAuthReady: (state) => !state.authLoading,
     currentVehicleFilters: (state) => state.vehicleFilters,
     allVehicles: (state) => state.allVehicles,
+    allUsers: (state) => state.allUsers,
     allBookings: (state) => state.allBookings,
     vehicleSort: (state) => state.vehicleSort,
     filteredAndSortedVehicles: (state) => {

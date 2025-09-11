@@ -1,106 +1,214 @@
 <template>
   <div class="admin-page-container">
-    <h2 class="section-title">Manage Users</h2>
-    <div v-if="loading" class="loading-message">
+    <div class="page-header">
+      <div>
+        <h2 class="section-title">Manage Users</h2>
+        <p class="section-subtitle">View, edit roles, and manage all users on the platform.</p>
+      </div>
+      <div class="search-bar">
+        <i class="bi bi-search"></i>
+        <input type="text" v-model="searchQuery" placeholder="Search by name or email..." />
+      </div>
+    </div>
+
+    <div v-if="loading" class="loading-state">
       <p>Loading user data...</p>
     </div>
-    <div v-else-if="errorMessage" class="error-message">
-      <p>{{ errorMessage }}</p>
-      <button @click="fetchUsers" class="button primary-button">Retry</button>
+    <div v-else-if="error" class="error-state">
+      <p>Failed to load users. Please try again.</p>
+      <button @click="fetchData" class="button primary">Retry</button>
     </div>
-    <div v-else class="user-list">
-      <div v-for="user in users" :key="user.uid" class="user-card">
-        <div class="user-details">
-          <h3>{{ user.email || 'N/A' }}</h3>
-          <p><strong>UID:</strong> {{ user.uid }}</p>
-          <p><strong>Role:</strong> {{ user.role }}</p>
-          <p><strong>Listings:</strong> {{ user.listingCount || 0 }}</p>
-        </div>
-        <div class="user-actions">
-          <button
-            @click="toggleUserRole(user)"
-            :disabled="user.role === 'admin'"
-            :class="[
-              'button',
-              user.role === 'owner' ? 'secondary-button' : 'primary-button',
-            ]"
-          >
-            {{ user.role === 'owner' ? 'Demote to Renter' : 'Promote to Owner' }}
-          </button>
-        </div>
-      </div>
+    <div v-else-if="filteredUsers.length === 0" class="empty-state">
+      <p>No users found matching your criteria.</p>
+    </div>
+
+    <div v-else class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Role</th>
+            <th>Listings</th>
+            <th>Joined</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="user in filteredUsers" :key="user.uid">
+            <td>
+              <div class="user-cell">
+                <span class="user-name">{{ user.name || 'N/A' }}</span>
+                <span class="user-email">{{ user.email }}</span>
+              </div>
+            </td>
+            <td>
+              <span :class="['role-badge', getRoleClass(user.role)]">{{ user.role }}</span>
+            </td>
+            <td>{{ user.listingCount || 0 }}</td>
+            <td>{{ formatDate(user.createdAt) }}</td>
+            <td>
+              <div class="action-buttons">
+                <button @click="toggleUserRole(user)" class="button icon-button" title="Change Role" :disabled="user.role === 'admin'">
+                  <i class="bi bi-person-gear"></i>
+                </button>
+                <button @click="viewProfile(user.uid)" class="button icon-button" title="View Profile">
+                  <i class="bi bi-eye-fill"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
-import { getAuth } from 'firebase/auth';
+import { mapGetters, mapActions } from 'vuex';
+import { DateTime } from 'luxon';
 
 export default {
   name: 'AdminUsersView',
-  setup() {
-    const users = ref([]);
-    const loading = ref(true);
-    const errorMessage = ref(null);
-    const auth = getAuth();
-
-    const fetchUsers = async () => {
-      loading.value = true;
-      errorMessage.value = null;
-      try {
-        const user = auth.currentUser;
-        if (!user) throw new Error('User not authenticated.');
-        const token = await user.getIdToken();
-        const response = await fetch('http://localhost:5001/api/users/all-users', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        users.value = await response.json();
-      } catch (error) {
-        errorMessage.value = 'Failed to load user data.';
-      } finally {
-        loading.value = false;
-      }
+  data() {
+    return {
+      loading: true,
+      error: null,
+      searchQuery: '',
     };
-
-    const toggleUserRole = async (user) => {
+  },
+  computed: {
+    ...mapGetters(['allUsers']),
+    filteredUsers() {
+      if (!this.searchQuery) {
+        return this.allUsers;
+      }
+      const lowerQuery = this.searchQuery.toLowerCase();
+      return this.allUsers.filter(user => {
+        const name = user.name || '';
+        const email = user.email || '';
+        return (
+          name.toLowerCase().includes(lowerQuery) ||
+          email.toLowerCase().includes(lowerQuery)
+        );
+      });
+    },
+  },
+  methods: {
+    ...mapActions(['fetchAllUsers', 'updateUserRole']), // Add updateUserRole action
+    async fetchData() {
+      this.loading = true;
+      this.error = null;
+      try {
+        await this.fetchAllUsers();
+      } catch (err) {
+        this.error = 'An error occurred while fetching user data.';
+      } finally {
+        this.loading = false;
+      }
+    },
+    async toggleUserRole(user) {
       const newRole = user.role === 'owner' ? 'renter' : 'owner';
       if (!confirm(`Change ${user.email}'s role to '${newRole}'?`)) return;
+      
       try {
-        const token = await auth.currentUser.getIdToken();
-        const response = await fetch(`http://localhost:5001/api/users/update-role/${user.uid}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ role: newRole }),
-        });
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        user.role = newRole;
+        await this.updateUserRole({ userId: user.uid, role: newRole });
+        // Optimistically update the UI. The store should ideally handle this.
+        const userInList = this.allUsers.find(u => u.uid === user.uid);
+        if (userInList) {
+          userInList.role = newRole;
+        }
       } catch (error) {
-        alert('Failed to update user role.');
+        alert('Failed to update user role. Please try again.');
+        console.error('Role update error:', error);
       }
-    };
-
-    onMounted(fetchUsers);
-
-    return { users, loading, errorMessage, fetchUsers, toggleUserRole };
+    },
+    viewProfile(userId) {
+      this.$router.push({ name: 'UserProfileView', params: { userId } });
+    },
+    formatDate(dateObj) {
+      if (!dateObj) return 'N/A';
+      // Handle both serialized and live timestamps
+      const date = dateObj._seconds ? new Date(dateObj._seconds * 1000) : new Date(dateObj);
+      return DateTime.fromJSDate(date).toFormat('MMM dd, yyyy');
+    },
+    getRoleClass(role) {
+      if (role === 'admin') return 'role-admin';
+      if (role === 'owner') return 'role-owner';
+      return 'role-renter';
+    },
+  },
+  created() {
+    this.fetchData();
   },
 };
 </script>
 
-<style scoped>
-/* Scoped styles from your original dashboard file */
+<style lang="scss" scoped>
+@import '@/assets/styles/variables.scss';
+
 .admin-page-container { max-width: 1200px; margin: 0 auto; }
-.section-title { font-size: 2.5rem; font-weight: 700; color: #1a202c; margin-bottom: 2rem; }
-.user-list { display: flex; flex-direction: column; gap: 1rem; }
-.user-card { background-color: #ffffff; border-radius: 0.75rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; }
-.user-details h3 { font-size: 1.25rem; color: #2c5282; margin-bottom: 0.5rem; }
-.user-details p { font-size: 0.95rem; color: #4a5568; margin: 0.25rem 0; }
-.user-actions .button { padding: 0.75rem 1.25rem; border-radius: 0.5rem; font-weight: 600; cursor: pointer; border: none; }
-.primary-button { background-color: #3b82f6; color: white; }
-.secondary-button { background-color: #d1d5db; color: #1f2937; }
-.button[disabled] { opacity: 0.5; cursor: not-allowed; }
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+.section-title { font-size: 2.5rem; font-weight: 700; margin: 0; }
+.section-subtitle { font-size: 1.1rem; color: $text-color-medium; margin-top: 0.25rem; }
+.search-bar {
+  position: relative;
+  i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $text-color-medium;
+  }
+  input {
+    padding: 0.75rem 1rem 0.75rem 3rem;
+    border-radius: $border-radius-pill;
+    border: 1px solid $border-color;
+    width: 300px;
+    font-size: 1rem;
+  }
+}
+.table-container { background-color: $card-background; border-radius: $border-radius-lg; box-shadow: $shadow-light; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th, td { padding: 1rem; border-bottom: 1px solid $border-color; vertical-align: middle; }
+thead th { font-size: 0.8rem; font-weight: 600; color: $text-color-medium; text-transform: uppercase; }
+tbody tr:last-child td { border-bottom: none; }
+.user-cell { display: flex; flex-direction: column; }
+.user-name { font-weight: 600; color: $text-color-dark; }
+.user-email { font-size: 0.9rem; color: $text-color-medium; }
+.role-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: $border-radius-pill;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+  &.role-admin { background-color: lighten($admin-color, 40%); color: darken($admin-color, 20%); }
+  &.role-owner { background-color: lighten($accent-color, 35%); color: darken($accent-color, 20%); }
+  &.role-renter { background-color: #e5e7eb; color: #4b5568; }
+}
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $text-color-medium;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  transition: background-color 0.2s ease;
+  &:hover { background-color: #f3f4f6; color: $primary-color; }
+  i { font-size: 1.25rem; }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background-color: transparent !important;
+  }
+}
 </style>

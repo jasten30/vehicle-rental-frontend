@@ -1,79 +1,93 @@
-<!-- vehicle-rental-frontend/src/views/dashboard/BookingDetailView.vue -->
 <template>
-  <div class="booking-detail-container">
-    <h2 class="section-title">Booking Details</h2>
-
-    <div v-if="loading" class="loading-message">
+  <div class="page-container">
+    <div v-if="loading" class="loading-state">
       <p>Loading booking details...</p>
     </div>
-
-    <div v-else-if="errorMessage" class="error-message">
+    <div v-else-if="errorMessage" class="error-state">
       <p>{{ errorMessage }}</p>
-      <button @click="fetchBooking" class="button primary-button">Retry Load Booking</button>
     </div>
 
-    <div v-else-if="booking" class="booking-details-card">
-      <div class="card-header">
-        <h3 class="booking-id">Booking ID: {{ booking.id }}</h3>
-        <span class="booking-status" :class="getStatusClass(booking.paymentStatus)">
-          {{ formatStatus(booking.paymentStatus) }}
-        </span>
+    <div v-else-if="booking" class="booking-details-layout">
+      <div class="main-content">
+        <div class="header">
+          <span
+            class="booking-status"
+            :class="getStatusClass(booking.paymentStatus)"
+          >
+            {{ formatStatus(booking.paymentStatus) }}
+          </span>
+          <h1 class="booking-id">Booking #{{ booking.id }}</h1>
+        </div>
+
+        <div class="info-card">
+          <div class="vehicle-summary">
+            <img
+              :src="getVehicleImageUrl(booking.vehicleDetails)"
+              alt="Vehicle"
+              class="vehicle-image"
+            />
+            <div class="vehicle-info">
+              <h2 class="vehicle-name">
+                {{ booking.vehicleDetails.make }}
+                {{ booking.vehicleDetails.model }}
+              </h2>
+              <p class="vehicle-year">{{ booking.vehicleDetails.year }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <h3 class="card-title">Trip Details</h3>
+          <div class="details-grid">
+            <div class="detail-item">
+              <span class="label">Pickup</span>
+              <span class="value">{{ formatDate(booking.startDate) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Return</span>
+              <span class="value">{{ formatDate(booking.endDate) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Total Cost</span>
+              <span class="value price"
+                >₱{{ booking.totalCost.toLocaleString() }}</span
+              >
+            </div>
+            <div class="detail-item">
+              <span class="label">Booked On</span>
+              <span class="value">{{
+                formatDateTime(booking.createdAt)
+              }}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="card-body">
-        <div class="vehicle-info-section">
-          <img :src="booking.vehicle.imageUrl || getPlaceholderImage(200, 150, 'cccccc', '333333', 'No Image')"
-               :alt="`${booking.vehicle.make} ${booking.vehicle.model}`"
-               class="vehicle-image"
-               @error="booking.vehicle.imageUrl = getPlaceholderImage(200, 150, 'cccccc', '333333', 'No Image')">
-          <div class="vehicle-details-summary">
-            <h4>{{ booking.vehicle.make }} {{ booking.vehicle.model }} ({{ booking.vehicle.year }})</h4>
-            <p>License Plate: {{ booking.vehicle.licensePlate || 'N/A' }}</p>
-            <p>Location: {{ booking.vehicle.location }}</p>
-            <p>Daily Rate: ₱{{ booking.vehicle.rentalPricePerDay }}</p>
-          </div>
+      <div class="sidebar-content">
+        <div class="info-card">
+          <h3 class="card-title">Host Information</h3>
+          <p>{{ booking.ownerDetails.name }}</p>
+          <p class="email">{{ booking.ownerDetails.email }}</p>
         </div>
 
-        <!-- Booking Summary Toggle Button -->
-        <button @click="toggleBookingSummary" class="button primary-button toggle-summary-button">
-          {{ showBookingSummary ? 'Hide Booking Summary' : 'Show Booking Summary' }}
-        </button>
-
-        <!-- Booking Summary Section (conditionally rendered) -->
-        <div v-if="showBookingSummary" class="booking-summary-section">
-          <h4>Booking Summary</h4>
-          <p>Pickup Date: {{ formatDate(booking.startDate) }}</p>
-          <p>Return Date: {{ formatDate(booking.endDate) }}</p>
-          <p>Booked On: {{ formatDateTime(booking.createdAt) }}</p>
-          <p>Total Cost: {{ formatPrice(booking.totalCost) }}</p>
+        <div class="info-card">
+          <h3 class="card-title">Renter Information</h3>
+          <p>{{ booking.renterDetails.name }}</p>
+          <p class="email">{{ booking.renterDetails.email }}</p>
         </div>
 
-        <!-- Owner/Admin Action Section -->
-        <!-- The condition has been simplified to use the new statuses -->
-        <div v-if="booking && user" class="admin-actions debug-admin-actions-border">
-          <p class="debug-text">--- DEBUG: ADMIN ACTIONS SECTION IS VISIBLE ---</p>
-          <p class="debug-text">User Role: {{ userRole }}</p>
-          <p class="debug-text">User UID: {{ user.uid }}</p>
-          <p class="debug-text">Booking Payment Status: {{ booking.paymentStatus }}</p>
-          <p class="debug-text">Booking Vehicle Owner ID: {{ booking.vehicle ? booking.vehicle.ownerId : 'N/A' }}</p>
-
-          <h4>Owner/Admin Actions</h4>
-          <!-- This button now marks the full payment as received -->
-          <button v-if="(userRole === 'admin' || (userRole === 'owner' && booking.vehicle && booking.vehicle.ownerId === user.uid)) && (booking.paymentStatus === 'pending_cash_payment' || booking.paymentStatus === 'awaiting_qr_payment' || booking.paymentStatus === 'qr_payment_confirmed_by_user')"
-                      @click="markFullPaymentReceived" :disabled="confirmingPayment" class="button success-button">
-            <span v-if="confirmingPayment">Confirming...</span>
-            <span v-else>Mark Full Payment Received</span>
+        <div class="info-card actions-card">
+          <h3 class="card-title">Actions</h3>
+          <button v-if="canCancelBooking" class="button danger">
+            Cancel Booking
           </button>
-          <div v-if="adminActionMessage" :class="{'success-message': adminActionSuccess, 'error-message': !adminActionSuccess}">
-            {{ adminActionMessage }}
-          </div>
+          
+          <button v-if="canConfirmPayment" class="button primary">
+            Confirm Payment
+          </button>
+          
+          <button @click="goBack" class="button secondary">Go Back</button>
         </div>
-
-        <button @click="goBack" class="button secondary-button">Back to My Bookings</button>
-        <button v-if="canCancelBooking" @click="cancelBooking" :disabled="cancellingBooking" class="button danger-button">
-          <span v-if="cancellingBooking">Cancelling...</span>
-          <span v-else>Cancel Booking</span>
-        </button>
       </div>
     </div>
   </div>
@@ -91,441 +105,180 @@ export default {
       loading: true,
       errorMessage: null,
       booking: null,
-      cancellingBooking: false,
-      confirmingPayment: false, // Updated variable name
-      adminActionMessage: null,
-      adminActionSuccess: false,
-      showBookingSummary: false,
     };
   },
   computed: {
     ...mapGetters(['userRole', 'user']),
     canCancelBooking() {
-      if (!this.booking) return false;
-      const cancellableStatuses = [
-        'pending_payment_selection',
-        'pending_cash_payment',
-        'awaiting_qr_payment',
-        'qr_payment_confirmed_by_user',
-      ];
-      return cancellableStatuses.includes(this.booking.paymentStatus);
+      if (!this.booking || !this.user) return false;
+      const isRenter = this.user.uid === this.booking.renterId;
+      const cancellable = ['pending_verification', 'confirmed'];
+      return isRenter && cancellable.includes(this.booking.paymentStatus);
     },
-  },
-  watch: {
-    bookingId: {
-      immediate: true,
-      handler(newId) {
-        if (newId) {
-          console.log('[BookingDetailView] bookingId watcher triggered. New ID:', newId);
-          this.fetchBooking();
-        }
-      },
+    canConfirmPayment() {
+      if (!this.booking || !this.user) return false;
+      const isOwner = this.user.uid === this.booking.vehicleDetails.ownerId;
+      const isAdmin = this.userRole === 'admin';
+      return (
+        (isOwner || isAdmin) &&
+        this.booking.paymentStatus === 'pending_verification'
+      );
     },
-  },
-  created() {
-    console.log('[BookingDetailView] Component created.');
   },
   methods: {
-    ...mapActions(['getBookingById', 'cancelBooking', 'updateBookingStatusAdmin']),
-
-    getPlaceholderImage(width, height, bgColor, textColor, text) {
-      return `https://placehold.co/${width}x${height}/${bgColor}/${textColor}?text=${text}`;
-    },
+    ...mapActions(['getBookingById']),
     async fetchBooking() {
       this.loading = true;
       this.errorMessage = null;
-      this.booking = null;
-      console.log('[BookingDetailView] fetchBooking called for ID:', this.bookingId);
       try {
-        const fetchedBooking = await this.getBookingById(this.bookingId);
-        console.log('[BookingDetailView] Fetched booking details (for inspection):', fetchedBooking);
-
-        if (fetchedBooking && fetchedBooking.vehicleDetails) {
-            fetchedBooking.vehicle = fetchedBooking.vehicleDetails;
-            delete fetchedBooking.vehicleDetails;
-        }
-
-        this.booking = fetchedBooking;
-
-        // --- DIRECT DEBUG LOGS AFTER BOOKING IS SET ---
-        console.log('--- Direct Admin Action Debugging ---');
-        console.log(`[Direct Debug] Current User Role: "${this.userRole}"`);
-        console.log(`[Direct Debug] Current User UID: "${this.user ? this.user.uid : 'User object not available'}"`);
-        console.log(`[Direct Debug] Booking Payment Status: "${this.booking ? this.booking.paymentStatus : 'Booking not available'}"`);
-        console.log(`[Direct Debug] Booking Vehicle Owner ID: "${this.booking && this.booking.vehicle ? this.booking.vehicle.ownerId : 'Vehicle or ownerId not available'}"`);
-        console.log('-------------------------------------');
-
+        this.booking = await this.getBookingById(this.bookingId);
       } catch (error) {
-        console.error('[BookingDetailView] Error fetching booking details:', error);
-        this.errorMessage = error.response?.data?.message || 'Failed to load booking details.';
+        this.errorMessage = 'Failed to load booking details.';
       } finally {
         this.loading = false;
-        console.log('[BookingDetailView] fetchBooking finished. Loading state:', this.loading);
       }
     },
-    formatDate(dateString) {
-      if (!dateString) return '';
-      const date = DateTime.fromISO(dateString);
-      if (!date.isValid) {
-        console.warn(`[formatDate] Invalid date string: ${dateString}`);
-        return 'Invalid Date';
+    getVehicleImageUrl(vehicle) {
+      if (vehicle?.exteriorPhotos?.length > 0) {
+        return vehicle.exteriorPhotos[0];
       }
-      return date.toLocaleString(DateTime.DATE_FULL);
+      return 'https://placehold.co/200x150/e2e8f0/666666?text=No+Image';
     },
-    formatDateTime(dateString) {
-      if (!dateString) return '';
-      const date = DateTime.fromISO(dateString);
-      if (!date.isValid) {
-        console.warn(`[formatDateTime] Invalid date string: ${dateString}`);
-        return 'Invalid Date/Time';
-      }
-      return date.toLocaleString(DateTime.DATETIME_SHORT);
+    formatDate(dateStr) {
+      return DateTime.fromISO(dateStr).toFormat('DDD');
+    },
+    formatDateTime(dateStr) {
+      return DateTime.fromISO(dateStr).toFormat('ff');
     },
     formatStatus(status) {
-      if (!status) return 'N/A';
-      return status.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+      if (!status) return 'Unknown';
+      return status.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
     },
     getStatusClass(status) {
-      switch (status) {
-        // Updated statuses for the new flow
-        case 'pending_payment_selection':
-        case 'pending_cash_payment':
-        case 'awaiting_qr_payment':
-        case 'qr_payment_confirmed_by_user':
-          return 'status-pending';
-        case 'full_payment_received':
-          return 'status-full-payment-received';
-        case 'cancelled_by_user':
-          return 'status-cancelled';
-        case 'refunded':
-          return 'status-refunded';
-        default:
-          return 'status-unknown';
-      }
-    },
-    formatPrice(price) {
-      if (typeof price !== 'number' || isNaN(price)) {
-        console.warn(`[formatPrice] Invalid price value: ${price}`);
-        return 'N/A';
-      }
-      return `₱${price.toFixed(2)}`;
-    },
-    async cancelBooking() {
-      if (!confirm('Are you sure you want to cancel this booking?')) {
-        return;
-      }
-      this.cancellingBooking = true;
-      try {
-        await this.cancelBooking(this.bookingId);
-        alert('Booking cancelled successfully!');
-        this.fetchBooking();
-      } catch (error) {
-        console.error('Error cancelling booking:', error);
-        alert('Failed to cancel booking: ' + (error.response?.data?.message || error.message));
-      } finally {
-        this.cancellingBooking = false;
-      }
-    },
-    // New method to mark full payment received
-    async markFullPaymentReceived() {
-      if (!confirm('Are you sure you want to mark this payment as RECEIVED? This action cannot be undone.')) {
-        return;
-      }
-      this.confirmingPayment = true;
-      this.adminActionMessage = null;
-      this.adminActionSuccess = false;
-      try {
-        console.log(`[BookingDetailView] Attempting to mark full payment received for booking ID: ${this.bookingId}`);
-        await this.updateBookingStatusAdmin({
-          bookingId: this.bookingId,
-          newStatus: 'full_payment_received'
-        });
-        this.adminActionMessage = 'Full payment successfully marked as received!';
-        this.adminActionSuccess = true;
-        this.fetchBooking();
-        console.log('[BookingDetailView] Full payment marked received and booking re-fetched.');
-      } catch (error) {
-        console.error('[BookingDetailView] Error marking full payment received:', error);
-        this.adminActionMessage = 'Failed to mark full payment received: ' + (error.response?.data?.message || error.message);
-        this.adminActionSuccess = false;
-      } finally {
-        this.confirmingPayment = false;
-      }
+      if (['confirmed', 'completed'].includes(status)) return 'status-success';
+      if (['pending_verification'].includes(status)) return 'status-warning';
+      if (status?.includes('cancelled')) return 'status-danger';
+      return 'status-default';
     },
     goBack() {
       this.$router.go(-1);
     },
-    toggleBookingSummary() {
-      this.showBookingSummary = !this.showBookingSummary;
-      console.log('[BookingDetailView] Toggled Booking Summary visibility to:', this.showBookingSummary);
-    },
+  },
+  created() {
+    this.fetchBooking();
   },
 };
 </script>
 
 <style lang="scss" scoped>
-@import '../../assets/styles/variables.scss';
+@import '@/assets/styles/variables.scss';
 
-.booking-detail-container {
-  padding: 1.5rem;
-  max-width: 900px;
-  margin: 0 auto;
+.page-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
 }
+.booking-details-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+  align-items: flex-start;
 
-.section-title {
-  font-size: 2rem;
+  @media (max-width: 992px) {
+    grid-template-columns: 1fr;
+  }
+}
+.header {
+  margin-bottom: 2rem;
+}
+.booking-id {
+  font-size: 2.5rem;
   font-weight: 700;
   color: $text-color-dark;
-  margin-bottom: 1.5rem;
-  text-align: center;
-}
-
-.loading-message, .error-message {
-  text-align: center;
-  padding: 2rem;
-  font-size: 1.1rem;
-  color: $text-color-medium;
-}
-
-.error-message {
-  color: #ef4444;
-  font-weight: 600;
-  background-color: #fee2e2;
-  border-radius: $border-radius-md;
-  padding: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.success-message {
-  color: #22c55e;
-  font-weight: 600;
-  background-color: #dcfce7;
-  border-radius: $border-radius-md;
-  padding: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.booking-details-card {
-  background-color: $card-background;
-  border-radius: $border-radius-lg;
-  box-shadow: $shadow-medium;
-  overflow: hidden;
-}
-
-.card-header {
-  background-color: lighten($primary-color, 45%);
-  padding: 1.25rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #e0e0e0;
-
-  @media (max-width: 600px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-}
-
-.booking-id {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: $primary-color;
   margin: 0;
+  line-height: 1.2;
 }
-
 .booking-status {
-  padding: 0.4rem 0.8rem;
-  border-radius: $border-radius-sm;
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: $border-radius-pill;
   font-weight: 600;
   font-size: 0.9rem;
-  text-transform: capitalize;
+  margin-bottom: 0.5rem;
+  // Status colors will be applied here
 }
-
-.status-pending {
-  background-color: #fffbe6; /* light yellow */
-  color: #d97706; /* dark yellow */
-}
-
-.status-full-payment-received {
-  background-color: #eff6ff; /* light blue */
-  color: #2563eb; /* dark blue */
-}
-
-.status-cancelled {
-  background-color: #fee2e2; /* light red */
-  color: #dc2626; /* dark red */
-}
-
-.status-refunded {
-  background-color: #e0f2fe; /* very light blue */
-  color: #0284c7; /* medium blue */
-}
-
-.status-unknown {
-  background-color: #e5e7eb;
-  color: #4b5563;
-}
-
-.card-body {
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.vehicle-info-section {
-  display: flex;
-  gap: 1.5rem;
-  align-items: center;
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: $border-radius-md;
+.info-card {
+  background-color: $card-background;
+  border-radius: $border-radius-lg;
   padding: 1.5rem;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    text-align: center;
-  }
+  margin-bottom: 1.5rem;
+  border: 1px solid $border-color;
 }
-
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+}
+.vehicle-summary {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
 .vehicle-image {
-  width: 200px;
-  height: 150px;
+  width: 150px;
+  height: 110px;
   object-fit: cover;
-  border-radius: $border-radius-sm;
-  box-shadow: $shadow-light;
+  border-radius: $border-radius-md;
   flex-shrink: 0;
 }
-
-.vehicle-details-summary {
-  flex-grow: 1;
-  h4 {
-    font-size: 1.25rem;
+.vehicle-name {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+}
+.vehicle-year {
+  font-size: 1rem;
+  color: $text-color-medium;
+}
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.detail-item {
+  display: flex;
+  flex-direction: column;
+}
+.label {
+  font-size: 0.9rem;
+  color: $text-color-medium;
+  margin-bottom: 0.25rem;
+}
+.value {
+  font-size: 1.1rem;
+  font-weight: 500;
+  &.price {
+    font-weight: 700;
     color: $primary-color;
-    margin-bottom: 0.75rem;
-  }
-  p {
-    font-size: 0.95rem;
-    color: $text-color-dark;
-    margin-bottom: 0.4rem;
   }
 }
-
-.booking-summary-section {
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: $border-radius-md;
-  padding: 1.5rem;
-
-  h4 {
-    font-size: 1.25rem;
-    color: $primary-color;
-    margin-bottom: 1rem;
-    border-bottom: 1px solid #e0e0e0;
-    padding-bottom: 0.5rem;
-  }
-
-  p {
-    display: block !important;
-    font-size: 1rem;
-    color: $text-color-dark;
-    margin-bottom: 0.5rem;
-  }
-
-  strong {
-    font-weight: 600;
+.sidebar-content p {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 0 0 0.25rem 0;
+  &.email {
+    font-size: 0.9rem;
+    color: $text-color-medium;
+    font-weight: 400;
   }
 }
-
-.admin-actions {
-  background-color: #f0fdf4; /* Light green background for admin actions */
-  border: 1px solid #dcfce7;
-  border-radius: $border-radius-md;
-  padding: 1.5rem;
-  text-align: center;
-  margin-top: 1.5rem;
-
-  h4 {
-    font-size: 1.2rem;
-    color: #16a34a; /* Dark green for admin action title */
-    margin-bottom: 1rem;
-  }
-}
-
-.debug-admin-actions-border {
-  border: 2px dashed blue !important;
-  background-color: rgba(0, 0, 255, 0.1) !important;
-}
-
-.debug-text {
-  color: blue !important;
-  font-weight: bold !important;
-  margin-bottom: 10px !important;
-}
-
-.button {
-  padding: 0.85rem 1.5rem;
-  border-radius: 0.375rem;
-  font-size: 1.05rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background-color 0.2s ease-in-out, opacity 0.2s ease-in-out;
-  border: none;
-  width: auto;
-  min-width: 150px;
-  margin-top: 1rem;
-  margin-right: 1rem; /* Space between buttons */
-
+.actions-card .button {
+  width: 100%;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  font-size: 1rem;
   &:last-child {
-    margin-right: 0;
-  }
-
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
-}
-
-.primary-button {
-  background-color: $primary-color;
-  color: white;
-  &:hover:not(:disabled) {
-    background-color: darken($primary-color, 10%);
-  }
-}
-
-.secondary-button {
-  background-color: #6b7280;
-  color: white;
-  &:hover:not(:disabled) {
-    background-color: darken(#6b7280, 10%);
-  }
-}
-
-.success-button {
-  background-color: #22c55e;
-  color: white;
-  &:hover:not(:disabled) {
-    background-color: darken(#22c55e, 10%);
-  }
-}
-
-.danger-button {
-  background-color: #ef4444;
-  color: white;
-  &:hover:not(:disabled) {
-    background-color: darken(#ef4444, 10%);
-  }
-}
-
-.toggle-summary-button {
-  margin-top: 1rem;
-  align-self: flex-start;
-  min-width: 200px;
-  background-color: #60a5fa;
-  &:hover {
-    background-color: darken(#60a5fa, 10%);
+    margin-bottom: 0;
   }
 }
 </style>

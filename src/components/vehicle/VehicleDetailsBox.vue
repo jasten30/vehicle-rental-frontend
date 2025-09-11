@@ -29,7 +29,14 @@
           class="host-avatar"
         />
         <div class="host-details">
-          <span class="host-name">{{ host.name }}</span>
+          <router-link
+            v-if="host.id"
+            :to="{ name: 'UserProfileView', params: { userId: host.id } }"
+            class="host-name-link"
+          >
+            <span class="host-name">{{ host.name }}</span>
+          </router-link>
+          <span v-else class="host-name">{{ host.name }}</span>
           <span class="host-member-date"
             >Member since {{ host.memberSince }}</span
           >
@@ -62,13 +69,17 @@
           </div>
         </div>
         <button
-          v-if="!showAllFeatures"
+          v-if="!showAllFeatures && totalFeatureCount > 4"
           @click="toggleFeatures"
           class="see-all-btn"
         >
           See all features
         </button>
-        <button v-else @click="toggleFeatures" class="see-all-btn">
+        <button
+          v-else-if="showAllFeatures"
+          @click="toggleFeatures"
+          class="see-all-btn"
+        >
           Show less
         </button>
       </div>
@@ -101,12 +112,11 @@
       </div>
     </div>
     <hr class="divider" />
-
     <div class="ratings-and-reviews-section">
       <h4 class="section-title">Ratings and reviews</h4>
       <div class="ratings-summary">
         <div class="overall-rating">
-          <span class="rating-number">{{ overallRating.toFixed(2) }}</span>
+          <span class="rating-number">{{ overallRating.toFixed(1) }}</span>
           <span class="star-icon">★</span>
         </div>
         <span class="text-sm font-semibold text-gray-500"
@@ -131,16 +141,15 @@
       </div>
     </div>
     <hr class="divider" />
-
     <div class="rules-section">
       <h3>Rules of the road</h3>
       <p>
         <strong class="rule-title">No smoking allowed</strong>
-        Smoking in any Turo vehicle will result in a $150 fine.
+        Smoking in any vehicle will result in a fine.
       </p>
       <p>
         <strong class="rule-title">Keep the vehicle tidy</strong>
-        Unreasonably dirty vehicles may result in a $150 fine.
+        Unreasonably dirty vehicles may result in a fine.
       </p>
       <p>
         <strong class="rule-title">Refuel the vehicle</strong>
@@ -149,15 +158,13 @@
       <p>
         <strong class="rule-title">No off-roading</strong>
         The vehicle may have a device that collects driving and location data.
-        Data may be shared with third parties for vehicle recovery or protection
-        purposes.
       </p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted } from 'vue';
 import {
   getFirestore,
   doc,
@@ -166,25 +173,20 @@ import {
   query,
   where,
   onSnapshot,
-} from "firebase/firestore";
-
-// Note: Unused Firebase Auth imports have been removed.
+} from 'firebase/firestore';
 
 const props = defineProps({
   vehicle: Object,
 });
 
 const db = getFirestore();
-const appId =
-  typeof window.__app_id !== "undefined" ? window.__app_id : "default-app-id";
-
 const showAllFeatures = ref(false);
-
 const reviews = ref([]);
 const host = ref({
-  name: "Host Name",
-  profilePicture: "https://placehold.co/100x100/A0A0A0/FFFFFF?text=Host",
-  memberSince: "N/A",
+  id: null,
+  name: 'Host Name',
+  profilePicture: 'https://placehold.co/100x100/A0A0A0/FFFFFF?text=Host',
+  memberSince: 'N/A',
 });
 
 const hasFeatures = computed(
@@ -192,7 +194,6 @@ const hasFeatures = computed(
     props.vehicle && props.vehicle.features && props.vehicle.features.length > 0
 );
 
-// Categorized features computed property
 const categorizedFeatures = computed(() => {
   const categories = {
     safety: [],
@@ -200,64 +201,40 @@ const categorizedFeatures = computed(() => {
     connectivity: [],
     additional: [],
   };
-
   if (!props.vehicle || !props.vehicle.features) {
     return categories;
   }
-
-  const safetyKeywords = [
-    "seatbelt",
-    "airbag",
-    "anti-lock",
-    "parking assist",
-    "camera",
-  ];
-  const convenienceKeywords = [
-    "air conditioning",
-    "automatic",
-    "keyless entry",
-    "storage",
-    "cup holder",
-    "sunroof",
-  ];
-  const connectivityKeywords = [
-    "carplay",
-    "android auto",
-    "bluetooth",
-    "offline maps",
-    "usb port",
-  ];
-
+  const safetyKeywords = ['seatbelt', 'airbag', 'anti-lock', 'parking assist', 'camera'];
+  const convenienceKeywords = ['air conditioning', 'automatic', 'keyless entry', 'storage', 'cup holder', 'sunroof'];
+  const connectivityKeywords = ['carplay', 'android auto', 'bluetooth', 'offline maps', 'usb port'];
   props.vehicle.features.forEach((feature) => {
     const lowerFeature = feature.toLowerCase();
     if (safetyKeywords.some((keyword) => lowerFeature.includes(keyword))) {
       categories.safety.push(feature);
-    } else if (
-      convenienceKeywords.some((keyword) => lowerFeature.includes(keyword))
-    ) {
+    } else if (convenienceKeywords.some((keyword) => lowerFeature.includes(keyword))) {
       categories.convenience.push(feature);
-    } else if (
-      connectivityKeywords.some((keyword) => lowerFeature.includes(keyword))
-    ) {
+    } else if (connectivityKeywords.some((keyword) => lowerFeature.includes(keyword))) {
       categories.connectivity.push(feature);
     } else {
       categories.additional.push(feature);
     }
   });
-
   return categories;
 });
 
-// Computed property to determine which categories to display
 const displayedCategories = computed(() => {
   if (showAllFeatures.value) {
     return categorizedFeatures.value;
-  } else {
-    return {
-      safety: categorizedFeatures.value.safety,
-      connectivity: categorizedFeatures.value.connectivity,
-    };
   }
+  const nonEmtpy = Object.fromEntries(
+    Object.entries(categorizedFeatures.value).filter(([, features]) => features.length > 0)
+  );
+  return Object.fromEntries(Object.entries(nonEmtpy).slice(0, 2));
+});
+
+const totalFeatureCount = computed(() => {
+  if (!props.vehicle || !props.vehicle.features) return 0;
+  return props.vehicle.features.length;
 });
 
 const toggleFeatures = () => {
@@ -265,71 +242,54 @@ const toggleFeatures = () => {
 };
 
 const formatTimestampToDate = (timestamp) => {
-  if (!timestamp) {
-    return "N/A";
-  }
-
+  if (!timestamp) return 'N/A';
   let date;
   if (timestamp.toDate) {
     date = timestamp.toDate();
+  } else if (timestamp._seconds) {
+    date = new Date(timestamp._seconds * 1000);
   } else if (timestamp.seconds) {
     date = new Date(timestamp.seconds * 1000);
   } else {
-    return "N/A";
+    return 'N/A';
   }
-
-  const options = { year: "numeric", month: "long" };
-  return new Intl.DateTimeFormat("en-US", options).format(date);
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'long',
+  }).format(date);
 };
 
 const fetchHostData = async (ownerId) => {
   try {
     if (!ownerId) {
-      console.error("Owner ID is missing from the vehicle document.");
       return;
     }
-    // Corrected Firestore path to match security rules: /users/{userId}
-    const hostDocRef = doc(db, "users", ownerId);
+    const hostDocRef = doc(db, 'users', ownerId);
     const hostDocSnap = await getDoc(hostDocRef);
     if (hostDocSnap.exists()) {
       const hostData = hostDocSnap.data();
-      host.value.name = hostData.name || "Jane Doe";
+      host.value.id = ownerId;
+      host.value.name =
+        `${hostData.firstName || ''} ${hostData.lastName || ''}`.trim() ||
+        'Host';
       host.value.profilePicture =
-        hostData.userProfileImageUrl ||
-        "https://placehold.co/100x100/A0A0A0/FFFFFF?text=Host";
+        hostData.profilePhotoUrl || 'https://placehold.co/100x100/A0A0A0/FFFFFF?text=Host';
       if (hostData.createdAt) {
         host.value.memberSince = formatTimestampToDate(hostData.createdAt);
       }
-    } else {
-      console.log("Host document not found for ownerId:", ownerId);
     }
   } catch (error) {
-    console.error("Error fetching host data:", error);
+    console.error('Error fetching host data:', error);
   }
 };
 
 const fetchReviews = (vehicleId) => {
-  const reviewsRef = collection(
-    db,
-    "artifacts",
-    appId,
-    "public",
-    "data",
-    "reviews"
-  );
-  const q = query(reviewsRef, where("vehicleId", "==", vehicleId));
-
+  const reviewsRef = collection(db, 'reviews');
+  const q = query(reviewsRef, where('vehicleId', '==', vehicleId));
   onSnapshot(q, (snapshot) => {
     const fetchedReviews = [];
     let totalRatings = 0;
-    const scores = {
-      cleanliness: 0,
-      maintenance: 0,
-      communication: 0,
-      convenience: 0,
-      accuracy: 0,
-    };
-
+    const scores = { cleanliness: 0, maintenance: 0, communication: 0, convenience: 0, accuracy: 0 };
     snapshot.forEach((doc) => {
       const reviewData = doc.data();
       fetchedReviews.push({ id: doc.id, ...reviewData });
@@ -342,38 +302,28 @@ const fetchReviews = (vehicleId) => {
         }
       }
     });
-
     reviews.value = fetchedReviews;
     totalReviews.value = totalRatings;
-
-    const avgScores = Object.keys(scores).map((category) => ({
+    categoricalRatings.value = Object.keys(scores).map((category) => ({
       category,
       score: totalRatings > 0 ? scores[category] / totalRatings : 0,
     }));
-    categoricalRatings.value = avgScores;
   });
 };
 
 const categoricalRatings = ref([]);
 const totalReviews = ref(0);
 const overallRating = computed(() => {
-  if (categoricalRatings.value.length === 0) {
-    return 0;
-  }
-  const sum = categoricalRatings.value.reduce(
-    (acc, rating) => acc + rating.score,
-    0
-  );
+  if (categoricalRatings.value.length === 0) return 0;
+  const sum = categoricalRatings.value.reduce((acc, rating) => acc + rating.score, 0);
   return sum / categoricalRatings.value.length;
 });
 
 const formatCategoryName = (name) => {
-  return name.charAt(0).toUpperCase() + name.slice(1).replace("-", " ");
+  return name.charAt(0).toUpperCase() + name.slice(1).replace('-', ' ');
 };
 
 onMounted(() => {
-  // Directly fetch data without forcing a login.
-  // The component now relies on the existing auth state of the user.
   if (props.vehicle && props.vehicle.ownerId) {
     fetchHostData(props.vehicle.ownerId);
     fetchReviews(props.vehicle.id);
@@ -381,151 +331,130 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '@/assets/styles/variables.scss';
+
 .details-box {
   flex: 2;
   background-color: transparent;
   border-radius: 0.5rem;
 }
-
-/* Vehicle Details Styles */
 .vehicle-header {
   margin-bottom: 1rem;
 }
-
 .vehicle-name {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #1f2937;
+  color: $text-color-dark;
   margin: 0;
 }
-
 .vehicle-info {
   display: flex;
   align-items: center;
   gap: 1rem;
   margin-top: 0.25rem;
 }
-
 .vehicle-make {
   font-size: 1rem;
-  color: #4b5563;
+  color: $text-color-medium;
   font-weight: 500;
 }
-
 .vehicle-rating {
   display: flex;
   align-items: center;
   font-size: 1rem;
-  color: #1f2937;
+  color: $text-color-dark;
 }
-
 .star-icon {
   width: 1rem;
   height: 1rem;
   margin-right: 0.25rem;
-  color: #1f2937;
+  color: $primary-color;
 }
-
 .divider {
   border: 0;
   height: 1px;
-  background: #e0e0e0;
-  margin-top: 1.5rem;
-  margin-bottom: 1.5rem;
+  background: $border-color;
+  margin: 1.5rem 0;
 }
-
 .hosted-by-section {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
-
 .hosted-by-title {
   font-size: 1.25rem;
-  color: #000;
+  color: $text-color-dark;
   font-weight: bold;
   margin-bottom: 0.5rem;
 }
-
 .host-profile {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
-
 .host-avatar {
   width: 60px;
   height: 60px;
   border-radius: 50%;
   object-fit: cover;
 }
-
 .host-details {
   display: flex;
   flex-direction: column;
 }
-
+.host-name-link {
+  text-decoration: none;
+  color: inherit;
+  &:hover .host-name {
+    text-decoration: underline;
+    color: $primary-color;
+  }
+}
 .host-name {
   font-size: 1.1rem;
   font-weight: bold;
-  color: #000;
+  color: $text-color-dark;
 }
-
 .host-member-date {
   font-size: 0.85rem;
-  color: #4b5563;
+  color: $text-color-medium;
 }
-
 .details-list {
   padding-top: 1.5rem;
 }
-
-/* New CSS for the 2x2 grid layout */
 .features-grid-container {
   display: flex;
   flex-direction: column;
 }
-
 .features-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 2rem;
   margin-bottom: 1rem;
-}
-
-@media (max-width: 768px) {
-  .features-grid {
+  @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 }
-
-.feature-category {
-  margin-bottom: 1rem;
-}
-
 .feature-category-title {
   font-size: 1rem;
-  color: #1f2937;
+  color: $text-color-dark;
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
-
 .feature-category ul {
   list-style: disc;
   padding-left: 1.5rem;
   margin: 0;
 }
-
 .feature-category li {
   font-size: 1rem;
-  color: #1f2937;
+  color: $text-color-dark;
   margin-bottom: 0.25rem;
 }
-
 .see-all-btn {
   background-color: transparent;
-  color: #3b82f6;
+  color: $primary-color;
   border: none;
   font-weight: 600;
   cursor: pointer;
@@ -533,123 +462,84 @@ onMounted(() => {
   font-size: 0.9rem;
   transition: color 0.3s ease;
   align-self: flex-start;
+  &:hover {
+    text-decoration: underline;
+  }
 }
-
-.see-all-btn:hover {
-  color: #2563eb;
-  text-decoration: underline;
-}
-
-/* NEW: Styles for the Included in the Price section */
 .included-in-price-section {
-  display: flex;
-  flex-direction: column;
   padding-top: 1.5rem;
 }
-
 .included-title {
   font-size: 1.25rem;
-  color: #000;
+  color: $text-color-dark;
   font-weight: bold;
   margin-bottom: 0.5rem;
 }
-
 .included-content-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 2rem;
-}
-
-@media (max-width: 768px) {
-  .included-content-grid {
+  @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 }
-
-.included-category {
-  margin-bottom: 1rem;
-}
-
 .included-category-title {
   font-size: 1rem;
-  color: #1f2937;
+  color: $text-color-dark;
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
-
 .included-category ul {
   list-style: disc;
   padding-left: 1.5rem;
   margin: 0;
 }
-
 .included-category li {
   font-size: 1rem;
-  color: #1f2937;
+  color: $text-color-dark;
   margin-bottom: 0.25rem;
 }
-
-/* NEW: Ratings and Reviews Section Styles */
 .ratings-and-reviews-section {
   padding-top: 1.5rem;
 }
-
 .section-title {
   font-size: 1.5rem;
-  color: #000;
+  color: $text-color-dark;
   font-weight: bold;
   margin-bottom: 1rem;
 }
-
 .ratings-summary {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
   margin-bottom: 2rem;
 }
-
 .overall-rating {
   display: flex;
   align-items: baseline;
   gap: 0.25rem;
 }
-
 .rating-number {
   font-size: 2.5rem;
   font-weight: bold;
-  color: #1f2937;
+  color: $text-color-dark;
 }
-
-.star-icon {
-  font-size: 1.5rem;
-  color: #8c73ff; /* A shade of purple for the star */
-}
-
 .categorical-ratings {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
-
 .rating-item {
   display: grid;
   grid-template-columns: 150px 1fr auto;
   align-items: center;
   gap: 1rem;
 }
-
-@media (max-width: 500px) {
-  .rating-item {
-    grid-template-columns: 100px 1fr auto;
-  }
-}
-
 .category-name {
   font-size: 1rem;
-  color: #4b5563;
+  color: $text-color-medium;
   font-weight: 500;
 }
-
 .bar-chart {
   width: 100%;
   height: 8px;
@@ -657,38 +547,34 @@ onMounted(() => {
   border-radius: 9999px;
   overflow: hidden;
 }
-
 .bar-fill {
   height: 100%;
-  background-color: #8c73ff;
+  background-color: $primary-color;
   border-radius: 9999px;
   transition: width 0.5s ease-in-out;
 }
-
 .score {
   font-size: 1rem;
-  color: #1f2937;
+  color: $text-color-dark;
   font-weight: 500;
 }
-
-/* NEW SECTION: Rules of the road */
 .rules-section {
   padding-top: 1.5rem;
-}
-.rules-section h3 {
-  font-size: 1.5rem;
-  color: #000;
-  font-weight: bold;
-  margin-bottom: 1rem;
-}
-.rules-section p {
-  margin-bottom: 1rem;
-  line-height: 1.6;
-}
-.rules-section strong {
-  display: block;
-  font-size: 1.1em;
-  color: #0056b3;
-  margin-bottom: 0.25rem;
+  h3 {
+    font-size: 1.5rem;
+    color: $text-color-dark;
+    font-weight: bold;
+    margin-bottom: 1rem;
+  }
+  p {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+  }
+  strong {
+    display: block;
+    font-size: 1.1em;
+    color: $primary-color;
+    margin-bottom: 0.25rem;
+  }
 }
 </style>

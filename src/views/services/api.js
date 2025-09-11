@@ -29,6 +29,8 @@ export default {
   getAllUsers: () => apiClient.get('/users/all-users'),
   updateUserRole: (userId, role) =>
     apiClient.put(`/users/update-role/${userId}`, { role }),
+  sendEmailVerificationCode: () => apiClient.post('/users/send-email-verification'),
+  verifyEmailCode: (code) => apiClient.post('/users/verify-email-code', { code }),
 
   // Vehicles
   getAllVehicles: () => apiClient.get('/vehicles'),
@@ -47,10 +49,20 @@ export default {
   getBookingById: (bookingId) => apiClient.get(`/bookings/${bookingId}`),
   getAllBookings: (params) => apiClient.get('/bookings/all', { params }),
   getOwnerBookings: () => apiClient.get('/bookings/owner'),
+  
 
   // Specific booking update functions
   updateBookingStatus: (bookingId, data) =>
     apiClient.put(`/bookings/${bookingId}/status`, data),
   updateBookingPaymentMethod: (bookingId, data) =>
     apiClient.put(`/bookings/${bookingId}/payment-method`, data),
+
+  // Function to fetch bookings for specific user
+  fetchBookingsByUser: (userId) => apiClient.get(`/bookings/user/${userId}`),
+
+  // Function for phone-based login
+  tokenLogin: () => apiClient.post('/auth/token-login'),
+
+  confirmBookingPayment: (bookingId) =>
+    apiClient.put(`/bookings/${bookingId}/confirm-payment`),
 };

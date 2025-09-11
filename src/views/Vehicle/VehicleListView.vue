@@ -140,7 +140,7 @@ import MakeModelFilter from "@/components/filters/MakeModelFilter.vue";
 import YearFilter from "@/components/filters/YearFilter.vue";
 import SeatsFilter from "@/components/filters/SeatsFilter.vue";
 import VehicleCard from "@/components/VehicleCard.vue";
-import AllFilterModal from "@/components/modal/AllFilterModal.vue";
+import AllFilterModal from "@/components/modals/AllFilterModal.vue";
 
 export default {
   name: "VehicleListView",

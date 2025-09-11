@@ -1,5 +1,13 @@
 <template>
   <div class="profile-container">
+    <!-- The new, cleaner way to show the verification reminder -->
+    <VerificationReminder
+      v-if="profileData && isOwnProfile"
+      :is-email-verified="isEmailVerified"
+      :is-mobile-verified="isMobileVerified"
+      @verify-now="openEditModal"
+    />
+
     <div v-if="!profileData" class="loading-state">
       <p>Loading profile...</p>
     </div>
@@ -120,12 +128,14 @@
 import { mapGetters, mapActions } from 'vuex';
 import { db } from '@/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
-import EditProfileModal from '@/components/modal/EditProfileModal.vue';
+import EditProfileModal from '@/components/modals/EditProfileModal.vue';
+import VerificationReminder from '@/components/utils/VerificationReminder.vue'; // Import the new component
 
 export default {
   name: 'ProfileSettingsView',
   components: {
     EditProfileModal,
+    VerificationReminder, // Register the new component
   },
   props: {
     userId: {
@@ -172,7 +182,6 @@ export default {
       if (this.profileData && this.profileData.createdAt) {
         const createdAt = this.profileData.createdAt;
         let date;
-
         if (typeof createdAt.toDate === 'function') {
           date = createdAt.toDate();
         } else if (createdAt._seconds) {
@@ -180,7 +189,6 @@ export default {
         } else {
           date = new Date(createdAt);
         }
-
         if (!isNaN(date)) {
           const options = { year: 'numeric', month: 'long' };
           return `Joined in ${date.toLocaleDateString('en-US', options)}`;
@@ -276,6 +284,8 @@ export default {
 }
 
 .profile-content {
+  position: relative;
+  z-index: 2;
   display: flex;
   gap: 3rem;
   align-items: flex-start;
@@ -297,8 +307,9 @@ export default {
   border-radius: 50%;
   overflow: hidden;
   margin: 0 auto 2rem auto;
-  border: 4px solid $primary-color;
-  box-shadow: $shadow-light;
+  border: 4px solid white;
+  box-shadow: $shadow-medium;
+  background-color: white;
 }
 
 .profile-photo {
