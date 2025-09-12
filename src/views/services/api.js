@@ -63,6 +63,8 @@ export default {
   // Function for phone-based login
   tokenLogin: () => apiClient.post('/auth/token-login'),
 
+  reauthenticate: (password) => apiClient.post('/auth/reauthenticate', { password }),
+
   confirmBookingPayment: (bookingId) =>
     apiClient.put(`/bookings/${bookingId}/confirm-payment`),
 };

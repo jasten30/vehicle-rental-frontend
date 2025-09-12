@@ -1,6 +1,5 @@
 <template>
   <div class="profile-container">
-    <!-- The new, cleaner way to show the verification reminder -->
     <VerificationReminder
       v-if="profileData && isOwnProfile"
       :is-email-verified="isEmailVerified"
@@ -79,7 +78,18 @@
                 <span v-else class="cross-icon">×</span>
                 Mobile Number
               </div>
-              <span class="item-value">{{ profileData.phoneNumber }}</span>
+              <div class="value-and-action">
+                <span class="item-value">{{
+                  profileData.phoneNumber || 'Not set'
+                }}</span>
+                <button
+                  v-if="isOwnProfile"
+                  @click="openChangePhoneModal"
+                  class="change-button"
+                >
+                  Change
+                </button>
+              </div>
             </li>
             <li class="verification-item">
               <div class="item-label">
@@ -121,6 +131,12 @@
       @close="isEditModalOpen = false"
       @profile-updated="handleProfileUpdate"
     />
+
+    <UpdatePhoneNumberModal
+      :is-open="isChangePhoneModalOpen"
+      @close="isChangePhoneModalOpen = false"
+      @phone-updated="handleProfileUpdate"
+    />
   </div>
 </template>
 
@@ -129,13 +145,15 @@ import { mapGetters, mapActions } from 'vuex';
 import { db } from '@/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 import EditProfileModal from '@/components/modals/EditProfileModal.vue';
-import VerificationReminder from '@/components/utils/VerificationReminder.vue'; // Import the new component
+import VerificationReminder from '@/components/utils/VerificationReminder.vue';
+import UpdatePhoneNumberModal from '@/components/modals/UpdatePhoneNumberModal.vue';
 
 export default {
   name: 'ProfileSettingsView',
   components: {
     EditProfileModal,
-    VerificationReminder, // Register the new component
+    VerificationReminder,
+    UpdatePhoneNumberModal,
   },
   props: {
     userId: {
@@ -147,6 +165,7 @@ export default {
     return {
       profileUser: null,
       isEditModalOpen: false,
+      isChangePhoneModalOpen: false,
       initialsDataUrl: null,
     };
   },
@@ -163,7 +182,7 @@ export default {
       return this.profileData?.isApprovedToDrive === true;
     },
     isMobileVerified() {
-      return !!this.profileData?.phoneNumber;
+      return this.profileData?.isMobileVerified === true;
     },
     isEmailVerified() {
       return this.profileData?.emailVerified === true;
@@ -252,7 +271,12 @@ export default {
     openEditModal() {
       this.isEditModalOpen = true;
     },
+    openChangePhoneModal() {
+      this.isChangePhoneModalOpen = true;
+    },
     handleProfileUpdate() {
+      this.isEditModalOpen = false;
+      this.isChangePhoneModalOpen = false;
       this.fetchUserProfile();
     },
     async fetchOtherUserProfile(id) {
@@ -282,10 +306,7 @@ export default {
   max-width: 1200px;
   margin: 0 auto;
 }
-
 .profile-content {
-  position: relative;
-  z-index: 2;
   display: flex;
   gap: 3rem;
   align-items: flex-start;
@@ -294,13 +315,11 @@ export default {
     flex-direction: column;
   }
 }
-
 .profile-left-section,
 .profile-right-section {
   flex: 1;
   flex-basis: 50%;
 }
-
 .profile-photo-container {
   width: 150px;
   height: 150px;
@@ -311,13 +330,11 @@ export default {
   box-shadow: $shadow-medium;
   background-color: white;
 }
-
 .profile-photo {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-
 .profile-info-header {
   width: 100%;
   padding-bottom: 1rem;
@@ -325,19 +342,16 @@ export default {
   border-bottom: 1px solid $border-color;
   text-align: center;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   h4 {
     margin: 0;
     font-size: 1.75rem;
     color: $text-color-dark;
   }
-  .edit-button {
-    position: absolute;
-    top: 50%;
-    right: 0;
-    transform: translateY(-50%);
-  }
 }
-
 .profile-info-block {
   width: 100%;
   padding: 1rem 0;
@@ -346,34 +360,16 @@ export default {
     border-bottom: none;
   }
 }
-
-.info-block-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.25rem;
-  h4 {
-    font-size: 0.9rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: $text-color-medium;
-    margin: 0;
-  }
-}
-
 .profile-info-block p {
   font-size: 1.1rem;
   color: $text-color-dark;
   margin: 0;
 }
-
 .about-text {
   white-space: pre-wrap;
   color: $text-color-medium;
   line-height: 1.6;
 }
-
 .edit-button {
   background-color: transparent;
   border: none;
@@ -385,18 +381,15 @@ export default {
   align-items: center;
   justify-content: center;
   transition: background-color 0.2s ease, color 0.2s ease;
-
   svg {
     width: 20px;
     height: 20px;
   }
-
   &:hover {
     background-color: #f3f4f6;
     color: $primary-color;
   }
 }
-
 .verification-list {
   list-style: none;
   padding: 0;
@@ -405,13 +398,11 @@ export default {
   flex-direction: column;
   gap: 1rem;
 }
-
 .verification-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-
 .item-label {
   display: flex;
   align-items: center;
@@ -419,13 +410,11 @@ export default {
   font-size: 1.1rem;
   color: $text-color-dark;
 }
-
 .item-value {
   font-size: 1rem;
   color: $text-color-medium;
   font-weight: 500;
 }
-
 .check-icon,
 .cross-icon {
   display: flex;
@@ -437,14 +426,29 @@ export default {
   border-radius: 50%;
   font-size: 0.9rem;
 }
-
 .check-icon {
   background-color: lighten($secondary-color, 35%);
   color: darken($secondary-color, 15%);
 }
-
 .cross-icon {
   background-color: #fee2e2;
   color: #b91c1c;
+}
+.value-and-action {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.change-button {
+  background: none;
+  border: none;
+  color: $primary-color;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  &:hover {
+    text-decoration: underline;
+  }
 }
 </style>

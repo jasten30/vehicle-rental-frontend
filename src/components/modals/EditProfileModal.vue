@@ -72,13 +72,8 @@
           </div>
 
           <div v-if="currentStep === 4">
-            <div
-              v-if="profileData.isMobileVerified"
-              class="already-verified-box"
-            >
-              <i
-                class="status-icon success bi bi-check-circle-fill"
-              ></i>
+            <div v-if="profileData.isMobileVerified" class="already-verified-box">
+              <i class="status-icon success bi bi-check-circle-fill"></i>
               <h4>Phone Number Verified</h4>
               <p>Your phone number is already verified and secure.</p>
             </div>
@@ -113,18 +108,9 @@
                       error: otpStatus === 'error',
                     }"
                   />
-                  <i
-                    v-if="otpStatus === 'verifying'"
-                    class="spinner bi bi-arrow-repeat"
-                  ></i>
-                  <i
-                    v-if="otpStatus === 'success'"
-                    class="status-icon success bi bi-check-circle-fill"
-                  ></i>
-                  <i
-                    v-if="otpStatus === 'error'"
-                    class="status-icon error bi bi-x-circle-fill"
-                  ></i>
+                  <i v-if="otpStatus === 'verifying'" class="spinner bi bi-arrow-repeat"></i>
+                  <i v-if="otpStatus === 'success'" class="status-icon success bi bi-check-circle-fill"></i>
+                  <i v-if="otpStatus === 'error'" class="status-icon error bi bi-x-circle-fill"></i>
                 </div>
               </div>
               <button
@@ -140,9 +126,21 @@
 
           <div v-if="currentStep === 5">
             <div v-if="profileData.emailVerified" class="already-verified-box">
-                <i class="status-icon success bi bi-check-circle-fill"></i>
-                <h4>Email Address Verified</h4>
-                <p>Your email address is already verified.</p>
+              <i class="status-icon success bi bi-check-circle-fill"></i>
+              <h4>Email Address Verified</h4>
+              <p>Your email address is already verified.</p>
+            </div>
+            <div v-else-if="!editableProfile.email">
+              <p class="step-info-text">Add an email address to your account.</p>
+              <div class="form-group">
+                <label for="email">Email Address</label>
+                <input
+                  id="email"
+                  v-model="editableProfile.email"
+                  type="email"
+                  placeholder="Enter your email address"
+                />
+              </div>
             </div>
             <div v-else>
               <p class="step-info-text">Verify your email address.</p>
@@ -172,18 +170,10 @@
         </div>
 
         <div class="modal-footer">
-          <p v-if="successMessage" class="success-message">
-            {{ successMessage }}
-          </p>
+          <p v-if="successMessage" class="success-message">{{ successMessage }}</p>
           <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
           <div class="navigation-controls">
-            <button
-              v-if="currentStep > 1"
-              @click="prevStep"
-              class="nav-button secondary"
-            >
-              Back
-            </button>
+            <button v-if="currentStep > 1" @click="prevStep" class="nav-button secondary">Back</button>
             <button
               @click="nextStep"
               class="nav-button primary"
@@ -194,30 +184,22 @@
           </div>
         </div>
       </div>
-      <div id="recaptcha-container" ref="recaptchaContainer"></div>
+      <div id="recaptcha-container-wrapper">
+        <div id="recaptcha-container" ref="recaptchaContainer"></div>
+      </div>
     </div>
   </transition>
 </template>
 
 <script>
 import { mapActions } from 'vuex';
-import {
-  getAuth,
-  RecaptchaVerifier,
-  linkWithPhoneNumber,
-} from 'firebase/auth';
+import { getAuth, RecaptchaVerifier, linkWithPhoneNumber } from 'firebase/auth';
 
 export default {
   name: 'EditProfileModal',
   props: {
-    isOpen: {
-      type: Boolean,
-      required: true,
-    },
-    profileData: {
-      type: Object,
-      required: true,
-    },
+    isOpen: { type: Boolean, required: true },
+    profileData: { type: Object, required: true },
   },
   emits: ['close', 'profile-updated'],
   data() {
@@ -232,10 +214,7 @@ export default {
         lastName: '',
         phoneNumber: '',
         email: '',
-        address: {
-          barangay: '',
-          city: '',
-        },
+        address: { barangay: '', city: '' },
         about: '',
       },
       isSaving: false,
@@ -251,9 +230,7 @@ export default {
   },
   computed: {
     nextButtonText() {
-      if (this.currentStep === 5) {
-        return 'Save Changes';
-      }
+      if (this.currentStep === 5) return 'Save Changes';
       return 'Next';
     },
     localPhoneNumber: {
@@ -307,15 +284,13 @@ export default {
   methods: {
     ...mapActions(['updateUserProfile', 'sendEmailVerificationCode', 'verifyEmailCode']),
     initializeRecaptcha() {
-      if (this.recaptchaVerifier) this.recaptchaVerifier.clear();
+      if (this.recaptchaVerifier) {
+        this.recaptchaVerifier.clear();
+      }
       const auth = getAuth();
       if (this.$refs.recaptchaContainer) {
         try {
-          this.recaptchaVerifier = new RecaptchaVerifier(
-            auth,
-            this.$refs.recaptchaContainer,
-            { size: 'invisible' }
-          );
+          this.recaptchaVerifier = new RecaptchaVerifier(auth, this.$refs.recaptchaContainer, { size: 'invisible' });
         } catch (error) {
           console.warn('Could not initialize reCAPTCHA verifier', error);
         }
@@ -360,22 +335,15 @@ export default {
       }
       try {
         const auth = getAuth();
-        if (!auth.currentUser) throw new Error("No user is logged in.");
-
-        const phoneNumber = this.editableProfile.phoneNumber;
         const appVerifier = this.recaptchaVerifier;
         await appVerifier.render();
-
-        this.confirmationResult = await linkWithPhoneNumber(
-          auth.currentUser,
-          phoneNumber,
-          appVerifier
-        );
+        const phoneNumber = this.editableProfile.phoneNumber;
+        this.confirmationResult = await linkWithPhoneNumber(auth.currentUser, phoneNumber, appVerifier);
         this.otpSent = true;
         this.successMessage = `Code sent to ${phoneNumber}`;
       } catch (error) {
         this.errorMessage = 'Failed to send SMS. Please try again.';
-        if (this.recaptchaVerifier) this.recaptchaVerifier.clear();
+        console.error('SMS send error:', error);
       } finally {
         this.isVerifying = false;
       }
@@ -430,6 +398,7 @@ export default {
           phoneNumber: this.editableProfile.phoneNumber,
           address: this.editableProfile.address,
           about: this.editableProfile.about,
+          email: this.editableProfile.email,
         };
         if (this.isMobileNowVerified || this.profileData.isMobileVerified) {
           profileUpdate.isMobileVerified = true;
@@ -454,10 +423,12 @@ export default {
 <style lang="scss" scoped>
 @import '@/assets/styles/variables.scss';
 
-#recaptcha-container {
-  position: fixed;
-  bottom: 0;
-  right: 0;
+#recaptcha-container-wrapper {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    z-index: -1;
+    opacity: 0;
 }
 .modal-overlay {
   position: fixed;

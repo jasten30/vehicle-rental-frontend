@@ -1,7 +1,6 @@
 <template>
   <div class="login-page-wrapper">
-    <div class="image-column">
-      </div>
+    <div class="image-column"></div>
 
     <div class="form-column">
       <div class="login-container">
@@ -9,22 +8,44 @@
         <p class="login-subtitle">Sign in to continue to RentCycle</p>
 
         <div class="login-tabs">
-          <button @click="loginMethod = 'email'" :class="{ active: loginMethod === 'email' }">
+          <button
+            @click="loginMethod = 'email'"
+            :class="{ active: loginMethod === 'email' }"
+          >
             <i class="bi bi-envelope-fill"></i> Email
           </button>
-          <button @click="loginMethod = 'phone'" :class="{ active: loginMethod === 'phone' }">
+          <button
+            @click="loginMethod = 'phone'"
+            :class="{ active: loginMethod === 'phone' }"
+          >
             <i class="bi bi-phone-fill"></i> Phone
           </button>
         </div>
 
-        <form @submit.prevent="handleLogin" class="login-form" v-if="loginMethod === 'email'">
+        <form
+          @submit.prevent="handleLogin"
+          class="login-form"
+          v-if="loginMethod === 'email'"
+        >
           <div class="form-group">
             <label for="email">Email</label>
-            <input type="email" id="email" v-model="email" required placeholder="you@example.com" />
+            <input
+              type="email"
+              id="email"
+              v-model="email"
+              required
+              placeholder="you@example.com"
+            />
           </div>
           <div class="form-group">
             <label for="password">Password</label>
-            <input type="password" id="password" v-model="password" required placeholder="••••••••" />
+            <input
+              type="password"
+              id="password"
+              v-model="password"
+              required
+              placeholder="••••••••"
+            />
           </div>
           <button type="submit" :disabled="loading" class="login-button">
             <span v-if="loading" class="spinner"></span>
@@ -37,18 +58,40 @@
             <label for="phoneNumber">Phone Number</label>
             <div class="phone-input-wrapper">
               <span class="phone-prefix">+63</span>
-              <input type="text" id="phoneNumber" v-model="localPhoneNumber" placeholder="9171234567" :disabled="otpSent" />
+              <input
+                type="text"
+                id="phoneNumber"
+                v-model="localPhoneNumber"
+                placeholder="9171234567"
+                :disabled="otpSent"
+              />
             </div>
           </div>
           <div v-if="otpSent" class="form-group">
             <label for="otp-code">Verification Code</label>
-            <input type="text" id="otp-code" v-model="otpCode" placeholder="123456" maxlength="6" />
+            <input
+              type="text"
+              id="otp-code"
+              v-model="otpCode"
+              placeholder="123456"
+              maxlength="6"
+            />
           </div>
-          <button v-if="!otpSent" @click="sendSmsOtp" :disabled="loading" class="login-button">
-             <span v-if="loading" class="spinner"></span>
+          <button
+            v-if="!otpSent"
+            @click="sendSmsOtp"
+            :disabled="loading"
+            class="login-button"
+          >
+            <span v-if="loading" class="spinner"></span>
             <span v-else>Send Code</span>
           </button>
-          <button v-if="otpSent" @click="handlePhoneLogin" :disabled="loading" class="login-button">
+          <button
+            v-if="otpSent"
+            @click="handlePhoneLogin"
+            :disabled="loading"
+            class="login-button"
+          >
             <span v-if="loading" class="spinner"></span>
             <span v-else>Sign In with Code</span>
           </button>
@@ -56,7 +99,8 @@
 
         <p v-if="error" class="error-message">{{ error }}</p>
         <p class="register-link">
-          Don't have an account? <router-link to="/register">Sign up</router-link>
+          Don't have an account?
+          <router-link to="/register">Sign up</router-link>
         </p>
         <div id="recaptcha-container"></div>
       </div>
@@ -66,7 +110,11 @@
 
 <script>
 import { mapActions } from 'vuex';
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import {
+  getAuth,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+} from 'firebase/auth';
 
 export default {
   name: 'LoginView',
@@ -80,12 +128,8 @@ export default {
       otpCode: '',
       loading: false,
       error: null,
-      recaptchaVerifier: null,
       confirmationResult: null,
     };
-  },
-  mounted() {
-    this.initializeRecaptcha();
   },
   computed: {
     localPhoneNumber: {
@@ -99,11 +143,6 @@ export default {
   },
   methods: {
     ...mapActions(['login', 'tokenLogin']),
-    initializeRecaptcha() {
-      if (this.recaptchaVerifier) this.recaptchaVerifier.clear();
-      const auth = getAuth();
-      this.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
-    },
     async handleLogin() {
       this.loading = true;
       this.error = null;
@@ -120,11 +159,22 @@ export default {
       this.error = null;
       try {
         const auth = getAuth();
-        await this.recaptchaVerifier.render();
-        this.confirmationResult = await signInWithPhoneNumber(auth, this.phoneNumber, this.recaptchaVerifier);
+        const recaptchaVerifier = new RecaptchaVerifier(
+          auth,
+          'recaptcha-container',
+          {
+            size: 'invisible',
+          }
+        );
+        this.confirmationResult = await signInWithPhoneNumber(
+          auth,
+          this.phoneNumber,
+          recaptchaVerifier
+        );
         this.otpSent = true;
       } catch (error) {
         this.error = 'Failed to send SMS. Check the number and try again.';
+        console.error('SMS Send Error:', error);
       } finally {
         this.loading = false;
       }
@@ -133,7 +183,9 @@ export default {
       this.loading = true;
       this.error = null;
       try {
-        const userCredential = await this.confirmationResult.confirm(this.otpCode);
+        const userCredential = await this.confirmationResult.confirm(
+          this.otpCode
+        );
         const idToken = await userCredential.user.getIdToken();
         this.$store.commit('SET_AUTH_TOKEN', idToken);
         await this.tokenLogin();
@@ -263,6 +315,9 @@ export default {
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover:not(:disabled) {
     background-color: darken($primary-color, 10%);
@@ -275,15 +330,19 @@ export default {
 }
 
 .spinner {
-    display: inline-block;
-    width: 1.25em;
-    height: 1.25em;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    border-top-color: #fff;
-    animation: spin 1s ease-in-out infinite;
+  display: inline-block;
+  width: 1.25em;
+  height: 1.25em;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 .error-message {
   color: $admin-color;

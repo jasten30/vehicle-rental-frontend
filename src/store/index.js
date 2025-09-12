@@ -401,6 +401,15 @@ export default createStore({
         throw error;
       }
     },
+    async reauthenticate({ _commit }, password) {
+      try {
+        await api.reauthenticate(password);
+        return true;
+      } catch (error) {
+        console.error('[Vuex] Re-authentication failed:', error);
+        throw error;
+      }
+    },
     setVehicleFilter({ commit }, payload) {
       commit('SET_VEHICLE_FILTER', payload);
     },
