@@ -46,6 +46,9 @@ export default createStore({
       state.authToken = authToken;
       state.authLoading = false;
     },
+    SET_AUTH_TOKEN(state, token) {
+      state.authToken = token;
+    },
     SET_ALL_BOOKINGS(state, bookings) {
       state.allBookings = bookings;
     },
