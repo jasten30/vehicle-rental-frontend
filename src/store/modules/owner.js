@@ -22,12 +22,8 @@ const actions = {
   // This action now uses rootGetters correctly and calls your api service
   async fetchOwnerBookings({ commit, rootGetters }) {
     commit('setOwnerBookingsStatus', 'loading');
-    commit('setOwnerBookingsError', null);
-
-    // This will now work because we added the getter in Step 1
+    
     const token = rootGetters.authToken;
-    console.log("[Owner Vuex Module] Token obtained from rootGetters:", token ? "Token present" : "Token is NULL or UNDEFINED");
-
     if (!token) {
       commit('setOwnerBookingsError', 'Authentication token not found.');
       commit('setOwnerBookingsStatus', 'error');
@@ -35,13 +31,12 @@ const actions = {
     }
 
     try {
-      // This now uses your centralized api.js, which already has the auth header
-      const response = await api.getOwnerBookings(); 
+      // Your api service will automatically use the token
+      const response = await api.getOwnerBookings();
       commit('setOwnerBookings', response.data);
       commit('setOwnerBookingsStatus', 'success');
     } catch (error) {
-      console.error('Error fetching owner bookings:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to fetch owner bookings.';
+      const errorMessage = error.response?.data?.message || 'Failed to fetch bookings.';
       commit('setOwnerBookingsError', errorMessage);
       commit('setOwnerBookingsStatus', 'error');
     }
@@ -55,6 +50,25 @@ const actions = {
       });
     } catch (error) {
       console.error(`Error confirming downpayment for booking ${bookingId}:`, error);
+      throw error;
+    }
+  },
+
+  async approveBooking({ _commit }, bookingId) {
+    try {
+      const response = await api.approveBooking(bookingId);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to approve booking:', error);
+      throw error;
+    }
+  },
+  async declineBooking({ _commit }, bookingId) {
+    try {
+      const response = await api.declineBooking(bookingId);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to decline booking:', error);
       throw error;
     }
   },

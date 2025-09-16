@@ -238,6 +238,8 @@ export default createStore({
     async createBooking({ _commit }, bookingData) {
       try {
         const response = await api.createBooking(bookingData);
+        // On success, redirect the user to see their pending request
+        router.push({ name: 'MyBookings' }); 
         return response.data;
       } catch (error) {
         console.error('[Vuex] Failed to create booking:', error);
@@ -428,6 +430,7 @@ export default createStore({
     user: (state) => state.user,
     authLoading: (state) => state.authLoading,
     userRole: (state) => state.userRole,
+    authToken: (state) => state.authToken,
     singleVehicle: (state) => state.vehicle,
     isAuthReady: (state) => !state.authLoading,
     currentVehicleFilters: (state) => state.vehicleFilters,

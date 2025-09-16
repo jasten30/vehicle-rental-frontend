@@ -33,7 +33,7 @@
         {{ errorMessage }}
       </p>
 
-      <div class="price-summary">
+      <div v-if="numberOfDays > 0" class="price-summary">
         <div class="price-item">
           <span
             >₱ {{ vehicle.rentalPricePerDay.toFixed(2) }} x
@@ -52,9 +52,9 @@
         </div>
       </div>
 
-      <button class="book-button" @click="bookNow" :disabled="isBooking">
-        <span v-if="isBooking">Booking...</span>
-        <span v-else>Book Now</span>
+      <button class="book-button" @click="requestToBook" :disabled="isBooking">
+        <span v-if="isBooking">Requesting...</span>
+        <span v-else>Request to Book</span>
       </button>
 
       <hr class="summary-divider" />
@@ -87,11 +87,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-import { DateTime } from "luxon";
-import { useRouter } from "vue-router";
-import { useStore } from "vuex";
-import api from "@/views/services/api";
+import { ref, computed } from 'vue';
+import { DateTime } from 'luxon';
+import { useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 
 const props = defineProps({
   vehicle: Object,
@@ -102,7 +101,7 @@ const router = useRouter();
 
 const startDate = ref(null);
 const endDate = ref(null);
-const errorMessage = ref("");
+const errorMessage = ref('');
 const serviceFeePercentage = 0.07;
 const isBooking = ref(false);
 
@@ -110,16 +109,14 @@ const numberOfDays = computed(() => {
   if (!startDate.value || !endDate.value) {
     return 0;
   }
-  const start = new Date(startDate.value);
-  const end = new Date(endDate.value);
+  const start = DateTime.fromISO(startDate.value);
+  const end = DateTime.fromISO(endDate.value);
 
   if (end <= start) {
     return 0;
   }
-
-  const diffTime = Math.abs(end - start);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays;
+  const diff = end.diff(start, 'days').toObject();
+  return Math.ceil(diff.days);
 });
 
 const rentalFee = computed(() => {
@@ -137,29 +134,25 @@ const totalPrice = computed(() => {
 
 const cancellationDate = computed(() => {
   if (!startDate.value) {
-    return "your selected start date";
+    return 'your selected start date';
   }
   const date = DateTime.fromISO(startDate.value).plus({ days: 2 });
-  return date.toFormat("MMMM d, yyyy");
+  return date.toFormat('MMMM d, yyyy');
 });
 
-const bookNow = async () => {
-  errorMessage.value = "";
+// UPDATED: This method now implements the "Request to Book" flow
+const requestToBook = async () => {
+  errorMessage.value = '';
   if (isBooking.value) return;
 
-  if (!store.state.isAuthenticated) {
-    errorMessage.value = "Please log in to book a vehicle.";
+  if (!store.getters.isAuthenticated) {
+    errorMessage.value = 'Please log in to book a vehicle.';
     router.push('/login');
     return;
   }
 
-  if (!startDate.value || !endDate.value) {
-    errorMessage.value = "Please select both a start and end date.";
-    return;
-  }
-
-  if (numberOfDays.value <= 0) {
-    errorMessage.value = "The end date must be after the start date.";
+  if (!startDate.value || !endDate.value || numberOfDays.value <= 0) {
+    errorMessage.value = 'Please select a valid date range.';
     return;
   }
 
@@ -169,36 +162,22 @@ const bookNow = async () => {
       vehicleId: props.vehicle.id,
       startDate: new Date(startDate.value).toISOString(),
       endDate: new Date(endDate.value).toISOString(),
-      // 👇 **FIX #1: Renamed 'totalPrice' to 'totalCost'**
       totalCost: totalPrice.value,
-      // 👇 **FIX #2: Added a default 'paymentStatus'**
-      paymentStatus: 'Pending', // Or whatever your default status is
-      
-      // These fields are not required by the backend, but sending them is fine
-      serviceFee: serviceFee.value,
-      rentalFee: rentalFee.value,
-      numberOfDays: numberOfDays.value,
     };
     
-    console.log("Sending CORRECTED booking data:", bookingData);
+    // This action now creates the request and redirects to 'My Bookings'
+    await store.dispatch('createBooking', bookingData);
     
-    const response = await api.createBooking(bookingData);
-    const bookingId = response.data.id;
-
-    router.push({
-      name: "BookingPayment",
-      params: { bookingId },
-    });
+    // The redirect to the payment page is no longer needed here
   } catch (error) {
-    console.error("Booking failed:", error);
     errorMessage.value =
-      error.response?.data?.message ||
-      "Failed to create booking. Please try again.";
+      error.response?.data?.message || 'Failed to create booking request.';
   } finally {
     isBooking.value = false;
   }
 };
 </script>
+
 
 <style scoped>
 .booking-box {

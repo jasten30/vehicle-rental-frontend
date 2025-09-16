@@ -20,7 +20,7 @@ import EarningsView from '../views/Dashboard/Owner/EarningsView.vue';
 import OwnerVehiclesView from '../views/Dashboard/Owner/OwnerVehiclesView.vue';
 import VehicleFormSteps from '../components/forms/VehicleFormSteps.vue';
 import BookingPaymentView from '../views/Booking/BookingPaymentView.vue';
-import PaymentVerificationView from '../views/Booking/BookingPaymentVerificationView.vue';
+import OwnerBillingView from '../views/Booking/OwnerBillingView.vue';
 import BookingSummaryView from '../views/Booking/BookingSummaryView.vue';
 import OwnerBookingsView from '../views/Dashboard/Owner/OwnerBookingsView.vue';
 import AdminVehiclesView from '../views/Dashboard/Admin/AdminVehiclesView.vue';
@@ -218,7 +218,7 @@ const routes = [
   {
     path: '/booking/verify-payment/:bookingId',
     name: 'PaymentVerification',
-    component: PaymentVerificationView,
+    component: OwnerBillingView,
     props: true,
     meta: { requiresAuth: true },
   },

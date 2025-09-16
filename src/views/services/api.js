@@ -67,4 +67,7 @@ export default {
 
   confirmBookingPayment: (bookingId) =>
     apiClient.put(`/bookings/${bookingId}/confirm-payment`),
+
+  approveBooking: (bookingId) => apiClient.put(`/bookings/${bookingId}/approve`),
+  declineBooking: (bookingId) => apiClient.put(`/bookings/${bookingId}/decline`),
 };
