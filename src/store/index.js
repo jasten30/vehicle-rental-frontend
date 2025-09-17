@@ -238,8 +238,11 @@ export default createStore({
     async createBooking({ _commit }, bookingData) {
       try {
         const response = await api.createBooking(bookingData);
-        // On success, redirect the user to see their pending request
-        router.push({ name: 'MyBookings' }); 
+        const newBookingId = response.data.id;
+        
+        // UPDATED: Redirect to the new real-time status page
+        router.push({ name: 'BookingStatus', params: { bookingId: newBookingId } });
+        
         return response.data;
       } catch (error) {
         console.error('[Vuex] Failed to create booking:', error);
@@ -412,6 +415,42 @@ export default createStore({
         return true;
       } catch (error) {
         console.error('[Vuex] Re-authentication failed:', error);
+        throw error;
+      }
+    },
+    async submitHostApplication({ _commit }, applicationData) {
+      try {
+        const response = await api.submitHostApplication(applicationData);
+        return response.data;
+      } catch (error) {
+        console.error('Failed to submit host application:', error);
+        throw error;
+      }
+    },
+    async fetchHostApplications({ _commit }) {
+      try {
+        const response = await api.getHostApplications();
+        // You can add state and a mutation here later to store the applications globally
+        return response.data;
+      } catch (error) {
+        // Added a console log to make the catch block useful
+        console.error('[Vuex] Failed to fetch host applications:', error);
+        throw error;
+      }
+    },
+    async approveHostApplication({ _commit }, { applicationId, userId }) {
+      try {
+        await api.approveHostApplication(applicationId, userId);
+      } catch (error) {
+        console.error('Failed to approve host application:', error);
+        throw error;
+      }
+    },
+    async declineHostApplication({ _commit }, applicationId) {
+      try {
+        await api.declineHostApplication(applicationId);
+      } catch (error) {
+        console.error('Failed to decline host application:', error);
         throw error;
       }
     },

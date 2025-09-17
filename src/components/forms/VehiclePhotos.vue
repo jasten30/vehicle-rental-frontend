@@ -1,100 +1,133 @@
 <template>
-  <div class="form-section step-11">
-    <h3>Vehicle Photos</h3>
-    <p class="step-info-text">Upload clear photos of your vehicle's exterior and interior to attract more renters. A profile photo is required to display your vehicle in search results.</p>
+  <div class="form-section">
+    <h3 class="step-title">Vehicle Photos</h3>
+    <p class="step-info-text">
+      Upload clear photos of your vehicle to attract renters. A profile photo is
+      required.
+    </p>
 
-    <div class="photo-section">
-      <h4>Vehicle Profile Photo</h4>
-      <p class="section-info">This photo will be the main image on your vehicle's listing card.</p>
-      <div class="profile-photo-area upload-area" @click="openFilePicker('profile')">
-        <input 
-          ref="profilePhotoInput" 
-          type="file" 
-          id="profilePhoto" 
-          @change="handleFileUpload($event, 'profile')" 
-          accept="image/*" 
-          class="hidden"
+    <div class="photo-upload-section">
+      <label>Vehicle Profile Photo</label>
+      <p class="section-description">
+        This will be the main image for your vehicle listing.
+      </p>
+      <div
+        class="profile-upload-area"
+        @click="openFilePicker('profile')"
+        :class="{ 'has-image': localVehicle.profilePhotoUrl }"
+      >
+        <input
+          ref="profilePhotoInput"
+          type="file"
+          @change="handleFileUpload($event, 'profile')"
+          accept="image/*"
+          class="hidden-file-input"
+        />
+        <img
+          v-if="localVehicle.profilePhotoUrl"
+          :src="localVehicle.profilePhotoUrl"
+          alt="Profile Photo Preview"
+          class="profile-photo-preview"
+        />
+        <div v-else class="upload-prompt">
+          <i class="bi bi-camera-fill"></i>
+          <span>Click to upload a profile photo</span>
+        </div>
+        <button
+          v-if="localVehicle.profilePhotoUrl"
+          @click.stop="removePhoto('profile')"
+          class="remove-btn top-right"
         >
-        <div v-if="localVehicle.profilePhotoUrl" class="photo-card profile-photo-card">
-          <img :src="localVehicle.profilePhotoUrl" alt="Vehicle Profile Photo" class="photo-preview profile-photo-preview" />
-          <button @click.stop="removePhoto('profile')" class="remove-btn">&times;</button>
-        </div>
-        <div v-else class="upload-placeholder">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <span class="upload-text">Click to upload profile photo</span>
-        </div>
+          &times;
+        </button>
       </div>
     </div>
-    
-    <div class="photo-section">
-      <h4>Exterior Photos</h4>
-      <p class="section-info">Upload photos of the car's exterior from different angles.</p>
-      <div class="photo-gallery-container">
-        <div v-if="localVehicle.exteriorPhotos && localVehicle.exteriorPhotos.length > 0" class="photo-gallery">
-          <div v-for="(photo, index) in localVehicle.exteriorPhotos" :key="`ext-${index}`" class="photo-card">
-            <img :src="photo" alt="Exterior Vehicle Photo" class="photo-preview" />
-            <button @click.stop="removePhoto('exterior', index)" class="remove-btn">&times;</button>
-          </div>
-        </div>
-        <div class="upload-area gallery-upload-area" @click="openFilePicker('exterior')">
-          <input 
-            ref="exteriorPhotoInput" 
-            type="file" 
-            id="exteriorPhotos" 
-            @change="handleFileUpload($event, 'exterior')" 
-            accept="image/*" 
-            multiple 
-            class="hidden"
+
+    <div class="photo-upload-section">
+      <label>Exterior Photos</label>
+      <p class="section-description">
+        Upload at least one photo of your car's exterior.
+      </p>
+      <div class="gallery-grid">
+        <div
+          v-for="(photo, index) in localVehicle.exteriorPhotos"
+          :key="`ext-${index}`"
+          class="photo-card"
+        >
+          <img :src="photo" alt="Exterior Photo" class="photo-preview" />
+          <button
+            @click.stop="removePhoto('exterior', index)"
+            class="remove-btn"
           >
-          <div class="upload-placeholder">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <span class="upload-text">Click to add exterior photos</span>
+            &times;
+          </button>
+        </div>
+        <div class="gallery-upload-box" @click="openFilePicker('exterior')">
+          <input
+            ref="exteriorPhotoInput"
+            type="file"
+            @change="handleFileUpload($event, 'exterior')"
+            accept="image/*"
+            multiple
+            class="hidden-file-input"
+          />
+          <div class="upload-prompt-small">
+            <i class="bi bi-plus-circle-fill"></i>
+            <span>Add Photos</span>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="photo-section">
-      <h4>Interior Photos</h4>
-      <p class="section-info">Upload photos of the car's interior, including the dashboard and seats.</p>
-      <div class="photo-gallery-container">
-        <div v-if="localVehicle.interiorPhotos && localVehicle.interiorPhotos.length > 0" class="photo-gallery">
-          <div v-for="(photo, index) in localVehicle.interiorPhotos" :key="`int-${index}`" class="photo-card">
-            <img :src="photo" alt="Interior Vehicle Photo" class="photo-preview" />
-            <button @click.stop="removePhoto('interior', index)" class="remove-btn">&times;</button>
-          </div>
-        </div>
-        <div class="upload-area gallery-upload-area" @click="openFilePicker('interior')">
-          <input 
-            ref="interiorPhotoInput" 
-            type="file" 
-            id="interiorPhotos" 
-            @change="handleFileUpload($event, 'interior')" 
-            accept="image/*" 
-            multiple 
-            class="hidden"
+    <div class="photo-upload-section">
+      <label>Interior Photos</label>
+      <p class="section-description">
+        Upload at least one photo of your car's interior.
+      </p>
+      <div class="gallery-grid">
+        <div
+          v-for="(photo, index) in localVehicle.interiorPhotos"
+          :key="`int-${index}`"
+          class="photo-card"
+        >
+          <img :src="photo" alt="Interior Photo" class="photo-preview" />
+          <button
+            @click.stop="removePhoto('interior', index)"
+            class="remove-btn"
           >
-          <div class="upload-placeholder">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <span class="upload-text">Click to add interior photos</span>
+            &times;
+          </button>
+        </div>
+        <div class="gallery-upload-box" @click="openFilePicker('interior')">
+          <input
+            ref="interiorPhotoInput"
+            type="file"
+            @change="handleFileUpload($event, 'interior')"
+            accept="image/*"
+            multiple
+            class="hidden-file-input"
+          />
+          <div class="upload-prompt-small">
+            <i class="bi bi-plus-circle-fill"></i>
+            <span>Add Photos</span>
           </div>
         </div>
       </div>
     </div>
-    
+
     <div v-if="showNavigation" class="button-group">
-      <button type="button" @click="$emit('prev')" class="button secondary-button">Previous</button>
-      <button 
-        type="button" 
-        @click="nextStep" 
-        class="button primary-button" 
-        :disabled="!localVehicle.profilePhotoUrl || localVehicle.exteriorPhotos.length === 0 || localVehicle.interiorPhotos.length === 0"
+      <button
+        type="button"
+        @click="$emit('prev')"
+        class="button secondary-button"
+      >
+        Previous
+      </button>
+      <button
+        type="button"
+        @click="nextStep"
+        class="button primary-button"
+        :disabled="!isStepComplete"
       >
         Next
       </button>
@@ -110,61 +143,56 @@
 export default {
   name: 'VehiclePhotos',
   props: {
-    initialVehicle: {
-      type: Object,
-      required: true,
-    },
-    // Add the prop here
-    showNavigation: {
-      type: Boolean,
-      default: true,
-    },
+    modelValue: { type: Object, required: true },
+    // NEW: Prop to control button visibility
+    showNavigation: { type: Boolean, default: true },
   },
-  emits: ['next', 'prev', 'update:vehicle', 'error'],
+  // NEW: Emits for navigation
+  emits: ['next', 'prev', 'update:modelValue'],
   data() {
-    const initialVehicle = this.initialVehicle || {};
     return {
       localVehicle: {
-        ...initialVehicle,
-        profilePhotoUrl: initialVehicle.profilePhotoUrl || '',
-        exteriorPhotos: initialVehicle.exteriorPhotos || [],
-        interiorPhotos: initialVehicle.interiorPhotos || [],
+        profilePhotoUrl: null,
+        exteriorPhotos: [],
+        interiorPhotos: [],
       },
       error: '',
     };
   },
+  computed: {
+    // NEW: Computed property to validate the step
+    isStepComplete() {
+      return (
+        this.localVehicle.profilePhotoUrl &&
+        this.localVehicle.exteriorPhotos.length > 0 &&
+        this.localVehicle.interiorPhotos.length > 0
+      );
+    },
+  },
   watch: {
-    initialVehicle: {
+    modelValue: {
       handler(newVal) {
-        const updatedVehicle = newVal || {};
-        this.localVehicle = {
-          ...updatedVehicle,
-          profilePhotoUrl: updatedVehicle.profilePhotoUrl || '',
-          exteriorPhotos: updatedVehicle.exteriorPhotos || [],
-          interiorPhotos: updatedVehicle.interiorPhotos || [],
-        };
+        if (newVal) {
+          this.localVehicle.profilePhotoUrl = newVal.profilePhotoUrl || null;
+          this.localVehicle.exteriorPhotos = newVal.exteriorPhotos || [];
+          this.localVehicle.interiorPhotos = newVal.interiorPhotos || [];
+        }
       },
       deep: true,
+      immediate: true,
     },
   },
   methods: {
     openFilePicker(type) {
-      if (type === 'profile') {
-        this.$refs.profilePhotoInput.click();
-      } else if (type === 'exterior') {
-        this.$refs.exteriorPhotoInput.click();
-      } else if (type === 'interior') {
-        this.$refs.interiorPhotoInput.click();
-      }
+      if (type === 'profile') this.$refs.profilePhotoInput.click();
+      else if (type === 'exterior') this.$refs.exteriorPhotoInput.click();
+      else if (type === 'interior') this.$refs.interiorPhotoInput.click();
     },
     handleFileUpload(event, type) {
-      this.error = '';
       const files = event.target.files;
-      if (!files || files.length === 0) {
-        return;
-      }
+      if (!files) return;
 
-      Array.from(files).forEach(file => {
+      Array.from(files).forEach((file) => {
         const reader = new FileReader();
         reader.onload = (e) => {
           if (type === 'profile') {
@@ -181,33 +209,25 @@ export default {
     },
     removePhoto(type, index = null) {
       if (type === 'profile') {
-        this.localVehicle.profilePhotoUrl = '';
-      } else if (type === 'exterior' && index !== null) {
+        this.localVehicle.profilePhotoUrl = null;
+      } else if (type === 'exterior') {
         this.localVehicle.exteriorPhotos.splice(index, 1);
-      } else if (type === 'interior' && index !== null) {
+      } else if (type === 'interior') {
         this.localVehicle.interiorPhotos.splice(index, 1);
       }
       this.emitUpdate();
     },
     emitUpdate() {
-      const updatedVehicle = {
-        ...this.localVehicle,
-        profilePhotoUrl: this.localVehicle.profilePhotoUrl,
-        exteriorPhotos: this.localVehicle.exteriorPhotos,
-        interiorPhotos: this.localVehicle.interiorPhotos,
-      };
-      this.$emit('update:vehicle', updatedVehicle);
+      this.$emit('update:modelValue', this.localVehicle);
     },
+    // NEW: Method to handle validation and emit 'next'
     nextStep() {
-      if (!this.localVehicle.profilePhotoUrl) {
-        this.error = 'Please upload a profile photo.';
-      } else if (this.localVehicle.exteriorPhotos.length === 0) {
-        this.error = 'Please upload at least one exterior photo.';
-      } else if (this.localVehicle.interiorPhotos.length === 0) {
-        this.error = 'Please upload at least one interior photo.';
-      } else {
-        this.$emit('next');
+      if (!this.isStepComplete) {
+        this.error = 'Please upload a profile, exterior, and interior photo.';
+        return;
       }
+      this.error = '';
+      this.$emit('next');
     },
   },
 };
@@ -217,60 +237,78 @@ export default {
 @import '@/assets/styles/variables.scss';
 
 .form-section {
-  padding: 1.5rem;
-  border-radius: $border-radius-md;
-  background-color: #f9fafb;
+  padding-bottom: 1.5rem;
 }
-
-h3, h4 {
+.step-title {
   font-size: 1.5rem;
-  color: $primary-color;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid $primary-color;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
 }
-
-h4 {
-  font-size: 1.25rem;
-  border-bottom: 1px solid lighten($primary-color, 30%);
-}
-
-.step-info-text, .section-info {
-  font-size: 1rem;
+.step-info-text {
   color: $text-color-medium;
-  margin-bottom: 1.5rem;
-}
-
-.photo-section {
   margin-bottom: 2rem;
 }
-
-.photo-gallery-container {
+.photo-upload-section {
+  margin-bottom: 2.5rem;
+  label {
+    display: block;
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+}
+.section-description {
+  color: $text-color-medium;
+  margin-bottom: 1rem;
+}
+.profile-upload-area {
+  width: 100%;
+  height: 250px;
+  border: 2px dashed $border-color;
+  border-radius: $border-radius-lg;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  &:hover {
+    border-color: $primary-color;
+    background-color: #f9fafb;
+  }
+  &.has-image {
+    border-style: solid;
+  }
+}
+.profile-photo-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.upload-prompt {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  color: $text-color-medium;
+  i {
+    font-size: 2.5rem;
+  }
 }
-
-.photo-gallery {
+.gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 1rem;
 }
-
 .photo-card {
   position: relative;
   width: 100%;
-  padding-top: 100%; // 1:1 Aspect Ratio
+  padding-top: 75%;
   border-radius: $border-radius-md;
   overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease-in-out;
-
-  &:hover {
-    transform: scale(1.02);
-  }
+  box-shadow: $shadow-light;
 }
-
 .photo-preview {
   position: absolute;
   top: 0;
@@ -279,29 +317,36 @@ h4 {
   height: 100%;
   object-fit: cover;
 }
-
-.profile-photo-area {
-  height: 250px;
+.gallery-upload-box {
   width: 100%;
+  padding-top: 75%;
+  border-radius: $border-radius-md;
+  border: 2px dashed $border-color;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  border-radius: $border-radius-md;
-  overflow: hidden;
-
-  .profile-photo-card {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    padding-top: 0;
-    box-shadow: none;
-    transform: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  &:hover {
+    border-color: $primary-color;
+    background-color: #f9fafb;
   }
 }
-
+.upload-prompt-small {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: $text-color-medium;
+  i {
+    font-size: 1.75rem;
+  }
+}
 .remove-btn {
   position: absolute;
   top: 0.5rem;
@@ -310,98 +355,54 @@ h4 {
   color: white;
   border: none;
   border-radius: 50%;
-  width: 2rem;
-  height: 2rem;
-  font-size: 1.25rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 1rem;
+  font-weight: bold;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
   transition: background-color 0.2s;
-
+  z-index: 10;
   &:hover {
     background-color: #ef4444;
   }
-}
-
-.upload-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  border: 2px dashed #d1d5db;
-  border-radius: $border-radius-md;
-  padding: 2rem;
-  transition: border-color 0.2s ease-in-out;
-  cursor: pointer;
-
-  &:hover {
-    border-color: $primary-color;
+  &.top-right {
+    top: 1rem;
+    right: 1rem;
+    width: 2rem;
+    height: 2rem;
+    font-size: 1.25rem;
   }
 }
-
-.gallery-upload-area {
-  height: 150px;
-}
-
-.upload-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.upload-text {
-  margin-top: 0.5rem;
-  font-size: 1rem;
-  color: #6b7280;
-}
-
-.hidden {
+.hidden-file-input {
   display: none;
 }
-
 .button-group {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
   margin-top: 2rem;
 }
-
 .button {
-  padding: 0.85rem 1.5rem;
-  border-radius: $border-radius-sm;
-  font-size: 1.05rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background-color 0.2s ease-in-out, opacity 0.2s ease-in-out;
+  padding: 0.75rem 1.5rem;
+  border-radius: $border-radius-md;
+  font-weight: 600;
   border: none;
-
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
+  cursor: pointer;
 }
-
 .primary-button {
   background-color: $primary-color;
   color: white;
-  &:hover:not(:disabled) {
-    background-color: darken($primary-color, 10%);
-  }
 }
-
 .secondary-button {
   background-color: #6b7280;
   color: white;
-  &:hover:not(:disabled) {
-    background-color: darken(#6b7280, 10%);
-  }
 }
-
 .error-message {
-  color: #ef4444;
+  color: $admin-color;
   margin-top: 1rem;
   text-align: center;
   font-weight: 500;

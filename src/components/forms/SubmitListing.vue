@@ -1,116 +1,74 @@
 <template>
-  <div class="form-section step-12">
-    <h3>Step 12: Review and Submit</h3>
+  <div class="form-section">
+    <h3 class="step-title">Review and Submit</h3>
     <p class="step-info-text">
-      Please review all the information you have provided before submitting your vehicle for approval.
+      Please review all the information you have provided before submitting
+      your vehicle for approval.
     </p>
 
-    <!-- FIX: Added v-if to ensure all necessary data is present before rendering -->
-    <div class="review-container" v-if="initialVehicle && initialVehicle.photos && initialVehicle.location">
-      <!-- User Profile and License Photos -->
+    <div class="review-container" v-if="initialVehicle">
       <div class="review-section">
         <h4>Owner Information</h4>
-        <div class="review-item">
-          <label>Profile Photo:</label>
-          <img :src="initialVehicle.userProfileImageUrl" alt="Owner's Profile" class="review-image profile-image" v-if="initialVehicle.userProfileImageUrl"/>
-          <span v-else>No profile photo provided.</span>
-        </div>
-        <div class="review-item">
-          <label>Driver's License:</label>
-          <img :src="initialVehicle.driversLicense.imageUrl" alt="Driver's License" class="review-image license-image" v-if="initialVehicle.driversLicense && initialVehicle.driversLicense.imageUrl"/>
-          <span v-else>No license photo provided.</span>
-        </div>
-        <div class="review-item">
-          <label>Mobile Number for Payout:</label>
-          <p v-if="initialVehicle.payoutDetails">{{ initialVehicle.payoutDetails.mobileNumber }}</p>
-        </div>
-      </div>
-
-      <!-- Vehicle Details -->
-      <div class="review-section">
-        <h4>Vehicle Details</h4>
-        <div class="review-item">
-          <label>Make:</label>
-          <p>{{ initialVehicle.make }}</p>
-        </div>
-        <div class="review-item">
-          <label>Model:</label>
-          <p>{{ initialVehicle.model }}</p>
-        </div>
-        <div class="review-item">
-          <label>Year:</label>
-          <p>{{ initialVehicle.year }}</p>
-        </div>
-        <div class="review-item">
-          <label>Seating Capacity:</label>
-          <p>{{ initialVehicle.seatingCapacity }}</p>
-        </div>
-        <div class="review-item">
-          <label>Condition:</label>
-          <p>{{ initialVehicle.pricing.condition }}</p>
-        </div>
-        <div class="review-item">
-          <label>Market Value:</label>
-          <p>₱{{ initialVehicle.pricing.marketValue ? initialVehicle.pricing.marketValue.toLocaleString() : 'N/A' }}</p>
-        </div>
-        <div class="review-item">
-          <label>Manual Price:</label>
-          <p>₱{{ initialVehicle.pricing.manualPrice ? initialVehicle.pricing.manualPrice.toLocaleString() : 'N/A' }}</p>
-        </div>
-      </div>
-
-      <!-- Vehicle Documents -->
-      <div class="review-section">
-        <h4>Vehicle Documents & Photos</h4>
-        <div class="review-item">
-          <label>CR Number:</label>
-          <p>{{ initialVehicle.cor.crNumber }}</p>
-        </div>
-        <div class="review-item">
-          <label>Plate Number:</label>
-          <p>{{ initialVehicle.cor.plateNumber }}</p>
-        </div>
-        <div class="review-item">
-          <label>OR Number:</label>
-          <p>{{ initialVehicle.or.orNumber }}</p>
-        </div>
-        <div class="review-item photo-grid">
-          <label>Vehicle Photos:</label>
-          <div class="photo-thumbnail" v-for="photo in initialVehicle.photos" :key="photo">
-            <img :src="photo" alt="Vehicle Photo"/>
+        <div class="review-grid">
+          <div class="review-item">
+            <label>Profile Photo</label>
+            <img :src="initialVehicle.userProfileImageUrl" alt="Profile" class="review-image small" />
+          </div>
+          <div class="review-item">
+            <label>Driver's License</label>
+            <img :src="initialVehicle.driversLicense.imageUrl" alt="License" class="review-image large" />
           </div>
         </div>
       </div>
 
-      <!-- Safety & Location -->
       <div class="review-section">
-        <h4>Safety & Location</h4>
-        <div class="review-item">
-          <label>Location:</label>
-          <p v-if="initialVehicle.location">{{ initialVehicle.location.barangay }}, {{ initialVehicle.location.city }}, {{ initialVehicle.location.region }}</p>
-        </div>
-        <div class="review-item">
-          <label>Safety Checklist:</label>
-          <ul v-if="initialVehicle.safety">
-            <li>Tires Checked: {{ initialVehicle.safety.tiresChecked ? 'Yes' : 'No' }}</li>
-            <li>Brakes Checked: {{ initialVehicle.safety.brakesChecked ? 'Yes' : 'No' }}</li>
-            <li>Lights Checked: {{ initialVehicle.safety.lightsChecked ? 'Yes' : 'No' }}</li>
-            <li>Wipers Checked: {{ initialVehicle.safety.wipersChecked ? 'Yes' : 'No' }}</li>
-            <li>Emergency Tools: {{ initialVehicle.safety.emergencyToolsChecked ? 'Yes' : 'No' }}</li>
-            <li>Registration: {{ initialVehicle.safety.registrationChecked ? 'Yes' : 'No' }}</li>
-            <li>Cleanliness: {{ initialVehicle.safety.cleanlinessChecked ? 'Yes' : 'No' }}</li>
-          </ul>
+        <h4>Vehicle Details</h4>
+        <div class="review-grid">
+          <div class="review-item"><label>Make:</label><p>{{ initialVehicle.make }}</p></div>
+          <div class="review-item"><label>Model:</label><p>{{ initialVehicle.model }}</p></div>
+          <div class="review-item"><label>Year:</label><p>{{ initialVehicle.year }}</p></div>
+          <div class="review-item"><label>Seating Capacity:</label><p>{{ initialVehicle.seats }}</p></div>
+          <div class="review-item"><label>Vehicle Type:</label><p>{{ initialVehicle.vehicleType }}</p></div>
+          <div class="review-item"><label>Transmission:</label><p>{{ initialVehicle.transmission }}</p></div>
         </div>
       </div>
+      
+      <div class="review-section">
+          <h4>Vehicle Documents</h4>
+          <div class="review-grid">
+              <div class="review-item"><label>Plate Number:</label><p>{{ initialVehicle.cor.plateNumber }}</p></div>
+              <div class="review-item"><label>CR Number:</label><p>{{ initialVehicle.cor.crNumber }}</p></div>
+              <div class="review-item"><label>OR Number:</label><p>{{ initialVehicle.or.orNumber }}</p></div>
+          </div>
+          <div class="review-grid photo-review">
+              <div class="review-item"><label>Certificate of Registration (CR)</label><img :src="initialVehicle.cor.crImageUrl" alt="CR" class="review-image large" /></div>
+              <div class="review-item"><label>Official Receipt (OR)</label><img :src="initialVehicle.or.orImageUrl" alt="OR" class="review-image large" /></div>
+          </div>
+      </div>
+
+      <div class="review-section">
+        <h4>Vehicle Photos</h4>
+        <div class="photo-container">
+          <div class="photo-thumbnail profile">
+            <img :src="initialVehicle.profilePhotoUrl" alt="Vehicle Profile" />
+            <span class="photo-label">Profile</span>
+          </div>
+          <div class="photo-thumbnail" v-for="(photo, index) in initialVehicle.exteriorPhotos" :key="`ext-${index}`">
+            <img :src="photo" alt="Exterior Photo" />
+          </div>
+          <div class="photo-thumbnail" v-for="(photo, index) in initialVehicle.interiorPhotos" :key="`int-${index}`">
+            <img :src="photo" alt="Interior Photo" />
+          </div>
+        </div>
+      </div>
+
     </div>
-    
-    <!-- Action Buttons -->
+
     <div class="button-group-step">
-      <button type="button" @click="$emit('prev')" class="button secondary-button">Previous</button>
-      <button 
-        type="submit" 
-        class="button primary-button"
-      >
+      <button type="button" @click="$emit('prev')" class="button secondary-button">
+        Previous
+      </button>
+      <button type="button" @click="$emit('submit')" class="button primary-button">
         Submit Listing
       </button>
     </div>
@@ -124,18 +82,9 @@ export default {
     initialVehicle: {
       type: Object,
       required: true,
-      default: () => ({
-        location: {},
-        cor: {},
-        or: {},
-        payoutDetails: {},
-        driversLicense: {},
-        pricing: {},
-        safety: {},
-        photos: [],
-      })
     },
   },
+  emits: ['prev', 'submit'],
 };
 </script>
 
@@ -143,133 +92,122 @@ export default {
 @import '@/assets/styles/variables.scss';
 
 .form-section {
-  padding: 1.5rem;
-  border-radius: $border-radius-md;
-  background-color: #f9fafb;
+  padding: 1.5rem 0;
 }
-
+.step-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
 .step-info-text {
   font-size: 1rem;
   color: $text-color-medium;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
-
 .review-container {
-  display: grid;
-  gap: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
-
 .review-section {
-  background-color: #fff;
+  background-color: #f9fafb;
   padding: 1.5rem;
-  border-radius: $border-radius-sm;
-  box-shadow: $box-shadow-sm;
-  
+  border-radius: $border-radius-md;
+  border: 1px solid $border-color;
   h4 {
-    font-size: 1.25rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-    color: $primary-color;
-    border-bottom: 2px solid $border-color;
-    padding-bottom: 0.5rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0 0 1rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid $border-color;
   }
 }
-
-.review-item {
-  margin-bottom: 1rem;
-  
-  label {
-    font-weight: 600;
-    color: $text-color-dark;
-    margin-bottom: 0.25rem;
-    display: block;
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  &.photo-review {
+      grid-template-columns: 1fr 1fr;
   }
-  
+}
+.review-item {
+  margin-bottom: 0.5rem;
+  label {
+    font-weight: 500;
+    color: $text-color-medium;
+    font-size: 0.9rem;
+    display: block;
+    margin-bottom: 0.25rem;
+  }
   p {
     margin: 0;
-    color: $text-color-light;
+    color: $text-color-dark;
+    font-size: 1rem;
+    font-weight: 500;
   }
 }
-
 .review-image {
-  max-width: 100%;
-  height: auto;
-  border-radius: $border-radius-sm;
-  margin-top: 0.5rem;
-  object-fit: cover;
-  border: 1px solid $border-color;
-}
-
-.profile-image {
-  width: 150px;
-  height: 150px;
-  object-fit: cover;
-}
-
-.license-image {
-  max-width: 300px;
-}
-
-.photo-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
-  
-  .photo-thumbnail {
     width: 100%;
-    height: 100px;
-    position: relative;
     border-radius: $border-radius-sm;
-    overflow: hidden;
-    
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      transition: transform 0.2s ease-in-out;
-      &:hover {
-        transform: scale(1.05);
-      }
-    }
+    margin-top: 0.5rem;
+    border: 1px solid $border-color;
+    &.small { max-width: 100px; }
+    &.large { max-width: 250px; }
+}
+.photo-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+.photo-thumbnail {
+  position: relative;
+  width: 100px;
+  height: 75px;
+  border-radius: $border-radius-sm;
+  overflow: hidden;
+  border: 1px solid $border-color;
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  &.profile img {
+      border: 2px solid $primary-color;
+  }
+  .photo-label {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: rgba(0,0,0,0.5);
+      color: white;
+      font-size: 0.7rem;
+      padding: 0.1rem;
+      text-align: center;
   }
 }
-
 .button-group-step {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  margin-top: 1.5rem;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid $border-color;
 }
-
 .button {
-  padding: 0.85rem 1.5rem;
-  border-radius: $border-radius-sm;
-  font-size: 1.05rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background-color 0.2s ease-in-out, opacity 0.2s ease-in-out;
+  padding: 0.75rem 1.5rem;
+  border-radius: $border-radius-md;
+  font-weight: 600;
   border: none;
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
+  cursor: pointer;
 }
-
 .primary-button {
   background-color: $primary-color;
   color: white;
-  &:hover:not(:disabled) {
-    background-color: darken($primary-color, 10%);
-  }
 }
-
 .secondary-button {
   background-color: #6b7280;
   color: white;
-  &:hover:not(:disabled) {
-    background-color: darken(#6b7280, 10%);
-  }
 }
 </style>

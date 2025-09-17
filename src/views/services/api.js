@@ -70,4 +70,11 @@ export default {
 
   approveBooking: (bookingId) => apiClient.put(`/bookings/${bookingId}/approve`),
   declineBooking: (bookingId) => apiClient.put(`/bookings/${bookingId}/decline`),
+
+  submitHostApplication: (applicationData) => apiClient.post('/users/submit-host-application', applicationData),
+
+  getHostApplications: () => apiClient.get('/users/host-applications'),
+
+  approveHostApplication: (applicationId, userId) => apiClient.put('/users/approve-host-application', { applicationId, userId }),
+  declineHostApplication: (applicationId) => apiClient.put('/users/decline-host-application', { applicationId }),
 };

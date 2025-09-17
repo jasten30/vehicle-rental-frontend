@@ -69,7 +69,7 @@
               <div class="item-label">
                 <span v-if="isApprovedToDrive" class="check-icon">✓</span>
                 <span v-else class="cross-icon">×</span>
-                Approved to drive
+                Verified
               </div>
             </li>
             <li class="verification-item">

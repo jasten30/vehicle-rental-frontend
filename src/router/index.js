@@ -16,7 +16,7 @@ import DashboardLayout from '../views/Dashboard/DashboardLayout.vue';
 import MyBookingsView from '../views/Dashboard/MyBookings.vue';
 import BookingDetailView from '../views/Dashboard/BookingDetailView.vue';
 import ProfileSettingsView from '../views/Dashboard/ProfileSettings.vue';
-import EarningsView from '../views/Dashboard/Owner/EarningsView.vue';
+import ApplicationSubmittedView from '../views/Auth/ApplicationSubmittedView.vue';
 import OwnerVehiclesView from '../views/Dashboard/Owner/OwnerVehiclesView.vue';
 import VehicleFormSteps from '../components/forms/VehicleFormSteps.vue';
 import BookingPaymentView from '../views/Booking/BookingPaymentView.vue';
@@ -28,6 +28,7 @@ import AdminBookingsView from '../views/Dashboard/Admin/AdminBookingsView.vue';
 import AdminUsersView from '../views/Dashboard/Admin/AdminUsersView.vue';
 import AdminDashboardView from '../views/Dashboard/Admin/AdminDashboardView.vue';
 import AdminHostApplicationsView from '../views/Dashboard/Admin/AdminHostApplicationsView.vue';
+import BookingStatusView from '../views/Dashboard/BookingStatusView.vue';
 
 const dashboardRoutes = [
   {
@@ -77,8 +78,8 @@ const dashboardRoutes = [
       },
       {
         path: 'earnings',
-        name: 'Earnings',
-        component: EarningsView,
+        name: 'OwnerBilling',
+        component: OwnerBillingView,
         meta: {
           requiresAuth: true,
           authorize: ['owner', 'admin'],
@@ -200,6 +201,12 @@ const routes = [
     },
   },
   {
+      path: '/application-submitted',
+      name: 'ApplicationSubmitted',
+      component: ApplicationSubmittedView,
+      meta: { requiresAuth: true },
+    },
+  {
     path: '/users/:userId',
     name: 'UserProfileView',
     component: ProfileSettingsView,
@@ -232,6 +239,13 @@ const routes = [
       authorize: ['renter', 'owner', 'admin'],
     },
   },
+  {
+      path: '/booking-status/:bookingId',
+      name: 'BookingStatus',
+      component: BookingStatusView,
+      props: true, 
+      meta: { requiresAuth: true },
+    },
   ...dashboardRoutes,
   {
     path: '/:catchAll(.*)',
