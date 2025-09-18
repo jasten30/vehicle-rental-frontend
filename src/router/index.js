@@ -29,6 +29,7 @@ import AdminUsersView from '../views/Dashboard/Admin/AdminUsersView.vue';
 import AdminDashboardView from '../views/Dashboard/Admin/AdminDashboardView.vue';
 import AdminHostApplicationsView from '../views/Dashboard/Admin/AdminHostApplicationsView.vue';
 import BookingStatusView from '../views/Dashboard/BookingStatusView.vue';
+import ChatView from '../views/Dashboard/ChatView.vue';
 
 const dashboardRoutes = [
   {
@@ -66,7 +67,12 @@ const dashboardRoutes = [
           authorize: ['renter', 'admin', 'owner'],
         },
       },
-      // Owner specific routes
+      {
+        path: 'inbox',
+        name: 'Chat',
+        component: ChatView,
+        meta: { requiresAuth: true },
+      },
       {
         path: 'owner/vehicles',
         name: 'OwnerVehicles',

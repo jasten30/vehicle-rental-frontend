@@ -77,4 +77,8 @@ export default {
 
   approveHostApplication: (applicationId, userId) => apiClient.put('/users/approve-host-application', { applicationId, userId }),
   declineHostApplication: (applicationId) => apiClient.put('/users/decline-host-application', { applicationId }),
+
+  // Chats
+  getUserChats: () => apiClient.get('/chats'),
+  sendMessage: (chatId, text) => apiClient.post(`/chats/${chatId}/messages`, { text }),
 };

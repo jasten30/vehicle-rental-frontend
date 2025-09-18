@@ -90,7 +90,7 @@
                   <i class="bi bi-briefcase-fill"></i>Trips
                 </router-link>
                 <router-link
-                  to="/inbox"
+                  to="/dashboard/inbox"
                   class="dropdown-item with-icon"
                   @click="closeMenu"
                 >

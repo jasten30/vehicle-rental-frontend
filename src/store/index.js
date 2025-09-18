@@ -454,6 +454,24 @@ export default createStore({
         throw error;
       }
     },
+    async fetchUserChats({ _commit }) {
+      try {
+        const response = await api.getUserChats();
+        return response.data;
+      } catch (error) {
+        console.error('[Vuex] Failed to fetch user chats:', error);
+        throw error;
+      }
+    },
+
+    async sendMessage({ _commit }, { chatId, text }) {
+      try {
+        await api.sendMessage(chatId, text);
+      } catch (error) {
+        console.error('[Vuex] Failed to send message:', error);
+        throw error;
+      }
+    },
     setVehicleFilter({ commit }, payload) {
       commit('SET_VEHICLE_FILTER', payload);
     },
