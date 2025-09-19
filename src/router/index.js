@@ -122,11 +122,19 @@ const dashboardRoutes = [
           authorize: ['owner', 'admin'],
         },
       },
+      {
+        path: 'calendar/:vehicleId',
+        name: 'VehicleCalendar',
+        // CORRECTED PATH: Changed 'owner' to 'Owner' to match the actual folder name.
+        component: () => import('@/views/Owner/VehicleCalendarView.vue'),
+        props: true,
+        meta: { requiresAuth: true, authorize: ['owner', 'admin'] }
+      },
       // Admin specific routes
       {
         path: 'admin',
-        component: AdminLayout, // Use the new layout for all admin pages
-        redirect: { name: 'AdminDashboard' }, // Default to dashboard
+        component: AdminLayout,
+        redirect: { name: 'AdminDashboard' },
         children: [
           {
             path: 'dashboard',
@@ -303,3 +311,4 @@ router.beforeEach(async (to, from, next) => {
 });
 
 export default router;
+

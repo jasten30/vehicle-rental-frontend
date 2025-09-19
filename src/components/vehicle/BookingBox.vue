@@ -1,330 +1,271 @@
 <template>
-  <div class="booking-box">
-    <div class="price-section">
-      <span class="price-per-day">
-        <span class="font-bold text-2xl">
-          ₱ {{ vehicle.rentalPricePerDay.toFixed(2) }}
-        </span>
-        / day
-      </span>
-    </div>
-    <div class="booking-form">
-      <div class="form-row">
-        <div class="input-group">
-          <label for="start-date" class="input-label">Start Date</label>
-          <input
-            type="date"
-            id="start-date"
-            class="date-input"
-            v-model="startDate"
-          />
-        </div>
-        <div class="input-group">
-          <label for="end-date" class="input-label">End Date</label>
-          <input
-            type="date"
-            id="end-date"
-            class="date-input"
-            v-model="endDate"
-          />
-        </div>
+  <div class="booking-box card">
+    <p class="price">
+      <span class="price-amount">₱{{ vehicle.rentalPricePerDay }}</span> / day
+    </p>
+
+    <!-- Date inputs to open the picker -->
+    <div class="date-inputs">
+      <div class="date-input-group">
+        <label>PICK-UP</label>
+        <input
+          type="text"
+          :value="formattedStartDate"
+          @click="showDatePicker = true"
+          readonly
+          placeholder="Select date"
+        />
       </div>
-      <p v-if="errorMessage" class="error-message">
-        {{ errorMessage }}
-      </p>
-
-      <div v-if="numberOfDays > 0" class="price-summary">
-        <div class="price-item">
-          <span
-            >₱ {{ vehicle.rentalPricePerDay.toFixed(2) }} x
-            {{ numberOfDays }} days</span
-          >
-          <span class="font-bold">₱ {{ rentalFee.toFixed(2) }}</span>
-        </div>
-        <div class="price-item">
-          <span>Service Fee</span>
-          <span class="font-bold">₱ {{ serviceFee.toFixed(2) }}</span>
-        </div>
-        <hr class="summary-divider" />
-        <div class="price-item total">
-          <span class="font-bold">Total</span>
-          <span class="font-bold">₱ {{ totalPrice.toFixed(2) }}</span>
-        </div>
-      </div>
-
-      <button class="book-button" @click="requestToBook" :disabled="isBooking">
-        <span v-if="isBooking">Requesting...</span>
-        <span v-else>Request to Book</span>
-      </button>
-
-      <hr class="summary-divider" />
-      <div class="location-section">
-        <h5 class="location-title">Pickup & Return</h5>
-        <div class="location-item" v-if="vehicle.location">
-          <span class="location-text"
-            >Pickup: {{ vehicle.location.barangay }},
-            {{ vehicle.location.city }}</span
-          >
-        </div>
-        <div class="location-item" v-if="vehicle.location">
-          <span class="location-text"
-            >Return: {{ vehicle.location.barangay }},
-            {{ vehicle.location.city }}</span
-          >
-        </div>
-      </div>
-
-      <hr class="summary-divider" />
-      <div class="cancellation-section">
-        <h5 class="cancellation-title">Cancellation Policy</h5>
-        <div class="cancellation-item">
-          <span class="cancellation-text">Free Cancellation</span>
-        </div>
-        <p class="cancellation-info">Full refund by {{ cancellationDate }}.</p>
+      <div class="date-input-group">
+        <label>RETURN</label>
+        <input
+          type="text"
+          :value="formattedEndDate"
+          @click="showDatePicker = true"
+          readonly
+          placeholder="Select date"
+        />
       </div>
     </div>
+
+    <!-- Price breakdown -->
+    <div v-if="totalPrice > 0" class="price-calculation">
+      <span>₱{{ vehicle.rentalPricePerDay }} x {{ tripDuration }} days</span>
+      <span class="total-price">₱{{ totalPrice.toLocaleString() }}</span>
+    </div>
+    <div v-else class="prompt-text">
+      <p>Select your dates to see the total price.</p>
+    </div>
+
+    <!-- The button now calls a local method in this component -->
+    <button
+      @click="handleBookingRequest"
+      :disabled="bookingLoading || !startDate || !endDate"
+      class="book-now-button"
+    >
+      <span v-if="bookingLoading">Booking...</span>
+      <span v-else>Continue</span>
+    </button>
+
+    <!-- Local error message display -->
+    <div v-if="errorMessage" class="booking-message error">{{ errorMessage }}</div>
+
+    <!-- DateRangePicker component -->
+    <DateRangePicker
+      v-if="showDatePicker"
+      :start-date="startDate"
+      :end-date="endDate"
+      :unavailable-dates="unavailableDates"
+      @close="showDatePicker = false"
+      @save="handleDateSave"
+    />
   </div>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue';
-import { DateTime } from 'luxon';
-import { useRouter } from 'vue-router';
-import { useStore } from 'vuex';
+<script>
+import { mapActions, mapGetters } from 'vuex';
+import DateRangePicker from "@/components/HomeViewComponents/DateRangePicker.vue";
+import { DateTime } from "luxon";
 
-const props = defineProps({
-  vehicle: Object,
-});
-
-const store = useStore();
-const router = useRouter();
-
-const startDate = ref(null);
-const endDate = ref(null);
-const errorMessage = ref('');
-const serviceFeePercentage = 0.07;
-const isBooking = ref(false);
-
-const numberOfDays = computed(() => {
-  if (!startDate.value || !endDate.value) {
-    return 0;
-  }
-  const start = DateTime.fromISO(startDate.value);
-  const end = DateTime.fromISO(endDate.value);
-
-  if (end <= start) {
-    return 0;
-  }
-  const diff = end.diff(start, 'days').toObject();
-  return Math.ceil(diff.days);
-});
-
-const rentalFee = computed(() => {
-  if (!props.vehicle) return 0;
-  return props.vehicle.rentalPricePerDay * numberOfDays.value;
-});
-
-const serviceFee = computed(() => {
-  return rentalFee.value * serviceFeePercentage;
-});
-
-const totalPrice = computed(() => {
-  return rentalFee.value + serviceFee.value;
-});
-
-const cancellationDate = computed(() => {
-  if (!startDate.value) {
-    return 'your selected start date';
-  }
-  const date = DateTime.fromISO(startDate.value).plus({ days: 2 });
-  return date.toFormat('MMMM d, yyyy');
-});
-
-// UPDATED: This method now implements the "Request to Book" flow
-const requestToBook = async () => {
-  errorMessage.value = '';
-  if (isBooking.value) return;
-
-  if (!store.getters.isAuthenticated) {
-    errorMessage.value = 'Please log in to book a vehicle.';
-    router.push('/login');
-    return;
-  }
-
-  if (!startDate.value || !endDate.value || numberOfDays.value <= 0) {
-    errorMessage.value = 'Please select a valid date range.';
-    return;
-  }
-
-  isBooking.value = true;
-  try {
-    const bookingData = {
-      vehicleId: props.vehicle.id,
-      startDate: new Date(startDate.value).toISOString(),
-      endDate: new Date(endDate.value).toISOString(),
-      totalCost: totalPrice.value,
+export default {
+  name: "BookingBox",
+  components: { DateRangePicker },
+  props: {
+    vehicle: Object,
+    unavailableDates: {
+      type: Array,
+      default: () => [],
+    },
+  },
+  data() {
+    return {
+      showDatePicker: false,
+      // Local state for dates and booking status
+      startDate: null,
+      endDate: null,
+      bookingLoading: false,
+      errorMessage: null,
     };
-    
-    // This action now creates the request and redirects to 'My Bookings'
-    await store.dispatch('createBooking', bookingData);
-    
-    // The redirect to the payment page is no longer needed here
-  } catch (error) {
-    errorMessage.value =
-      error.response?.data?.message || 'Failed to create booking request.';
-  } finally {
-    isBooking.value = false;
-  }
+  },
+  computed: {
+    ...mapGetters(['isAuthenticated', 'user']),
+    formattedStartDate() {
+      if (!this.startDate) return "";
+      return DateTime.fromISO(this.startDate).toFormat("LLL dd, yyyy");
+    },
+    formattedEndDate() {
+      if (!this.endDate) return "";
+      return DateTime.fromISO(this.endDate).toFormat("LLL dd, yyyy");
+    },
+    tripDuration() {
+      if (!this.startDate || !this.endDate) return 0;
+      const start = DateTime.fromISO(this.startDate);
+      const end = DateTime.fromISO(this.endDate);
+      if (start >= end) return 0;
+      return Math.ceil(end.diff(start, "days").days) + 1;
+    },
+    totalPrice() {
+      if (this.tripDuration <= 0) return 0;
+      return this.vehicle.rentalPricePerDay * this.tripDuration;
+    },
+  },
+  methods: {
+    // This component now has direct access to the Vuex action
+    ...mapActions(['createBooking']),
+
+    // Receives the saved dates from the date picker
+    handleDateSave(dates) {
+      this.startDate = dates.startDate;
+      this.endDate = dates.endDate;
+      this.showDatePicker = false;
+    },
+
+    // The entire booking logic is now encapsulated within this component
+    async handleBookingRequest() {
+      this.bookingLoading = true;
+      this.errorMessage = null;
+
+      if (!this.isAuthenticated) {
+        this.$router.push('/login');
+        return;
+      }
+      if (!this.startDate || !this.endDate) {
+        this.errorMessage = 'Please select both pick-up and return dates.';
+        this.bookingLoading = false;
+        return;
+      }
+
+      try {
+        // Constructs the complete payload, including the crucial `totalCost`
+        const bookingPayload = {
+          vehicleId: this.vehicle.id,
+          startDate: this.startDate,
+          endDate: this.endDate,
+          totalCost: this.totalPrice, // This was the missing piece
+        };
+        
+        // Dispatches the Vuex action directly
+        await this.createBooking(bookingPayload);
+        // The Vuex action will handle successful redirection
+      } catch (error) {
+        this.errorMessage = error.response?.data?.message || 'An unexpected error occurred.';
+      } finally {
+        this.bookingLoading = false;
+      }
+    },
+  },
 };
 </script>
 
+<style lang="scss" scoped>
+@import '@/assets/styles/variables.scss';
 
-<style scoped>
 .booking-box {
   flex: 1;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.75rem;
+  max-width: 400px;
   padding: 1.5rem;
-  box-shadow:
-    0 4px 6px -1px rgb(0 0 0 / 0.1),
-    0 2px 4px -2px rgb(0 0 0 / 0.1);
+  border: 1px solid $border-color;
+  border-radius: $border-radius-lg;
+  background-color: #fff;
+  box-shadow: $shadow-light;
+  align-self: flex-start;
   position: sticky;
   top: 2rem;
 }
-.price-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 1.5rem;
-  color: #4b5563;
+
+.price {
+  font-size: 1.125rem;
+  color: $text-color-medium;
+  margin-top: 0;
+  .price-amount {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: $text-color-dark;
+  }
 }
-.price-section .font-bold {
-  color: #1f2937;
-}
-.booking-form .form-row {
+
+.date-inputs {
   display: flex;
   gap: 1rem;
-  margin-bottom: 1rem;
-}
-.booking-form .input-group {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-.input-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #4b5563;
-  margin-bottom: 0.25rem;
-}
-.date-input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  color: #374151;
-}
-.price-summary {
   margin-top: 1.5rem;
-  margin-bottom: 1rem;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-md;
+  overflow: hidden;
 }
-.price-item {
+
+.date-input-group {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  &:first-child {
+    border-right: 1px solid $border-color;
+  }
+  label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: $text-color-medium;
+    text-transform: uppercase;
+  }
+  input {
+    border: none;
+    outline: none;
+    width: 100%;
+    padding: 0.25rem 0 0;
+    font-size: 0.9rem;
+    background-color: transparent;
+    cursor: pointer;
+  }
+}
+
+.price-calculation {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 0.5rem;
-  font-size: 1rem;
-  color: #4b5563;
-}
-.summary-divider {
-  border: 0;
-  height: 1px;
-  background: #e0e0e0;
   margin-top: 1rem;
-  margin-bottom: 1rem;
-}
-.book-button {
-  width: 100%;
-  padding: 0.75rem;
-  background-color: #3b82f6;
-  color: #fff;
-  border: none;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-.book-button:hover {
-  background-color: #2563eb;
-}
-.total {
-  font-size: 1.25rem;
-  color: #1f2937;
-}
-.location-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-.location-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 0.5rem;
-}
-.location-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
   font-size: 0.9rem;
-  color: #4b5563;
+  color: $text-color-dark;
 }
-.location-text {
-  flex-grow: 1;
+
+.total-price {
+  font-weight: 700;
 }
-.location-icon {
-  width: 1.25rem;
-  height: 1.25rem;
-  color: #6b7280;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-.location-icon:hover {
-  color: #1f2937;
-}
-.cancellation-section {
-  display: flex;
-  flex-direction: column;
-}
-.cancellation-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 0.5rem;
-}
-.cancellation-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  color: #4b5563;
-}
-.cancellation-icon {
-  width: 1.25rem;
-  height: 1.25rem;
-  color: #6b7280;
-}
-.cancellation-info {
-  font-size: 0.8rem;
-  color: #6b7280;
-  padding-left: 1.75rem; /* Aligns with the text above */
-}
-.error-message {
-  color: #dc2626;
-  font-size: 0.875rem;
-  margin-top: -0.5rem;
-  margin-bottom: 1rem;
+
+.prompt-text {
   text-align: center;
+  color: $text-color-medium;
+  font-size: 0.9rem;
+  margin: 1.5rem 0;
+}
+
+.book-now-button {
+  width: 100%;
+  padding: 0.875rem;
+  margin-top: 1.5rem;
+  background-color: $primary-color;
+  color: white;
+  border: none;
+  border-radius: $border-radius-md;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  &:hover:not(:disabled) {
+    background-color: darken($primary-color, 10%);
+  }
+  &:disabled {
+    background-color: lighten($primary-color, 20%);
+    cursor: not-allowed;
+  }
+}
+
+.booking-message {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-radius: $border-radius-md;
+  font-size: 0.9rem;
+  &.error {
+    background-color: lighten($admin-color, 40%);
+    color: darken($admin-color, 10%);
+  }
 }
 </style>
+

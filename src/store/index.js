@@ -20,6 +20,7 @@ export default createStore({
     authToken: null,
     vehicle: null,
     allBookings: [],
+    allUsers: [],
     vehicleFilters: {
       make: '',
       model: '',
@@ -37,8 +38,12 @@ export default createStore({
       order: 'asc',
     },
     allVehicles: [],
+    userChats: [],
   },
   mutations: {
+    SET_USER(state, userPayload) {
+      state.user = userPayload;
+    },
     SET_AUTH_STATE(state, { user, userRole, authToken }) {
       state.user = user;
       state.isAuthenticated = !!user;
@@ -52,6 +57,7 @@ export default createStore({
     SET_ALL_BOOKINGS(state, bookings) {
       state.allBookings = bookings;
     },
+    // ... rest of your mutations
     SET_AUTH_LOADING(state, loading) {
       state.authLoading = loading;
     },
@@ -88,11 +94,15 @@ export default createStore({
       state.userRole = null;
       state.authToken = null;
     },
-      SET_ALL_USERS(state, users) { 
+    SET_ALL_USERS(state, users) {
       state.allUsers = users;
+    },
+      SET_USER_CHATS(state, chats) {
+      state.userChats = chats;
     },
   },
   actions: {
+    // ... all other actions
     initializeAuth({ commit }) {
       return new Promise((resolve) => {
         const auth = getAuth();
@@ -240,7 +250,6 @@ export default createStore({
         const response = await api.createBooking(bookingData);
         const newBookingId = response.data.id;
         
-        // UPDATED: Redirect to the new real-time status page
         router.push({ name: 'BookingStatus', params: { bookingId: newBookingId } });
         
         return response.data;
@@ -276,32 +285,21 @@ export default createStore({
         throw error;
       }
     },
-    async fetchUserProfile({ commit, state }) {
+    async fetchUserProfile({ commit }) {
       try {
         const response = await api.getUserProfile();
-        commit('SET_AUTH_STATE', {
-          user: response.data,
-          userRole: response.data.role,
-          authToken: state.authToken,
-        });
+        commit('SET_USER', response.data);
         return response.data;
       } catch (error) {
-        if (error.response && error.response.status === 401) {
-          commit('CLEAR_AUTH');
-        }
+        console.error('[Vuex] Failed to fetch user profile:', error);
         throw error;
       }
     },
-    async updateUserProfile({ commit, state }, profileData) {
+    async updateUserProfile({ commit }, profileData) {
       try {
         const response = await api.updateUserProfile(profileData);
-        const updatedUser = response.data.user;
-        commit('SET_AUTH_STATE', {
-          user: updatedUser,
-          userRole: updatedUser.role,
-          authToken: state.authToken,
-        });
-        return updatedUser;
+        commit('SET_USER', response.data.user);
+        return response.data.user;
       } catch (error) {
         console.error('[Vuex] Failed to update user profile:', error);
         throw error;
@@ -384,7 +382,6 @@ export default createStore({
         throw error;
       }
     },
-    // Action for phone-based login
     async tokenLogin({ dispatch }) {
       try {
         const response = await api.tokenLogin();
@@ -393,7 +390,6 @@ export default createStore({
         const auth = getAuth();
         await signInWithCustomToken(auth, customToken);
         
-        // After signing in, fetch the user profile to populate the store
         await dispatch('fetchUserProfile');
         
         const userRole = this.getters.userRole;
@@ -430,10 +426,8 @@ export default createStore({
     async fetchHostApplications({ _commit }) {
       try {
         const response = await api.getHostApplications();
-        // You can add state and a mutation here later to store the applications globally
         return response.data;
       } catch (error) {
-        // Added a console log to make the catch block useful
         console.error('[Vuex] Failed to fetch host applications:', error);
         throw error;
       }
@@ -454,22 +448,30 @@ export default createStore({
         throw error;
       }
     },
-    async fetchUserChats({ _commit }) {
-      try {
-        const response = await api.getUserChats();
-        return response.data;
-      } catch (error) {
-        console.error('[Vuex] Failed to fetch user chats:', error);
-        throw error;
-      }
+    async fetchUserChats({ commit }) {
+        try {
+          const response = await api.getUserChats();
+          commit('SET_USER_CHATS', response.data);
+          return response.data;
+        } catch (error) {
+          console.error('[Vuex] Failed to fetch user chats:', error);
+          throw error;
+        }
     },
-
-    async sendMessage({ _commit }, { chatId, text }) {
+    async sendMessage({_commit}, { chatId, text }) {
+        try {
+          await api.sendMessage(chatId, text);
+        } catch (error) {
+          console.error('[Vuex] Failed to send message:', error);
+          throw error;
+        }
+    },
+    async markChatAsRead({ dispatch }, chatId) {
       try {
-        await api.sendMessage(chatId, text);
+        await api.markChatAsRead(chatId);
+        dispatch('fetchUserChats');
       } catch (error) {
-        console.error('[Vuex] Failed to send message:', error);
-        throw error;
+        console.error('Failed to mark chat as read:', error);
       }
     },
     setVehicleFilter({ commit }, payload) {
@@ -483,6 +485,7 @@ export default createStore({
     },
   },
   getters: {
+    // ... all other getters
     isAuthenticated: (state) => state.isAuthenticated,
     user: (state) => state.user,
     authLoading: (state) => state.authLoading,
@@ -495,6 +498,7 @@ export default createStore({
     allUsers: (state) => state.allUsers,
     allBookings: (state) => state.allBookings,
     vehicleSort: (state) => state.vehicleSort,
+    userChats: (state) => state.userChats,
     filteredAndSortedVehicles: (state) => {
       let vehicles = Array.isArray(state.allVehicles)
         ? [...state.allVehicles]
@@ -597,3 +601,4 @@ export default createStore({
     owner,
   },
 });
+

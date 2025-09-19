@@ -55,7 +55,7 @@
                 />
                 <img
                   v-else
-                  :src="initialsImage"
+                  :src="initialsDataUrl"
                   alt="User Initials"
                   class="dropdown-avatar"
                 />
@@ -90,11 +90,12 @@
                   <i class="bi bi-briefcase-fill"></i>Trips
                 </router-link>
                 <router-link
-                  to="/dashboard/inbox"
+                  :to="{ name: 'Chat' }"
                   class="dropdown-item with-icon"
                   @click="closeMenu"
                 >
                   <i class="bi bi-envelope-fill"></i>Inbox
+                  <NotificationBadge :count="unreadChatsCount" />
                 </router-link>
               </div>
 
@@ -170,38 +171,26 @@
     <main class="app-content">
       <router-view />
     </main>
-    <DateRangePicker
-      v-if="isPickerVisible && $route.name === 'VehicleList'"
-      @dates-selected="handleDatesSelected"
-      @close-picker="isPickerVisible = false"
-      :initialFromDate="fromDate"
-      :initialUntilDate="untilDate"
-    />
   </div>
 </template>
 
 <script>
 import { mapGetters, mapActions } from 'vuex';
-import DateRangePicker from './components/HomeViewComponents/DateRangePicker.vue';
+import NotificationBadge from './utils/NotificationBadge.vue';
 
 export default {
   name: 'App',
   components: {
-    DateRangePicker,
+    NotificationBadge,
   },
   data() {
     return {
       isMenuOpen: false,
-      isPickerVisible: false,
-      location: '',
-      fromDate: '',
-      fromTime: '',
-      untilDate: '',
-      untilTime: '',
+      initialsDataUrl: null,
     };
   },
   computed: {
-    ...mapGetters(['isAuthenticated', 'userRole', 'user']),
+    ...mapGetters(['isAuthenticated', 'userRole', 'user', 'userChats']),
     hostLinkText() {
       if (this.isAuthenticated && this.userRole === 'owner') {
         return 'List your car';
@@ -214,50 +203,61 @@ export default {
       }
       return { name: 'BecomeOwnerApplication' };
     },
-    timeOptions() {
-      const times = [];
-      const now = new Date();
-      now.setHours(0, 0, 0, 0);
-      for (let i = 0; i < 48; i++) {
-        const date = new Date(now.getTime() + i * 30 * 60 * 1000);
-        const hours = date.getHours();
-        const minutes = date.getMinutes();
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        const formattedHours = hours % 12 === 0 ? 12 : hours % 12;
-        const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
-        times.push(`${formattedHours}:${formattedMinutes} ${ampm}`);
-      }
-      return times;
-    },
-    initialsImage() {
-      const name = this.user?.name || 'User';
-      const initials = name
+    initials() {
+      if (!this.user) return '';
+      const name = this.user.name || 'User';
+      return name
         .split(' ')
         .map((n) => n[0])
         .join('')
         .toUpperCase()
         .substring(0, 2);
-
+    },
+    unreadChatsCount() {
+      if (!this.user || !this.userChats || this.userChats.length === 0) {
+        return 0;
+      }
+      return this.userChats.filter(chat =>
+        chat.lastMessage &&
+        chat.lastMessage.readBy &&
+        !chat.lastMessage.readBy.includes(this.user.uid)
+      ).length;
+    },
+  },
+  watch: {
+    initials: {
+      immediate: true,
+      handler(newInitials) {
+        if (newInitials) {
+          this.generateInitialsImage(newInitials);
+        } else {
+          this.initialsDataUrl = null;
+        }
+      },
+    },
+    isAuthenticated(newVal) {
+      if (newVal) {
+        this.fetchUserChats();
+      }
+    }
+  },
+  methods: {
+    ...mapActions(['logout', 'fetchUserChats']),
+    generateInitialsImage(initials) {
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       const size = 100;
       canvas.width = size;
       canvas.height = size;
-
       context.fillStyle = '#C0C0C0';
       context.fillRect(0, 0, size, size);
-
       context.fillStyle = '#FFFFFF';
       context.font = `bold ${size / 2}px Nunito`;
       context.textAlign = 'center';
       context.textBaseline = 'middle';
       context.fillText(initials, size / 2, size / 2);
-
-      return canvas.toDataURL();
+      this.initialsDataUrl = canvas.toDataURL();
     },
-  },
-  methods: {
-    ...mapActions(['logout']),
     handleLogout() {
       this.logout();
       this.closeMenu();
@@ -278,56 +278,18 @@ export default {
         }
       }
     },
-    handleDatesSelected({ fromDate, untilDate }) {
-      this.fromDate = fromDate;
-      this.untilDate = untilDate;
-      this.isPickerVisible = false;
-    },
-    setInitialDateTime() {
-      const now = new Date();
-      const options = {
-        timeZone: 'Asia/Manila',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      };
-      const pstDateTime = now.toLocaleString('en-US', options);
-      const [datePart, timePart] = pstDateTime.split(', ');
-      const [month, day, year] = datePart.split('/');
-      const [hour, minute] = timePart.split(':');
-      this.fromDate = `${year}-${month}-${day}`;
-      const initialFromTimeIndex = Math.floor(
-        (parseInt(hour) * 60 + parseInt(minute)) / 30
-      );
-      this.fromTime = this.timeOptions[initialFromTimeIndex] || '12:00 AM';
-      const untilDateObj = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-      const pstUntilDateTime = untilDateObj.toLocaleString('en-US', options);
-      const [untilDatePart] = pstUntilDateTime.split(', ');
-      const [untilMonth, untilDay, untilYear] = untilDatePart.split('/');
-      this.untilDate = `${untilYear}-${untilMonth}-${untilDay}`;
-      this.untilTime = this.fromTime;
-    },
-    searchVehicles() {
-      const query = {
-        location: this.location,
-        fromDate: this.fromDate,
-        fromTime: this.fromTime,
-        untilDate: this.untilDate,
-        untilTime: this.untilTime,
-      };
-      this.$router.push({ name: 'VehicleList', query });
-    },
   },
   mounted() {
     document.addEventListener('click', this.closeMenuOnClickOutside);
-    this.setInitialDateTime();
   },
   beforeUnmount() {
     document.removeEventListener('click', this.closeMenuOnClickOutside);
   },
+  created() {
+    if (this.isAuthenticated) {
+      this.fetchUserChats();
+    }
+  }
 };
 </script>
 
@@ -705,5 +667,10 @@ body {
   &.router-link-active {
     color: black;
   }
+}
+
+.dropdown-item.with-icon {
+  display: flex;
+  align-items: center;
 }
 </style>

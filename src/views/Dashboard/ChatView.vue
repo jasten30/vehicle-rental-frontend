@@ -1,5 +1,6 @@
 <template>
   <div class="chat-container">
+    <!-- Left Column: Conversation List -->
     <div class="conversation-list">
       <div class="list-header">
         <h2>Inbox</h2>
@@ -38,6 +39,7 @@
       </div>
     </div>
 
+    <!-- Right Column: Active Chat Window -->
     <div class="chat-window">
       <div v-if="selectedConversation" class="chat-content-window">
         <div class="chat-header">
@@ -77,7 +79,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters } from 'vuex';
+import { mapActions, mapGetters, mapState } from 'vuex';
 import { db } from '@/firebase/config';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { DateTime } from 'luxon';
@@ -87,7 +89,7 @@ export default {
   data() {
     return {
       loading: true,
-      conversations: [],
+      // REMOVED: `conversations` is no longer a local data property
       selectedConversation: null,
       messages: [],
       newMessage: '',
@@ -96,13 +98,19 @@ export default {
   },
   computed: {
     ...mapGetters(['user']),
+    // The list of conversations now comes directly from the Vuex store's state
+    ...mapState(['userChats']),
+    conversations() {
+      return this.userChats;
+    },
   },
   methods: {
-    ...mapActions(['fetchUserChats', 'sendMessage']),
+    ...mapActions(['fetchUserChats', 'sendMessage', 'markChatAsRead']),
     async loadConversations() {
       this.loading = true;
       try {
-        this.conversations = await this.fetchUserChats();
+        // This action now populates the `userChats` state in Vuex
+        await this.fetchUserChats();
       } catch (error) {
         console.error('Could not load conversations', error);
       } finally {
@@ -112,6 +120,8 @@ export default {
     selectConversation(chat) {
       this.selectedConversation = chat;
       this.fetchMessages(chat.id);
+      // Mark the chat as read, which will update the store and the notification badge
+      this.markChatAsRead(chat.id);
     },
     fetchMessages(chatId) {
       if (this.messagesUnsubscribe) {

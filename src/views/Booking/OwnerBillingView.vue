@@ -7,7 +7,11 @@
       </p>
     </div>
 
-    <div v-if="!userLoading" class="billing-summary-grid">
+    <div v-if="userLoading" class="info-state">
+      <p>Loading dashboard...</p>
+    </div>
+
+    <div v-else class="billing-summary-grid">
       <div class="summary-card">
         <div class="card-icon"><i class="bi bi-calendar-check"></i></div>
         <div class="card-content">
@@ -115,13 +119,22 @@ export default {
   },
   async created() {
     this.fetchOwnerBookings();
+    if (!this.user) {
+        await this.fetchUserProfile();
+    }
   },
   methods: {
-    ...mapActions('owner', ['fetchOwnerBookings', 'approveBooking', 'declineBooking']),
+    ...mapActions(['fetchUserProfile']),
+    ...mapActions('owner', [
+      'fetchOwnerBookings',
+      'approveBooking',
+      'declineBooking',
+    ]),
     async handleApproval(bookingId, action) {
-      const confirmMessage = action === 'approve'
-        ? 'Are you sure you want to approve this booking request?'
-        : 'Are you sure you want to decline this booking request?';
+      const confirmMessage =
+        action === 'approve'
+          ? 'Are you sure you want to approve this booking request?'
+          : 'Are you sure you want to decline this booking request?';
       if (window.confirm(confirmMessage)) {
         try {
           if (action === 'approve') {
@@ -147,15 +160,19 @@ export default {
     },
     formatStatus(status) {
       if (!status) return 'N/A';
-      return status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
     },
     getStatusBadgeClass(status) {
       switch (status) {
-        case 'confirmed': return 'status-badge status-confirmed';
-        case 'pending_owner_approval': return 'status-badge status-pending';
+        case 'confirmed':
+          return 'status-badge status-confirmed';
+        case 'pending_owner_approval':
+          return 'status-badge status-pending';
         case 'declined_by_owner':
-        case 'cancelled': return 'status-badge status-cancelled';
-        default: return 'status-badge status-default';
+        case 'cancelled':
+          return 'status-badge status-cancelled';
+        default:
+          return 'status-badge status-default';
       }
     },
   },
@@ -285,10 +302,22 @@ td {
   font-weight: 500;
   font-size: 0.75rem;
   line-height: 1;
-  &.status-confirmed { background-color: #d1fae5; color: #065f46; }
-  &.status-pending { background-color: #fffbeb; color: #92400e; }
-  &.status-cancelled { background-color: #fee2e2; color: #991b1b; }
-  &.status-default { background-color: #f3f4f6; color: #374151; }
+  &.status-confirmed {
+    background-color: #d1fae5;
+    color: #065f46;
+  }
+  &.status-pending {
+    background-color: #fffbeb;
+    color: #92400e;
+  }
+  &.status-cancelled {
+    background-color: #fee2e2;
+    color: #991b1b;
+  }
+  &.status-default {
+    background-color: #f3f4f6;
+    color: #374151;
+  }
 }
 .action-buttons {
   display: flex;
@@ -302,21 +331,28 @@ td {
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
-  
-  &.approve { 
-    background-color: $secondary-color; 
+
+  &.approve {
+    background-color: $secondary-color;
     color: white;
-    &:hover { background-color: darken($secondary-color, 10%); }
+    &:hover {
+      background-color: darken($secondary-color, 10%);
+    }
   }
-  &.decline { 
-    background-color: lighten($admin-color, 40%); 
+  &.decline {
+    background-color: lighten($admin-color, 40%);
     color: $admin-color;
-    &:hover { background-color: lighten($admin-color, 35%); }
+    &:hover {
+      background-color: lighten($admin-color, 35%);
+    }
   }
-  &.view { 
-    background-color: #e0f2fe; 
+  &.view {
+    background-color: #e0f2fe;
     color: #0284c7;
-    &:hover { background-color: darken(#e0f2fe, 5%); }
+    &:hover {
+      background-color: darken(#e0f2fe, 5%);
+    }
   }
 }
 </style>
+

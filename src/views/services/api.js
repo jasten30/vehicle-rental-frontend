@@ -81,4 +81,5 @@ export default {
   // Chats
   getUserChats: () => apiClient.get('/chats'),
   sendMessage: (chatId, text) => apiClient.post(`/chats/${chatId}/messages`, { text }),
+  markChatAsRead: (chatId) => apiClient.put(`/chats/${chatId}/read`),
 };

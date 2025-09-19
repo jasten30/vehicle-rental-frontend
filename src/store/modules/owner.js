@@ -1,8 +1,8 @@
-import api from '@/views/services/api'; // Use your central API service
+import api from '@/views/services/api';
 
 const state = {
   ownerBookings: [],
-  ownerBookingsStatus: 'loading', // 'loading', 'success', 'error'
+  ownerBookingsStatus: 'loading',
   ownerBookingsError: null,
 };
 
@@ -19,7 +19,6 @@ const mutations = {
 };
 
 const actions = {
-  // This action now uses rootGetters correctly and calls your api service
   async fetchOwnerBookings({ commit, rootGetters }) {
     commit('setOwnerBookingsStatus', 'loading');
     
@@ -31,7 +30,6 @@ const actions = {
     }
 
     try {
-      // Your api service will automatically use the token
       const response = await api.getOwnerBookings();
       commit('setOwnerBookings', response.data);
       commit('setOwnerBookingsStatus', 'success');
@@ -43,7 +41,6 @@ const actions = {
   },
 
   async confirmBookingDownpayment({ _commit }, bookingId) {
-    // This action can also be updated to use your api service
     try {
       await api.updateBooking(bookingId, {
         newStatus: 'downpayment_received',
@@ -54,15 +51,22 @@ const actions = {
     }
   },
 
-  async approveBooking({ _commit }, bookingId) {
+  async approveBooking({ commit }, bookingId) {
     try {
       const response = await api.approveBooking(bookingId);
+      
+      if (response.data && response.data.updatedOwner) {
+        commit('SET_USER', response.data.updatedOwner, { root: true });
+      } else {
+        console.warn('[Vuex owner.js] API response did NOT contain updatedOwner.');
+      }
       return response.data;
     } catch (error) {
       console.error('Failed to approve booking:', error);
       throw error;
     }
   },
+
   async declineBooking({ _commit }, bookingId) {
     try {
       const response = await api.declineBooking(bookingId);
@@ -87,3 +91,4 @@ export default {
   actions,
   getters,
 };
+
