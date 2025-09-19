@@ -102,6 +102,8 @@
           Don't have an account?
           <router-link to="/register">Sign up</router-link>
         </p>
+        
+        <!-- This container is still required for the invisible reCAPTCHA's privacy badge -->
         <div id="recaptcha-container"></div>
       </div>
     </div>
@@ -129,6 +131,7 @@ export default {
       loading: false,
       error: null,
       confirmationResult: null,
+      recaptchaVerifier: null,
     };
   },
   computed: {
@@ -137,10 +140,12 @@ export default {
         return this.phoneNumber.replace(/^\+63/, '');
       },
       set(value) {
-        this.phoneNumber = `+63${value}`;
+        const sanitizedValue = value.replace(/\D/g, '').slice(0, 10);
+        this.phoneNumber = `+63${sanitizedValue}`;
       },
     },
   },
+  // The mounted() hook is no longer needed for reCAPTCHA initialization
   methods: {
     ...mapActions(['login', 'tokenLogin']),
     async handleLogin() {
@@ -157,23 +162,37 @@ export default {
     async sendSmsOtp() {
       this.loading = true;
       this.error = null;
+      if (!this.phoneNumber || this.phoneNumber.length < 13) {
+          this.error = "Please enter a valid 10-digit phone number.";
+          this.loading = false;
+          return;
+      }
+
       try {
         const auth = getAuth();
-        const recaptchaVerifier = new RecaptchaVerifier(
+        
+        // --- THIS IS THE FIX ---
+        // We now initialize the verifier right before we use it.
+        // This guarantees the 'recaptcha-container' div is in the DOM.
+        this.recaptchaVerifier = new RecaptchaVerifier(
           auth,
           'recaptcha-container',
           {
             size: 'invisible',
+            'callback': () => {
+              // This callback is for the invisible widget to proceed.
+            },
           }
         );
+
         this.confirmationResult = await signInWithPhoneNumber(
           auth,
           this.phoneNumber,
-          recaptchaVerifier
+          this.recaptchaVerifier
         );
         this.otpSent = true;
       } catch (error) {
-        this.error = 'Failed to send SMS. Check the number and try again.';
+        this.error = 'Failed to send SMS. Please check the number or try again later.';
         console.error('SMS Send Error:', error);
       } finally {
         this.loading = false;
@@ -182,6 +201,11 @@ export default {
     async handlePhoneLogin() {
       this.loading = true;
       this.error = null;
+      if (!this.otpCode || this.otpCode.length < 6) {
+          this.error = "Please enter the 6-digit verification code.";
+          this.loading = false;
+          return;
+      }
       try {
         const userCredential = await this.confirmationResult.confirm(
           this.otpCode
@@ -190,7 +214,7 @@ export default {
         this.$store.commit('SET_AUTH_TOKEN', idToken);
         await this.tokenLogin();
       } catch (error) {
-        this.error = 'Failed to verify code. Please try again.';
+        this.error = 'Invalid verification code. Please try again.';
       } finally {
         this.loading = false;
       }
@@ -388,3 +412,4 @@ export default {
   right: 0;
 }
 </style>
+

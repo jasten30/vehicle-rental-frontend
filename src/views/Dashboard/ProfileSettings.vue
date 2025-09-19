@@ -83,13 +83,33 @@
                   profileData.phoneNumber || 'Not set'
                 }}</span>
                 <button
-                  v-if="isOwnProfile"
+                  v-if="isOwnProfile && !isMobileVerified"
+                  @click="startPhoneVerification"
+                  class="change-button verify-button"
+                >
+                  Verify
+                </button>
+                <button
+                  v-if="isOwnProfile && isMobileVerified"
                   @click="openChangePhoneModal"
                   class="change-button"
                 >
                   Change
                 </button>
               </div>
+            </li>
+            <li v-if="isVerifyingPhone" class="phone-verification-ui">
+                <p class="verification-instructions">Enter the code sent to {{ profileData.phoneNumber }}.</p>
+                <div class="form-group">
+                    <input type="text" v-model="otpCode" placeholder="123456" maxlength="6" />
+                    <button @click="submitVerificationCode" :disabled="verificationLoading" class="submit-otp-button">
+                        <span v-if="verificationLoading">Verifying...</span>
+                        <span v-else>Submit Code</span>
+                    </button>
+                </div>
+                <!-- This container will now be reliably present when the verification UI is visible -->
+                <div id="recaptcha-container-profile"></div>
+                <p v-if="verificationError" class="error-message small">{{ verificationError }}</p>
             </li>
             <li class="verification-item">
               <div class="item-label">
@@ -144,6 +164,7 @@
 import { mapGetters, mapActions } from 'vuex';
 import { db } from '@/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
+import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import EditProfileModal from '@/components/modals/EditProfileModal.vue';
 import VerificationReminder from '@/components/utils/VerificationReminder.vue';
 import UpdatePhoneNumberModal from '@/components/modals/UpdatePhoneNumberModal.vue';
@@ -156,10 +177,7 @@ export default {
     UpdatePhoneNumberModal,
   },
   props: {
-    userId: {
-      type: String,
-      required: false,
-    },
+    userId: String,
   },
   data() {
     return {
@@ -167,6 +185,12 @@ export default {
       isEditModalOpen: false,
       isChangePhoneModalOpen: false,
       initialsDataUrl: null,
+      isVerifyingPhone: false,
+      verificationLoading: false,
+      otpCode: '',
+      confirmationResult: null,
+      recaptchaVerifier: null,
+      verificationError: '',
     };
   },
   computed: {
@@ -176,7 +200,7 @@ export default {
       return !this.userId || this.userId === this.user.uid;
     },
     profileData() {
-      return this.userId ? this.profileUser : this.user;
+      return this.isOwnProfile ? this.user : this.profileUser;
     },
     isApprovedToDrive() {
       return this.profileData?.isApprovedToDrive === true;
@@ -190,41 +214,19 @@ export default {
     initials() {
       if (!this.profileData) return '';
       const name = this.profileData.firstName || this.profileData.name || 'User';
-      return name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .substring(0, 2);
+      return name.split(' ').map((n) => n[0]).join('').toUpperCase().substring(0, 2);
     },
     formattedJoinDate() {
-      if (this.profileData && this.profileData.createdAt) {
-        const createdAt = this.profileData.createdAt;
-        let date;
-        if (typeof createdAt.toDate === 'function') {
-          date = createdAt.toDate();
-        } else if (createdAt._seconds) {
-          date = new Date(createdAt._seconds * 1000);
-        } else {
-          date = new Date(createdAt);
-        }
-        if (!isNaN(date)) {
-          const options = { year: 'numeric', month: 'long' };
-          return `Joined in ${date.toLocaleDateString('en-US', options)}`;
-        }
+      if (this.profileData?.createdAt?.toDate) {
+        const date = this.profileData.createdAt.toDate();
+        return `Joined in ${date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}`;
       }
       return 'N/A';
     },
     formattedAddress() {
-      if (!this.profileData || !this.profileData.address) {
-        return 'Address not set';
-      }
-      const address = this.profileData.address;
-      if (typeof address === 'object' && address.barangay && address.city) {
+      const address = this.profileData?.address;
+      if (address?.barangay && address?.city) {
         return `${address.barangay}, ${address.city}`;
-      }
-      if (typeof address === 'string' && address.trim() !== '') {
-        return address;
       }
       return 'Address not set';
     },
@@ -233,17 +235,13 @@ export default {
     initials: {
       immediate: true,
       handler(newInitials) {
-        if (newInitials) {
-          this.generateInitialsImage(newInitials);
-        } else {
-          this.initialsDataUrl = null;
-        }
+        if (newInitials) this.generateInitialsImage(newInitials);
       },
     },
     userId: {
       immediate: true,
       handler(newId) {
-        if (newId) {
+        if (newId && !this.isOwnProfile) {
           this.fetchOtherUserProfile(newId);
         } else {
           this.profileUser = null;
@@ -252,7 +250,7 @@ export default {
     },
   },
   methods: {
-    ...mapActions(['fetchUserProfile']),
+    ...mapActions(['fetchUserProfile', 'updateUserProfile']),
     generateInitialsImage(initials) {
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
@@ -280,20 +278,64 @@ export default {
       this.fetchUserProfile();
     },
     async fetchOtherUserProfile(id) {
-      if (!id) return;
       const userRef = doc(db, 'users', id);
       try {
         const docSnap = await getDoc(userRef);
-        if (docSnap.exists()) {
-          this.profileUser = docSnap.data();
-        } else {
-          this.profileUser = null;
-        }
+        this.profileUser = docSnap.exists() ? docSnap.data() : null;
       } catch (error) {
         console.error('Error fetching user profile:', error);
-        this.profileUser = null;
       }
     },
+    async startPhoneVerification() {
+        if (!this.profileData.phoneNumber) {
+            alert("Please set a phone number first in your profile settings.");
+            this.openEditModal();
+            return;
+        }
+        this.isVerifyingPhone = true;
+        this.verificationError = '';
+        this.verificationLoading = true;
+
+        setTimeout(async () => {
+            try {
+                const auth = getAuth();
+                this.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container-profile', {
+                    'size': 'invisible',
+                });
+                
+                await this.recaptchaVerifier.render();
+
+                this.confirmationResult = await signInWithPhoneNumber(auth, this.profileData.phoneNumber, this.recaptchaVerifier);
+                this.verificationLoading = false;
+            } catch (error) {
+                this.verificationError = "Failed to send SMS. Please try again later.";
+                console.error("Firebase SMS send error:", error);
+                this.isVerifyingPhone = false;
+                this.verificationLoading = false;
+            }
+        }, 0);
+    },
+    async submitVerificationCode() {
+        if (!this.otpCode || this.otpCode.length < 6) {
+            this.verificationError = "Please enter a valid 6-digit code.";
+            return;
+        }
+        this.verificationLoading = true;
+        this.verificationError = '';
+
+        try {
+            await this.confirmationResult.confirm(this.otpCode);
+            await this.updateUserProfile({ isMobileVerified: true });
+            await this.fetchUserProfile();
+            this.isVerifyingPhone = false;
+            this.otpCode = '';
+        } catch (error) {
+            this.verificationError = "Invalid code. Please try again.";
+            console.error("Firebase OTP verification error:", error);
+        } finally {
+            this.verificationLoading = false;
+        }
+    }
   },
 };
 </script>
@@ -310,7 +352,6 @@ export default {
   display: flex;
   gap: 3rem;
   align-items: flex-start;
-
   @media (max-width: 992px) {
     flex-direction: column;
   }
@@ -318,7 +359,6 @@ export default {
 .profile-left-section,
 .profile-right-section {
   flex: 1;
-  flex-basis: 50%;
 }
 .profile-photo-container {
   width: 150px;
@@ -328,7 +368,6 @@ export default {
   margin: 0 auto 2rem auto;
   border: 4px solid white;
   box-shadow: $shadow-medium;
-  background-color: white;
 }
 .profile-photo {
   width: 100%;
@@ -336,34 +375,29 @@ export default {
   object-fit: cover;
 }
 .profile-info-header {
-  width: 100%;
-  padding-bottom: 1rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid $border-color;
-  text-align: center;
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid $border-color;
   h4 {
     margin: 0;
     font-size: 1.75rem;
-    color: $text-color-dark;
   }
 }
 .profile-info-block {
-  width: 100%;
   padding: 1rem 0;
   border-bottom: 1px solid $border-color;
   &:last-child {
     border-bottom: none;
   }
-}
-.profile-info-block p {
-  font-size: 1.1rem;
-  color: $text-color-dark;
-  margin: 0;
+  p {
+    font-size: 1.1rem;
+    color: $text-color-dark;
+    margin: 0;
+  }
 }
 .about-text {
   white-space: pre-wrap;
@@ -371,16 +405,12 @@ export default {
   line-height: 1.6;
 }
 .edit-button {
-  background-color: transparent;
+  background: none;
   border: none;
   border-radius: 50%;
   padding: 0.5rem;
   cursor: pointer;
   color: $text-color-medium;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.2s ease, color 0.2s ease;
   svg {
     width: 20px;
     height: 20px;
@@ -408,23 +438,21 @@ export default {
   align-items: center;
   gap: 0.75rem;
   font-size: 1.1rem;
-  color: $text-color-dark;
 }
 .item-value {
   font-size: 1rem;
   color: $text-color-medium;
-  font-weight: 500;
 }
 .check-icon,
 .cross-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-weight: bold;
   width: 22px;
   height: 22px;
   border-radius: 50%;
   font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .check-icon {
   background-color: lighten($secondary-color, 35%);
@@ -446,9 +474,58 @@ export default {
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
-  padding: 0.25rem;
+  &.verify-button {
+    color: $secondary-color;
+  }
   &:hover {
     text-decoration: underline;
   }
 }
+.phone-verification-ui {
+    background-color: #f9fafb;
+    border-radius: $border-radius-md;
+    padding: 1rem;
+    margin-top: 1rem;
+    border: 1px solid $border-color;
+    display: flex;
+    flex-direction: column;
+}
+.verification-instructions {
+    font-size: 0.9rem;
+    color: $text-color-medium;
+    margin: 0 0 1rem 0;
+}
+.form-group {
+    display: flex;
+    gap: 0.5rem;
+    input {
+        flex-grow: 1;
+        padding: 0.5rem;
+        border: 1px solid $border-color;
+        border-radius: $border-radius-md;
+    }
+}
+.submit-otp-button {
+    padding: 0.5rem 1rem;
+    background-color: $secondary-color;
+    color: white;
+    border: none;
+    border-radius: $border-radius-md;
+    cursor: pointer;
+    &:disabled {
+        opacity: 0.7;
+    }
+}
+.error-message.small {
+    font-size: 0.8rem;
+    color: $admin-color;
+    margin-top: 0.5rem;
+    text-align: center;
+}
+.phone-verification-ui #recaptcha-container-profile {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+}
 </style>
+
