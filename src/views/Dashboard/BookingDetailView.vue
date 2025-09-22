@@ -78,9 +78,16 @@
 
         <div class="info-card actions-card">
           <h3 class="card-title">Actions</h3>
-          <button v-if="canCancelBooking" class="button danger">
-            Cancel Booking
-          </button>
+          
+          <!-- UPDATED: Logic for showing and disabling the cancel button -->
+          <div v-if="showCancelAction">
+            <button class="button danger" :disabled="isCancellationWindowClosed">
+              Cancel Booking
+            </button>
+            <p v-if="isCancellationWindowClosed" class="cancellation-info">
+              Cancellation is only available within 48 hours of booking.
+            </p>
+          </div>
           
           <button v-if="canConfirmPayment" class="button primary">
             Confirm Payment
@@ -109,11 +116,20 @@ export default {
   },
   computed: {
     ...mapGetters(['userRole', 'user']),
-    canCancelBooking() {
+    // NEW: Determines if the cancel action section should be shown at all
+    showCancelAction() {
       if (!this.booking || !this.user) return false;
       const isRenter = this.user.uid === this.booking.renterId;
-      const cancellable = ['pending_verification', 'confirmed'];
-      return isRenter && cancellable.includes(this.booking.paymentStatus);
+      const cancellableStatuses = ['pending_verification', 'confirmed', 'pending_owner_approval', 'pending_payment'];
+      return isRenter && cancellableStatuses.includes(this.booking.paymentStatus);
+    },
+    // NEW: Determines if the 48-hour cancellation window has passed
+    isCancellationWindowClosed() {
+        if (!this.booking?.createdAt) return true; // Disable if no creation date
+        const bookedOn = DateTime.fromISO(this.booking.createdAt);
+        const now = DateTime.now();
+        const hoursSinceBooking = now.diff(bookedOn, 'hours').toObject().hours;
+        return hoursSinceBooking > 48;
     },
     canConfirmPayment() {
       if (!this.booking || !this.user) return false;
@@ -156,7 +172,7 @@ export default {
     },
     getStatusClass(status) {
       if (['confirmed', 'completed'].includes(status)) return 'status-success';
-      if (['pending_verification'].includes(status)) return 'status-warning';
+      if (['pending_verification', 'pending_owner_approval', 'pending_payment'].includes(status)) return 'status-warning';
       if (status?.includes('cancelled')) return 'status-danger';
       return 'status-default';
     },
@@ -205,7 +221,6 @@ export default {
   font-weight: 600;
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
-  // Status colors will be applied here
 }
 .info-card {
   background-color: $card-background;
@@ -280,5 +295,24 @@ export default {
   &:last-child {
     margin-bottom: 0;
   }
+  &:disabled {
+      background-color: #e5e7eb;
+      border-color: #e5e7eb;
+      color: $text-color-medium;
+      cursor: not-allowed;
+  }
 }
+.cancellation-info {
+    font-size: 0.8rem;
+    color: $text-color-medium;
+    text-align: center;
+    margin-top: 0.5rem;
+}
+
+/* Status badge colors */
+.status-success { background-color: lighten($secondary-color, 35%); color: darken($secondary-color, 20%); }
+.status-warning { background-color: lighten($accent-color, 35%); color: darken($accent-color, 20%); }
+.status-danger { background-color: lighten($admin-color, 40%); color: darken($admin-color, 20%); }
+.status-default { background-color: #e5e7eb; color: #4b5568; }
+
 </style>

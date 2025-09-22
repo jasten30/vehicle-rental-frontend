@@ -3,14 +3,15 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
+// This config now securely reads from your .env.local file
 const firebaseConfig = {
-  apiKey: "AIzaSyAM-SDQ_8dNoFjlE3UtXF5Ivo-fmA3YhWg",
-  authDomain: "studied-jigsaw-463000-m8.firebaseapp.com",
-  projectId: "studied-jigsaw-463000-m8",
-  storageBucket: "studied-jigsaw-463000-m8.firebasestorage.app",
-  messagingSenderId: "643357345801",
-  appId: "1:643357345801:web:e637c319cc7c8cf17010d8",
-  measurementId: "G-ZY118HXGSQ"
+  apiKey: process.env.VUE_APP_FIREBASE_API_KEY,
+  authDomain: process.env.VUE_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.VUE_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.VUE_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.VUE_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.VUE_APP_FIREBASE_APP_ID,
+  measurementId: process.env.VUE_APP_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
@@ -23,3 +24,4 @@ const db = getFirestore(firebaseApp);
 const storage = getStorage(firebaseApp);
 
 export { auth, db, storage, firebaseApp };
+

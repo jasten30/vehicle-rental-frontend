@@ -12,7 +12,6 @@
         <p>You have no messages yet.</p>
       </div>
       <div v-else class="conversations-scroll-area">
-        <!-- UPDATED: Looping over 'sortedConversations' instead of 'conversations' -->
         <div
           v-for="chat in sortedConversations"
           :key="chat.id"
@@ -30,23 +29,20 @@
               class="avatar"
             />
             <div class="conversation-details">
-              <!-- UPDATED: User name is now bold if the chat is unread -->
               <p class="user-name" :class="{ 'unread-text': isUnread(chat) }">
                 {{ chat.otherUserDetails.name }}
               </p>
-              <!-- UPDATED: Last message is now bold if the chat is unread -->
               <p class="last-message" :class="{ 'unread-text': isUnread(chat) }">
                 {{ chat.lastMessage.text }}
               </p>
             </div>
-            <!-- NEW: Unread indicator dot -->
             <div v-if="isUnread(chat)" class="unread-indicator"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Right Column: Active Chat Window (No changes here) -->
+    <!-- Right Column: Active Chat Window -->
     <div class="chat-window">
       <div v-if="selectedConversation" class="chat-content-window">
         <div class="chat-header">
@@ -105,16 +101,14 @@ export default {
   computed: {
     ...mapGetters(['user']),
     ...mapState(['userChats']),
-    // NEW: This computed property automatically sorts conversations by the most recent message
     sortedConversations() {
       if (!this.userChats || this.userChats.length === 0) {
         return [];
       }
-      // Create a copy to avoid mutating state directly, then sort
       return [...this.userChats].sort((a, b) => {
         const timeA = a.lastMessage?.timestamp?.seconds || 0;
         const timeB = b.lastMessage?.timestamp?.seconds || 0;
-        return timeB - timeA; // Sort descending (newest first)
+        return timeB - timeA;
       });
     },
   },
@@ -133,7 +127,6 @@ export default {
     selectConversation(chat) {
       this.selectedConversation = chat;
       this.fetchMessages(chat.id);
-      // Mark the chat as read if it's unread
       if (this.isUnread(chat)) {
         this.markChatAsRead(chat.id);
       }
@@ -165,7 +158,6 @@ export default {
         alert('Could not send message.');
       }
     },
-    // NEW: This method checks if a chat has unread messages for the current user
     isUnread(chat) {
       if (!this.user || !chat.lastMessage?.readBy) {
         return false;
@@ -201,9 +193,16 @@ export default {
 
 .chat-container {
   display: flex;
-  height: calc(100vh - 70px); // Adjust based on your header height
   background-color: $card-background;
-  border-top: 1px solid $border-color;
+  
+  /* --- THIS IS THE FIX --- */
+  /* This makes the chat view a fixed element that fills the screen below the header */
+  position: fixed;
+  /* This value should match your main application header's height. Adjust if needed. */
+  top: 70px; 
+  left: 0;
+  width: 100%;
+  bottom: 0; /* This makes the container fill the remaining vertical space */
 }
 .conversation-list {
   width: 350px;
@@ -253,7 +252,7 @@ export default {
 }
 .conversation-details {
     flex-grow: 1;
-    overflow: hidden; /* Prevent details from pushing the dot out */
+    overflow: hidden; 
 }
 .user-name {
   font-weight: 600;
@@ -268,7 +267,6 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-// NEW: Styles for unread messages
 .unread-text {
     font-weight: 700;
     color: $text-color-dark !important;
@@ -278,7 +276,7 @@ export default {
     height: 12px;
     background-color: $primary-color;
     border-radius: 50%;
-    flex-shrink: 0; /* Prevent the dot from shrinking */
+    flex-shrink: 0;
     margin-left: 0.5rem;
 }
 .chat-window {
@@ -386,3 +384,4 @@ export default {
   }
 }
 </style>
+

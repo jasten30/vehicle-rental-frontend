@@ -50,7 +50,6 @@ export default {
   getAllBookings: (params) => apiClient.get('/bookings/all', { params }),
   getOwnerBookings: () => apiClient.get('/bookings/owner'),
   
-
   // Specific booking update functions
   updateBookingStatus: (bookingId, data) =>
     apiClient.put(`/bookings/${bookingId}/status`, data),
@@ -71,10 +70,9 @@ export default {
   approveBooking: (bookingId) => apiClient.put(`/bookings/${bookingId}/approve`),
   declineBooking: (bookingId) => apiClient.put(`/bookings/${bookingId}/decline`),
 
+  // Host Applications
   submitHostApplication: (applicationData) => apiClient.post('/users/submit-host-application', applicationData),
-
   getHostApplications: () => apiClient.get('/users/host-applications'),
-
   approveHostApplication: (applicationId, userId) => apiClient.put('/users/approve-host-application', { applicationId, userId }),
   declineHostApplication: (applicationId) => apiClient.put('/users/decline-host-application', { applicationId }),
 
@@ -82,4 +80,11 @@ export default {
   getUserChats: () => apiClient.get('/chats'),
   sendMessage: (chatId, text) => apiClient.post(`/chats/${chatId}/messages`, { text }),
   markChatAsRead: (chatId) => apiClient.put(`/chats/${chatId}/read`),
+
+  // Drive Application Endpoints
+  submitDriveApplication: (applicationData) => apiClient.post('/users/drive-application', applicationData),
+  getDriveApplications: () => apiClient.get('/admin/drive-applications'),
+  approveDriveApplication: (applicationId, userId) => apiClient.post('/admin/drive-applications/approve', { applicationId, userId }),
+  declineDriveApplication: (applicationId, userId) => apiClient.post('/admin/drive-applications/decline', { applicationId, userId }),
 };
+

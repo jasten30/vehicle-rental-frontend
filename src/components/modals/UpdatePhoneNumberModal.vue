@@ -2,12 +2,33 @@
   <div v-if="isOpen" class="modal-overlay" @click.self="closeModal">
     <div class="modal-card">
       <h3 class="modal-title">Change Phone Number</h3>
-      <p class="modal-subtitle">
-        Enter your new phone number. We'll send a code to verify it.
-      </p>
 
-      <!-- Step 1: Enter Phone Number -->
-      <div v-if="!confirmationResult" class="form-step">
+      <!-- Step 1: Enter Password -->
+      <div v-if="currentStep === 'password'" class="form-step">
+        <p class="modal-subtitle">
+          For your security, please enter your password to continue.
+        </p>
+        <div class="input-group">
+          <label for="current-password">Password</label>
+          <input
+            id="current-password"
+            v-model="password"
+            type="password"
+            placeholder="••••••••"
+            @keyup.enter="handlePasswordVerification"
+          />
+        </div>
+        <button @click="handlePasswordVerification" :disabled="isLoading" class="action-button">
+          <span v-if="isLoading">Verifying...</span>
+          <span v-else>Continue</span>
+        </button>
+      </div>
+
+      <!-- Step 2: Enter New Phone & Email Code -->
+      <div v-if="currentStep === 'verify'" class="form-step">
+        <p class="modal-subtitle">
+          Please enter your new phone number and the 6-digit code we sent to your email.
+        </p>
         <div class="input-group">
           <label for="new-phone-number">New Phone Number</label>
           <div class="phone-input-wrapper">
@@ -21,14 +42,6 @@
             />
           </div>
         </div>
-        <button @click="sendVerificationCode" :disabled="isLoading" class="action-button">
-          <span v-if="isLoading">Sending...</span>
-          <span v-else>Send Code</span>
-        </button>
-      </div>
-
-      <!-- Step 2: Enter Verification Code -->
-      <div v-else class="form-step">
         <div class="input-group">
           <label for="otp-code">Verification Code</label>
           <input
@@ -40,21 +53,17 @@
           />
         </div>
         <button @click="verifyCodeAndUpdatePhone" :disabled="isLoading" class="action-button">
-          <span v-if="isLoading">Verifying...</span>
+          <span v-if="isLoading">Verifying & Saving...</span>
           <span v-else>Verify & Save</span>
         </button>
       </div>
 
       <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-      
-      <!-- This container is required for the invisible reCAPTCHA's privacy badge -->
-      <div id="recaptcha-container-modal"></div>
     </div>
   </div>
 </template>
 
 <script>
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { mapActions } from 'vuex';
 
 export default {
@@ -65,10 +74,10 @@ export default {
   emits: ['close', 'phone-updated'],
   data() {
     return {
+      currentStep: 'password', // 'password' or 'verify'
+      password: '',
       phoneNumber: '',
       otpCode: '',
-      confirmationResult: null,
-      recaptchaVerifier: null,
       isLoading: false,
       errorMessage: '',
     };
@@ -85,19 +94,43 @@ export default {
     },
   },
   methods: {
-    ...mapActions(['updateUserProfile']),
+    ...mapActions(['reauthenticate', 'sendEmailVerificationCode', 'verifyEmailCode', 'updateUserProfile']),
     closeModal() {
       this.resetState();
       this.$emit('close');
     },
     resetState() {
+        this.currentStep = 'password';
+        this.password = '';
         this.phoneNumber = '';
         this.otpCode = '';
-        this.confirmationResult = null;
         this.isLoading = false;
         this.errorMessage = '';
     },
-    async sendVerificationCode() {
+    async handlePasswordVerification() {
+      if (!this.password) {
+          this.errorMessage = "Please enter your password.";
+          return;
+      }
+      this.isLoading = true;
+      this.errorMessage = '';
+      try {
+        // Step 1: Verify the user's current password.
+        await this.reauthenticate(this.password);
+        
+        // Step 2: If password is correct, send the verification code to their email.
+        await this.sendEmailVerificationCode();
+
+        // Step 3: Advance to the next step in the modal.
+        this.currentStep = 'verify';
+      } catch (error) {
+        this.errorMessage = error.response?.data?.message || 'Password verification failed. Please try again.';
+        console.error("Re-authentication error:", error);
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    async verifyCodeAndUpdatePhone() {
       this.isLoading = true;
       this.errorMessage = '';
       if (this.phoneNumber.length !== 13) {
@@ -105,46 +138,26 @@ export default {
         this.isLoading = false;
         return;
       }
-      
-      // Use setTimeout with a 0ms delay to push this logic to the end of the
-      // browser's execution queue. This guarantees the DOM is fully rendered
-      // and the reCAPTCHA container exists before the script runs.
-      setTimeout(async () => {
-          try {
-            const auth = getAuth();
-            this.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container-modal', { size: 'invisible' });
-            
-            // Explicitly render and wait for it to be ready
-            await this.recaptchaVerifier.render();
-
-            this.confirmationResult = await signInWithPhoneNumber(auth, this.phoneNumber, this.recaptchaVerifier);
-            this.isLoading = false; // Stop loading only on success
-          } catch (error) {
-            console.error("Firebase SMS send error:", error);
-            this.errorMessage = 'Failed to send SMS. Please try again later.';
-            this.isLoading = false; // Stop loading on error
-          }
-      }, 0);
-    },
-    async verifyCodeAndUpdatePhone() {
-      this.isLoading = true;
-      this.errorMessage = '';
-      if (!this.otpCode || this.otpCode.length < 6) {
-        this.errorMessage = "Please enter a valid 6-digit code.";
+       if (!this.otpCode || this.otpCode.length < 6) {
+        this.errorMessage = "Please enter the 6-digit code from your email.";
         this.isLoading = false;
         return;
       }
+
       try {
-        await this.confirmationResult.confirm(this.otpCode);
-        await this.updateUserProfile({ 
-            phoneNumber: this.phoneNumber, 
-            isMobileVerified: true 
+        // Step 1: Verify the code sent to their email.
+        await this.verifyEmailCode(this.otpCode);
+        
+        // Step 2: If the code is correct, update their profile with the new number.
+        await this.updateUserProfile({
+            phoneNumber: this.phoneNumber,
+            isMobileVerified: true // Mark the new number as verified
         });
         this.$emit('phone-updated');
         this.closeModal();
       } catch (error) {
-        console.error("Firebase OTP verification error:", error);
-        this.errorMessage = 'The verification code is invalid. Please try again.';
+        console.error("Code verification or phone update error:", error);
+        this.errorMessage = error.response?.data?.message || 'Verification failed. The code may be incorrect.';
       } finally {
         this.isLoading = false;
       }
@@ -177,10 +190,12 @@ export default {
   font-size: 1.5rem;
   font-weight: 600;
   margin: 0 0 0.5rem;
+  text-align: center;
 }
 .modal-subtitle {
   margin: 0 0 1.5rem;
   color: #64748b;
+  text-align: center;
 }
 .input-group {
   margin-bottom: 1rem;
@@ -209,6 +224,7 @@ export default {
     padding: 0.75rem;
     border: 1px solid #cbd5e1;
     border-radius: 0.5rem;
+    box-sizing: border-box;
 }
 .action-button {
   width: 100%;
@@ -220,6 +236,10 @@ export default {
   font-weight: 600;
   cursor: pointer;
 }
+.action-button:disabled {
+    background-color: #93c5fd;
+    cursor: not-allowed;
+}
 .error-message {
   color: #ef4444;
   background-color: #fee2e2;
@@ -227,11 +247,6 @@ export default {
   border-radius: 0.5rem;
   text-align: center;
   margin-top: 1rem;
-}
-#recaptcha-container-modal {
-  margin-top: 1rem;
-  display: flex;
-  justify-content: center;
 }
 </style>
 

@@ -61,11 +61,11 @@
       </table>
     </div>
 
+    <!-- The modal no longer needs to handle payment confirmation -->
     <AdminBookingDetailsModal
       :is-open="isModalOpen"
       :booking="selectedBooking"
       @close="isModalOpen = false"
-      @confirm-payment="handleConfirmPayment"
     />
   </div>
 </template>
@@ -92,7 +92,8 @@ export default {
     ...mapGetters(['allBookings']),
   },
   methods: {
-    ...mapActions(['fetchAllBookings', 'confirmBookingPayment']),
+    // REMOVED: `confirmBookingPayment` is no longer needed
+    ...mapActions(['fetchAllBookings']),
     async fetchData() {
       this.loading = true;
       this.error = null;
@@ -117,11 +118,13 @@ export default {
       switch (status) {
         case 'confirmed':
         case 'completed':
+        case 'returned': // Added returned status
           return 'status-success';
+        case 'pending_owner_approval': // Added pending status
         case 'pending_payment':
-        case 'pending_verification':
           return 'status-warning';
         case 'cancelled':
+        case 'declined_by_owner': // Added declined status
           return 'status-danger';
         default:
           return 'status-default';
@@ -131,18 +134,7 @@ export default {
       this.selectedBooking = booking;
       this.isModalOpen = true;
     },
-    async handleConfirmPayment(bookingId) {
-      if (!confirm('Are you sure you want to confirm this payment?')) return;
-
-      try {
-        await this.confirmBookingPayment(bookingId);
-        this.isModalOpen = false;
-        await this.fetchData(); // Refresh list to show updated status
-      } catch (error) {
-        alert('Failed to confirm payment. Please check the console for details.');
-        console.error('Confirmation error:', error);
-      }
-    },
+    // REMOVED: The handleConfirmPayment method is no longer needed
   },
   created() {
     this.fetchData();
@@ -156,6 +148,7 @@ export default {
 .admin-page-container {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 1rem;
 }
 .section-title {
   font-size: 2.5rem;
@@ -211,6 +204,7 @@ tbody tr:hover {
   border-radius: $border-radius-pill;
   font-weight: 600;
   font-size: 0.8rem;
+  text-transform: capitalize;
 
   &.status-success {
     background-color: lighten($secondary-color, 35%);

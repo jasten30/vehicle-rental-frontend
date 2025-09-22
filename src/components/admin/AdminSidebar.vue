@@ -38,6 +38,19 @@
             <span>Host Applications</span>
           </router-link>
         </li>
+        <!-- NEW: Link to Driver Applications -->
+        <li>
+          <router-link :to="{ name: 'AdminDriveApplications' }" class="nav-link">
+            <i class="bi bi-person-vcard"></i>
+            <span>Driver Applications</span>
+          </router-link>
+        </li>
+        <li>
+          <router-link :to="{ name: 'AdminReports' }" class="nav-link">
+            <i class="bi bi-flag-fill"></i>
+            <span>Reports</span>
+          </router-link>
+        </li>
       </ul>
     </nav>
     <div class="sidebar-footer">
@@ -60,7 +73,6 @@ export default {
     const router = useRouter();
 
     const handleLogout = () => {
-      // Use the non-namespaced 'logout' action from your root store
       store.dispatch('logout').then(() => {
         router.push('/login');
       });
@@ -164,3 +176,4 @@ export default {
   }
 }
 </style>
+

@@ -7,26 +7,9 @@
         <h2 class="login-title">Welcome Back</h2>
         <p class="login-subtitle">Sign in to continue to RentCycle</p>
 
-        <div class="login-tabs">
-          <button
-            @click="loginMethod = 'email'"
-            :class="{ active: loginMethod === 'email' }"
-          >
-            <i class="bi bi-envelope-fill"></i> Email
-          </button>
-          <button
-            @click="loginMethod = 'phone'"
-            :class="{ active: loginMethod === 'phone' }"
-          >
-            <i class="bi bi-phone-fill"></i> Phone
-          </button>
-        </div>
+        <!-- Phone login functionality and tabs have been removed for a cleaner interface -->
 
-        <form
-          @submit.prevent="handleLogin"
-          class="login-form"
-          v-if="loginMethod === 'email'"
-        >
+        <form @submit.prevent="handleLogin" class="login-form">
           <div class="form-group">
             <label for="email">Email</label>
             <input
@@ -53,58 +36,11 @@
           </button>
         </form>
 
-        <div class="login-form" v-if="loginMethod === 'phone'">
-          <div class="form-group">
-            <label for="phoneNumber">Phone Number</label>
-            <div class="phone-input-wrapper">
-              <span class="phone-prefix">+63</span>
-              <input
-                type="text"
-                id="phoneNumber"
-                v-model="localPhoneNumber"
-                placeholder="9171234567"
-                :disabled="otpSent"
-              />
-            </div>
-          </div>
-          <div v-if="otpSent" class="form-group">
-            <label for="otp-code">Verification Code</label>
-            <input
-              type="text"
-              id="otp-code"
-              v-model="otpCode"
-              placeholder="123456"
-              maxlength="6"
-            />
-          </div>
-          <button
-            v-if="!otpSent"
-            @click="sendSmsOtp"
-            :disabled="loading"
-            class="login-button"
-          >
-            <span v-if="loading" class="spinner"></span>
-            <span v-else>Send Code</span>
-          </button>
-          <button
-            v-if="otpSent"
-            @click="handlePhoneLogin"
-            :disabled="loading"
-            class="login-button"
-          >
-            <span v-if="loading" class="spinner"></span>
-            <span v-else>Sign In with Code</span>
-          </button>
-        </div>
-
         <p v-if="error" class="error-message">{{ error }}</p>
         <p class="register-link">
           Don't have an account?
           <router-link to="/register">Sign up</router-link>
         </p>
-        
-        <!-- This container is still required for the invisible reCAPTCHA's privacy badge -->
-        <div id="recaptcha-container"></div>
       </div>
     </div>
   </div>
@@ -112,42 +48,24 @@
 
 <script>
 import { mapActions } from 'vuex';
-import {
-  getAuth,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-} from 'firebase/auth';
+
+// Firebase phone auth imports are no longer needed here
+// import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 
 export default {
   name: 'LoginView',
   data() {
     return {
-      loginMethod: 'email',
+      // All data properties related to phone login have been removed
       email: '',
       password: '',
-      phoneNumber: '',
-      otpSent: false,
-      otpCode: '',
       loading: false,
       error: null,
-      confirmationResult: null,
-      recaptchaVerifier: null,
     };
   },
-  computed: {
-    localPhoneNumber: {
-      get() {
-        return this.phoneNumber.replace(/^\+63/, '');
-      },
-      set(value) {
-        const sanitizedValue = value.replace(/\D/g, '').slice(0, 10);
-        this.phoneNumber = `+63${sanitizedValue}`;
-      },
-    },
-  },
-  // The mounted() hook is no longer needed for reCAPTCHA initialization
+  // Computed property for phone number is no longer needed
   methods: {
-    ...mapActions(['login', 'tokenLogin']),
+    ...mapActions(['login']), // 'tokenLogin' action is no longer needed
     async handleLogin() {
       this.loading = true;
       this.error = null;
@@ -159,66 +77,7 @@ export default {
         this.loading = false;
       }
     },
-    async sendSmsOtp() {
-      this.loading = true;
-      this.error = null;
-      if (!this.phoneNumber || this.phoneNumber.length < 13) {
-          this.error = "Please enter a valid 10-digit phone number.";
-          this.loading = false;
-          return;
-      }
-
-      try {
-        const auth = getAuth();
-        
-        // --- THIS IS THE FIX ---
-        // We now initialize the verifier right before we use it.
-        // This guarantees the 'recaptcha-container' div is in the DOM.
-        this.recaptchaVerifier = new RecaptchaVerifier(
-          auth,
-          'recaptcha-container',
-          {
-            size: 'invisible',
-            'callback': () => {
-              // This callback is for the invisible widget to proceed.
-            },
-          }
-        );
-
-        this.confirmationResult = await signInWithPhoneNumber(
-          auth,
-          this.phoneNumber,
-          this.recaptchaVerifier
-        );
-        this.otpSent = true;
-      } catch (error) {
-        this.error = 'Failed to send SMS. Please check the number or try again later.';
-        console.error('SMS Send Error:', error);
-      } finally {
-        this.loading = false;
-      }
-    },
-    async handlePhoneLogin() {
-      this.loading = true;
-      this.error = null;
-      if (!this.otpCode || this.otpCode.length < 6) {
-          this.error = "Please enter the 6-digit verification code.";
-          this.loading = false;
-          return;
-      }
-      try {
-        const userCredential = await this.confirmationResult.confirm(
-          this.otpCode
-        );
-        const idToken = await userCredential.user.getIdToken();
-        this.$store.commit('SET_AUTH_TOKEN', idToken);
-        await this.tokenLogin();
-      } catch (error) {
-        this.error = 'Invalid verification code. Please try again.';
-      } finally {
-        this.loading = false;
-      }
-    },
+    // The sendSmsOtp and handlePhoneLogin methods have been removed
   },
 };
 </script>
@@ -279,6 +138,7 @@ export default {
   margin-bottom: 2rem;
 }
 
+/* Login tabs are no longer displayed, so these styles could be removed if not used elsewhere */
 .login-tabs {
   display: flex;
   margin-bottom: 1.5rem;
@@ -391,25 +251,6 @@ export default {
     }
   }
 }
-
-.phone-input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-.phone-prefix {
-  position: absolute;
-  left: 0.75rem;
-  font-size: 1rem;
-  color: $text-color-medium;
-}
-#phoneNumber {
-  padding-left: 3.5rem;
-}
-#recaptcha-container {
-  position: fixed;
-  bottom: 0;
-  right: 0;
-}
+/* Styles for phone input are no longer needed */
 </style>
 

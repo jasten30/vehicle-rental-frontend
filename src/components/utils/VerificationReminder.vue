@@ -1,19 +1,21 @@
 <template>
-  <div
-    v-if="!isEmailVerified || !isMobileVerified"
-    class="verification-reminder-banner"
-  >
-    <div class="reminder-icon">
-      <i class="bi bi-exclamation-triangle-fill"></i>
-    </div>
-    <div class="reminder-content">
-      <div class="reminder-text">
-        <h4>Complete Your Verification</h4>
-        <p>{{ reminderText }}</p>
+  <div class="reminders-container">
+    <!-- Highest priority: Remind user to get approved to drive -->
+    <div v-if="!isApprovedToDrive" class="reminder-banner warning">
+      <div class="banner-content">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <p>To book or list a vehicle, you need to be approved to drive. Complete your application now.</p>
       </div>
-      <button @click="$emit('verify-now')" class="verify-now-button">
-        Verify Now
-      </button>
+      <button @click="$emit('approve-to-drive')" class="action-button">Complete Application</button>
+    </div>
+
+    <!-- Secondary reminder for email/phone, only shown if user is already approved to drive -->
+    <div v-if="(!isEmailVerified || !isMobileVerified) && isApprovedToDrive" class="reminder-banner info">
+      <div class="banner-content">
+        <i class="bi bi-info-circle-fill"></i>
+        <p>Complete your profile by verifying your email and mobile number.</p>
+      </div>
+      <button @click="$emit('verify-now')" class="action-button">Verify Now</button>
     </div>
   </div>
 </template>
@@ -22,95 +24,84 @@
 export default {
   name: 'VerificationReminder',
   props: {
-    isEmailVerified: {
-      type: Boolean,
-      default: false,
-    },
-    isMobileVerified: {
-      type: Boolean,
-      default: false,
-    },
+    isEmailVerified: Boolean,
+    isMobileVerified: Boolean,
+    isApprovedToDrive: Boolean,
   },
-  emits: ['verify-now'],
-  computed: {
-    // This computed property creates a clean, natural language string
-    reminderText() {
-      const items = [];
-      if (!this.isMobileVerified) {
-        items.push('Phone Number');
-      }
-      if (!this.isEmailVerified) {
-        items.push('Email Address');
-      }
-      return `To unlock all features, please verify your ${items.join(' and ')}.`;
-    },
-  },
+  emits: ['verify-now', 'approve-to-drive'],
 };
 </script>
 
 <style lang="scss" scoped>
 @import '@/assets/styles/variables.scss';
 
-.verification-reminder-banner {
-  background-color: #fffbeb; // Light yellow
-  border: 1px solid #fde68a; // Lighter yellow border
-  border-radius: $border-radius-lg;
-  padding: 1rem 1.5rem; // Reduced padding
-  margin-bottom: 2rem;
-  display: flex;
-  align-items: center; // Vertically center content
-  gap: 1rem; // Reduced gap
-  box-shadow: $shadow-light;
+.reminders-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
 }
 
-.reminder-icon {
-  font-size: 1.5rem; // Reduced icon size
-  color: #f59e0b; // Amber color
-  flex-shrink: 0;
-}
-
-.reminder-content {
-  flex-grow: 1;
+.reminder-banner {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1.5rem;
+  padding: 1rem 1.5rem;
+  border-radius: $border-radius-lg;
+  border: 1px solid;
 
-  // Stack on smaller screens
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
+  &.info {
+    background-color: #eff6ff;
+    border-color: #bfdbfe;
+    color: #1e40af;
+  }
+
+  &.warning {
+    background-color: #fefce8;
+    border-color: #fde68a;
+    color: #854d0e;
+  }
+}
+
+.banner-content {
+    display: flex;
+    align-items: center;
     gap: 1rem;
-  }
+    
+    i {
+        font-size: 1.5rem;
+    }
+
+    p {
+        margin: 0;
+        font-weight: 500;
+    }
 }
 
-.reminder-text {
-  h4 {
-    margin: 0 0 0.25rem 0;
-    font-size: 1.1rem; // Reduced font size
-    color: $text-color-dark;
-  }
+.action-button {
+    padding: 0.6rem 1.2rem;
+    border-radius: $border-radius-md;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border: none;
+    white-space: nowrap;
 
-  p {
-    margin: 0;
-    color: $text-color-medium;
-    font-size: 0.9rem; // Reduced font size
-  }
-}
+    .info & {
+        background-color: #3b82f6;
+        color: white;
+        &:hover {
+            background-color: darken(#3b82f6, 10%);
+        }
+    }
 
-.verify-now-button {
-  background-color: $primary-color;
-  color: white;
-  padding: 0.5rem 1.25rem; // Reduced padding
-  border-radius: $border-radius-pill;
-  border: none;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-  white-space: nowrap; // Prevent button from wrapping
-
-  &:hover {
-    background-color: darken($primary-color, 10%);
-  }
+    .warning & {
+        background-color: #f59e0b;
+        color: white;
+         &:hover {
+            background-color: darken(#f59e0b, 10%);
+        }
+    }
 }
 </style>
+

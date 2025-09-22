@@ -50,6 +50,28 @@
     <!-- Local error message display -->
     <div v-if="errorMessage" class="booking-message error">{{ errorMessage }}</div>
 
+    <!-- Location Section -->
+    <hr class="divider" />
+    <div class="location-section">
+      <div class="location-item">
+        <span>Pickup location</span>
+        <span class="location-value">{{ pickupLocation }}</span>
+      </div>
+       <div class="location-item">
+        <span>Return location</span>
+        <span class="location-value">{{ pickupLocation }}</span>
+      </div>
+    </div>
+
+    <!-- Report Button Section -->
+    <div class="report-section">
+        <!-- UPDATED: This button now opens the report modal -->
+        <button class="report-button" @click="isReportModalOpen = true">
+            <i class="bi bi-flag"></i>
+            <span>Report this listing</span>
+        </button>
+    </div>
+
     <!-- DateRangePicker component -->
     <DateRangePicker
       v-if="showDatePicker"
@@ -59,17 +81,25 @@
       @close="showDatePicker = false"
       @save="handleDateSave"
     />
+    
+    <!-- NEW: Report Listing Modal component -->
+    <ReportListingModal
+      :is-open="isReportModalOpen"
+      :vehicle="vehicle"
+      @close="isReportModalOpen = false"
+    />
   </div>
 </template>
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
 import DateRangePicker from "@/components/HomeViewComponents/DateRangePicker.vue";
+import ReportListingModal from "@/components/modals/ReportListingModal.vue"; // NEW: Import modal
 import { DateTime } from "luxon";
 
 export default {
   name: "BookingBox",
-  components: { DateRangePicker },
+  components: { DateRangePicker, ReportListingModal }, // NEW: Register modal
   props: {
     vehicle: Object,
     unavailableDates: {
@@ -80,11 +110,11 @@ export default {
   data() {
     return {
       showDatePicker: false,
-      // Local state for dates and booking status
       startDate: null,
       endDate: null,
       bookingLoading: false,
       errorMessage: null,
+      isReportModalOpen: false, // NEW: State to control the report modal
     };
   },
   computed: {
@@ -108,19 +138,20 @@ export default {
       if (this.tripDuration <= 0) return 0;
       return this.vehicle.rentalPricePerDay * this.tripDuration;
     },
+    pickupLocation() {
+        if (this.vehicle && this.vehicle.location) {
+            return `${this.vehicle.location.barangay}, ${this.vehicle.location.city}`;
+        }
+        return 'Location not specified';
+    }
   },
   methods: {
-    // This component now has direct access to the Vuex action
     ...mapActions(['createBooking']),
-
-    // Receives the saved dates from the date picker
     handleDateSave(dates) {
       this.startDate = dates.startDate;
       this.endDate = dates.endDate;
       this.showDatePicker = false;
     },
-
-    // The entire booking logic is now encapsulated within this component
     async handleBookingRequest() {
       this.bookingLoading = true;
       this.errorMessage = null;
@@ -136,17 +167,14 @@ export default {
       }
 
       try {
-        // Constructs the complete payload, including the crucial `totalCost`
         const bookingPayload = {
           vehicleId: this.vehicle.id,
           startDate: this.startDate,
           endDate: this.endDate,
-          totalCost: this.totalPrice, // This was the missing piece
+          totalCost: this.totalPrice,
         };
         
-        // Dispatches the Vuex action directly
         await this.createBooking(bookingPayload);
-        // The Vuex action will handle successful redirection
       } catch (error) {
         this.errorMessage = error.response?.data?.message || 'An unexpected error occurred.';
       } finally {
@@ -266,6 +294,57 @@ export default {
     background-color: lighten($admin-color, 40%);
     color: darken($admin-color, 10%);
   }
+}
+
+.divider {
+    border: none;
+    height: 1px;
+    background-color: $border-color;
+    margin: 1.5rem 0;
+}
+
+.location-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.location-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: $text-color-medium;
+
+    .location-value {
+        font-weight: 600;
+        color: $text-color-dark;
+    }
+}
+
+.report-section {
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+.report-button {
+    background: none;
+    border: none;
+    color: $text-color-medium;
+    cursor: pointer;
+    font-weight: 600;
+    text-decoration: underline;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+
+    &:hover {
+        color: $text-color-dark;
+    }
+
+    i {
+        font-size: 1rem;
+    }
 }
 </style>
 

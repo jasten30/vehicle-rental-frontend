@@ -30,6 +30,8 @@ import AdminDashboardView from '../views/Dashboard/Admin/AdminDashboardView.vue'
 import AdminHostApplicationsView from '../views/Dashboard/Admin/AdminHostApplicationsView.vue';
 import BookingStatusView from '../views/Dashboard/BookingStatusView.vue';
 import ChatView from '../views/Dashboard/ChatView.vue';
+// NEW: Import the component for the dedicated driver application page
+import BecomeDriveVerified from '../views/Dashboard/BecomeDriveVerified.vue';
 
 const dashboardRoutes = [
   {
@@ -71,6 +73,13 @@ const dashboardRoutes = [
         path: 'inbox',
         name: 'Chat',
         component: ChatView,
+        meta: { requiresAuth: true },
+      },
+      // NEW: Route for the "Approved to Drive" application page
+      {
+        path: 'verify-driver',
+        name: 'BecomeDriveVerified',
+        component: BecomeDriveVerified,
         meta: { requiresAuth: true },
       },
       {
@@ -125,12 +134,10 @@ const dashboardRoutes = [
       {
         path: 'calendar/:vehicleId',
         name: 'VehicleCalendar',
-        // CORRECTED PATH: Changed 'owner' to 'Owner' to match the actual folder name.
         component: () => import('@/views/Owner/VehicleCalendarView.vue'),
         props: true,
         meta: { requiresAuth: true, authorize: ['owner', 'admin'] }
       },
-      // Admin specific routes
       {
         path: 'admin',
         component: AdminLayout,
@@ -164,6 +171,19 @@ const dashboardRoutes = [
             path: 'host-applications',
             name: 'AdminHostApplications',
             component: AdminHostApplicationsView,
+            meta: { requiresAuth: true, authorize: ['admin'] },
+          },
+          {
+            path: 'driver-applications',
+            name: 'AdminDriveApplications',
+            component: () => import('@/views/Dashboard/Admin/AdminDriveApplicationsView.vue'),
+            meta: { requiresAuth: true, authorize: ['admin'] },
+          },
+          // THIS IS THE NEW ROUTE TO FIX THE ERROR
+          {
+            path: 'reports',
+            name: 'AdminReports',
+            component: () => import('@/views/Dashboard/Admin/AdminReportsView.vue'),
             meta: { requiresAuth: true, authorize: ['admin'] },
           },
         ],

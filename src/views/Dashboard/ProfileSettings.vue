@@ -4,7 +4,9 @@
       v-if="profileData && isOwnProfile"
       :is-email-verified="isEmailVerified"
       :is-mobile-verified="isMobileVerified"
-      @verify-now="openEditModal"
+      :is-approved-to-drive="isApprovedToDrive"
+      @verify-now="startEmailVerification"
+      @approve-to-drive="goToApplicationPage"
     />
 
     <div v-if="!profileData" class="loading-state">
@@ -69,7 +71,7 @@
               <div class="item-label">
                 <span v-if="isApprovedToDrive" class="check-icon">✓</span>
                 <span v-else class="cross-icon">×</span>
-                Verified
+                Approved to Drive
               </div>
             </li>
             <li class="verification-item">
@@ -82,14 +84,14 @@
                 <span class="item-value">{{
                   profileData.phoneNumber || 'Not set'
                 }}</span>
-                <button
+                 <button
                   v-if="isOwnProfile && !isMobileVerified"
-                  @click="startPhoneVerification"
+                  @click="startPhoneVerificationViaEmail"
                   class="change-button verify-button"
                 >
                   Verify
                 </button>
-                <button
+                 <button
                   v-if="isOwnProfile && isMobileVerified"
                   @click="openChangePhoneModal"
                   class="change-button"
@@ -98,18 +100,16 @@
                 </button>
               </div>
             </li>
-            <li v-if="isVerifyingPhone" class="phone-verification-ui">
-                <p class="verification-instructions">Enter the code sent to {{ profileData.phoneNumber }}.</p>
+            <li v-if="isVerifyingPhone" class="email-verification-ui">
+                <p class="verification-instructions">To verify your phone, enter the 6-digit code we sent to your email address: {{profileData.email}}.</p>
                 <div class="form-group">
-                    <input type="text" v-model="otpCode" placeholder="123456" maxlength="6" />
-                    <button @click="submitVerificationCode" :disabled="verificationLoading" class="submit-otp-button">
+                    <input type="text" v-model="verificationCode" placeholder="123456" maxlength="6" />
+                    <button @click="submitPhoneVerificationCode" :disabled="verificationLoading" class="submit-otp-button">
                         <span v-if="verificationLoading">Verifying...</span>
-                        <span v-else>Submit Code</span>
+                        <span v-else>Submit</span>
                     </button>
                 </div>
-                <!-- This container will now be reliably present when the verification UI is visible -->
-                <div id="recaptcha-container-profile"></div>
-                <p v-if="verificationError" class="error-message small">{{ verificationError }}</p>
+                 <p v-if="verificationMessage" :class="verificationStatusIsError ? 'error-message small' : 'success-message small'">{{ verificationMessage }}</p>
             </li>
             <li class="verification-item">
               <div class="item-label">
@@ -117,7 +117,29 @@
                 <span v-else class="cross-icon">×</span>
                 Email Address
               </div>
-              <span class="item-value">{{ profileData.email }}</span>
+               <div class="value-and-action">
+                <span class="item-value">{{ profileData.email }}</span>
+                 <button
+                  v-if="isOwnProfile && !isEmailVerified"
+                  @click="startEmailVerification"
+                  class="change-button verify-button"
+                >
+                  Verify
+                </button>
+              </div>
+            </li>
+            <li v-if="isVerifyingEmail" class="email-verification-ui">
+                <p v-if="!emailCodeSent" class="verification-instructions">Click the button to send a verification code to your email.</p>
+                <p v-else class="verification-instructions">Enter the 6-digit code sent to {{profileData.email}}.</p>
+
+                <div v-if="emailCodeSent" class="form-group">
+                    <input type="text" v-model="emailOtpCode" placeholder="123456" maxlength="6" />
+                    <button @click="submitEmailCode" :disabled="verificationLoading" class="submit-otp-button">
+                        <span v-if="verificationLoading">Verifying...</span>
+                        <span v-else>Submit</span>
+                    </button>
+                </div>
+                 <p v-if="emailVerificationMessage" :class="emailVerificationStatusIsError ? 'error-message small' : 'success-message small'">{{ emailVerificationMessage }}</p>
             </li>
           </ul>
         </div>
@@ -131,19 +153,12 @@
       </div>
 
       <div class="profile-right-section">
-        <h4>
-          {{ isOwnProfile ? 'My' : `${profileData.firstName}'s` }} Vehicles
-        </h4>
-        <p>
-          {{
-            isOwnProfile
-              ? 'Your listed vehicles will appear here.'
-              : `Vehicles hosted by ${profileData.firstName} will appear here.`
-          }}
-        </p>
+          <h4>{{ isOwnProfile ? 'My' : `${profileData.firstName}'s` }} Vehicles</h4>
+          <p>Your listed vehicles will appear here.</p>
       </div>
     </div>
 
+    <!-- The modal no longer needs the start-step prop -->
     <EditProfileModal
       v-if="profileData"
       :is-open="isEditModalOpen"
@@ -164,7 +179,6 @@
 import { mapGetters, mapActions } from 'vuex';
 import { db } from '@/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import EditProfileModal from '@/components/modals/EditProfileModal.vue';
 import VerificationReminder from '@/components/utils/VerificationReminder.vue';
 import UpdatePhoneNumberModal from '@/components/modals/UpdatePhoneNumberModal.vue';
@@ -185,12 +199,16 @@ export default {
       isEditModalOpen: false,
       isChangePhoneModalOpen: false,
       initialsDataUrl: null,
+      isVerifyingEmail: false,
+      emailCodeSent: false,
+      emailOtpCode: '',
+      emailVerificationMessage: '',
+      emailVerificationStatusIsError: false,
       isVerifyingPhone: false,
+      verificationCode: '',
+      verificationMessage: '',
+      verificationStatusIsError: false,
       verificationLoading: false,
-      otpCode: '',
-      confirmationResult: null,
-      recaptchaVerifier: null,
-      verificationError: '',
     };
   },
   computed: {
@@ -211,15 +229,31 @@ export default {
     isEmailVerified() {
       return this.profileData?.emailVerified === true;
     },
-    initials() {
+     initials() {
       if (!this.profileData) return '';
       const name = this.profileData.firstName || this.profileData.name || 'User';
-      return name.split(' ').map((n) => n[0]).join('').toUpperCase().substring(0, 2);
+      return name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2);
     },
     formattedJoinDate() {
-      if (this.profileData?.createdAt?.toDate) {
-        const date = this.profileData.createdAt.toDate();
-        return `Joined in ${date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}`;
+      if (this.profileData && this.profileData.createdAt) {
+        const createdAt = this.profileData.createdAt;
+        let date;
+        if (typeof createdAt.toDate === 'function') {
+          date = createdAt.toDate();
+        } else if (createdAt._seconds) {
+          date = new Date(createdAt._seconds * 1000);
+        } else {
+          date = new Date(createdAt);
+        }
+        if (!isNaN(date)) {
+          const options = { year: 'numeric', month: 'long' };
+          return `Joined in ${date.toLocaleDateString('en-US', options)}`;
+        }
       }
       return 'N/A';
     },
@@ -232,7 +266,7 @@ export default {
     },
   },
   watch: {
-    initials: {
+     initials: {
       immediate: true,
       handler(newInitials) {
         if (newInitials) this.generateInitialsImage(newInitials);
@@ -243,15 +277,13 @@ export default {
       handler(newId) {
         if (newId && !this.isOwnProfile) {
           this.fetchOtherUserProfile(newId);
-        } else {
-          this.profileUser = null;
         }
       },
     },
   },
   methods: {
-    ...mapActions(['fetchUserProfile', 'updateUserProfile']),
-    generateInitialsImage(initials) {
+    ...mapActions(['fetchUserProfile', 'sendEmailVerificationCode', 'verifyEmailCode', 'updateUserProfile']),
+     generateInitialsImage(initials) {
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       const size = 150;
@@ -286,55 +318,88 @@ export default {
         console.error('Error fetching user profile:', error);
       }
     },
-    async startPhoneVerification() {
+    async startEmailVerification() {
+        this.isVerifyingEmail = true;
+        this.verificationLoading = true;
+        this.emailVerificationMessage = 'Sending code...';
+        this.emailVerificationStatusIsError = false;
+        try {
+            await this.sendEmailVerificationCode();
+            this.emailCodeSent = true;
+            this.emailVerificationMessage = 'A verification code has been sent to your email.';
+        } catch (error) {
+            this.emailVerificationMessage = 'Failed to send code. Please try again.';
+            this.emailVerificationStatusIsError = true;
+        } finally {
+            this.verificationLoading = false;
+        }
+    },
+    async submitEmailCode() {
+        if (!this.emailOtpCode || this.emailOtpCode.length < 6) {
+            this.emailVerificationMessage = "Please enter the 6-digit code.";
+            this.emailVerificationStatusIsError = true;
+            return;
+        }
+        this.verificationLoading = true;
+        try {
+            await this.verifyEmailCode(this.emailOtpCode);
+            this.emailVerificationMessage = 'Success! Your email has been verified.';
+            await this.fetchUserProfile();
+            setTimeout(() => { this.isVerifyingEmail = false; }, 2000);
+        } catch (error) {
+            this.emailVerificationMessage = error.response?.data?.message || 'Verification failed.';
+            this.emailVerificationStatusIsError = true;
+        } finally {
+            this.verificationLoading = false;
+        }
+    },
+    async startPhoneVerificationViaEmail() {
         if (!this.profileData.phoneNumber) {
-            alert("Please set a phone number first in your profile settings.");
+            alert('Please add a phone number in your profile before verifying.');
             this.openEditModal();
             return;
         }
         this.isVerifyingPhone = true;
-        this.verificationError = '';
         this.verificationLoading = true;
-
-        setTimeout(async () => {
-            try {
-                const auth = getAuth();
-                this.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container-profile', {
-                    'size': 'invisible',
-                });
-                
-                await this.recaptchaVerifier.render();
-
-                this.confirmationResult = await signInWithPhoneNumber(auth, this.profileData.phoneNumber, this.recaptchaVerifier);
-                this.verificationLoading = false;
-            } catch (error) {
-                this.verificationError = "Failed to send SMS. Please try again later.";
-                console.error("Firebase SMS send error:", error);
-                this.isVerifyingPhone = false;
-                this.verificationLoading = false;
-            }
-        }, 0);
-    },
-    async submitVerificationCode() {
-        if (!this.otpCode || this.otpCode.length < 6) {
-            this.verificationError = "Please enter a valid 6-digit code.";
-            return;
-        }
-        this.verificationLoading = true;
-        this.verificationError = '';
-
+        this.verificationMessage = 'Sending verification code to your email...';
+        this.verificationStatusIsError = false;
         try {
-            await this.confirmationResult.confirm(this.otpCode);
-            await this.updateUserProfile({ isMobileVerified: true });
-            await this.fetchUserProfile();
-            this.isVerifyingPhone = false;
-            this.otpCode = '';
+            await this.sendEmailVerificationCode();
+            this.verificationMessage = 'Code sent! Please check your email.';
         } catch (error) {
-            this.verificationError = "Invalid code. Please try again.";
-            console.error("Firebase OTP verification error:", error);
+            this.verificationMessage = 'Failed to send code. Please try again.';
+            this.verificationStatusIsError = true;
         } finally {
             this.verificationLoading = false;
         }
+    },
+    async submitPhoneVerificationCode() {
+        if (!this.verificationCode || this.verificationCode.length < 6) {
+            this.verificationMessage = "Please enter the 6-digit code from your email.";
+            this.verificationStatusIsError = true;
+            return;
+        }
+        this.verificationLoading = true;
+        try {
+            await this.verifyEmailCode(this.verificationCode);
+            await this.updateUserProfile({ isMobileVerified: true });
+            this.verificationMessage = 'Success! Your phone number is now verified.';
+            this.verificationStatusIsError = false;
+            await this.fetchUserProfile();
+            setTimeout(() => {
+                this.isVerifyingPhone = false;
+                this.verificationCode = '';
+            }, 2000);
+        } catch (error) {
+            this.verificationMessage = error.response?.data?.message || 'Verification failed. The code may be incorrect.';
+            this.verificationStatusIsError = true;
+        } finally {
+            this.verificationLoading = false;
+        }
+    },
+    // UPDATED: This now navigates to the dedicated application page
+    goToApplicationPage() {
+        this.$router.push({ name: 'BecomeDriveVerified' });
     }
   },
 };
@@ -342,7 +407,7 @@ export default {
 
 <style lang="scss" scoped>
 @import '@/assets/styles/variables.scss';
-
+/* All your existing styles remain the same */
 .profile-container {
   padding: 2rem;
   max-width: 1200px;
@@ -481,7 +546,7 @@ export default {
     text-decoration: underline;
   }
 }
-.phone-verification-ui {
+.email-verification-ui {
     background-color: #f9fafb;
     border-radius: $border-radius-md;
     padding: 1rem;
@@ -494,6 +559,7 @@ export default {
     font-size: 0.9rem;
     color: $text-color-medium;
     margin: 0 0 1rem 0;
+    text-align: center;
 }
 .form-group {
     display: flex;
@@ -503,6 +569,9 @@ export default {
         padding: 0.5rem;
         border: 1px solid $border-color;
         border-radius: $border-radius-md;
+        text-align: center;
+        font-size: 1.1rem;
+        letter-spacing: 0.5em;
     }
 }
 .submit-otp-button {
@@ -516,16 +585,14 @@ export default {
         opacity: 0.7;
     }
 }
-.error-message.small {
+.error-message.small, .success-message.small {
     font-size: 0.8rem;
-    color: $admin-color;
-    margin-top: 0.5rem;
+    margin-top: 0.75rem;
     text-align: center;
+    font-weight: 500;
 }
-.phone-verification-ui #recaptcha-container-profile {
-  margin-top: 1rem;
-  display: flex;
-  justify-content: center;
+.success-message.small {
+    color: $secondary-color;
 }
 </style>
 

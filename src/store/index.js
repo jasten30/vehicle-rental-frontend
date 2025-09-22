@@ -57,7 +57,6 @@ export default createStore({
     SET_ALL_BOOKINGS(state, bookings) {
       state.allBookings = bookings;
     },
-    // ... rest of your mutations
     SET_AUTH_LOADING(state, loading) {
       state.authLoading = loading;
     },
@@ -473,6 +472,40 @@ export default createStore({
       } catch (error) {
         console.error('Failed to mark chat as read:', error);
       }
+    },
+    async fetchDriveApplications({ _commit }) {
+        try {
+            const response = await api.getDriveApplications();
+            return response.data;
+        } catch (error) {
+            console.error('[Vuex] Failed to fetch drive applications:', error);
+            throw error;
+        }
+    },
+    async approveDriveApplication({ _commit }, { applicationId, userId }) {
+        try {
+            await api.approveDriveApplication(applicationId, userId);
+        } catch (error) {
+            console.error('[Vuex] Failed to approve drive application:', error);
+            throw error;
+        }
+    },
+    async declineDriveApplication({ _commit }, { applicationId, userId }) {
+        try {
+            await api.declineDriveApplication(applicationId, userId);
+        } catch (error) {
+            console.error('[Vuex] Failed to decline drive application:', error);
+            throw error;
+        }
+    },
+    async submitDriveApplication({ _commit }, formData) {
+        try {
+            const response = await api.submitDriveApplication(formData);
+            return response.data;
+        } catch (error) {
+            console.error('[Vuex] Failed to submit drive application:', error);
+            throw error;
+        }
     },
     setVehicleFilter({ commit }, payload) {
       commit('SET_VEHICLE_FILTER', payload);
