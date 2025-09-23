@@ -15,7 +15,7 @@
               d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.381-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
             ></path>
           </svg>
-          <span>4.5 (25 trips)</span>
+          <span>{{ overallRating.toFixed(1) }} ({{ totalReviews }} ratings)</span>
         </div>
       </div>
     </div>
@@ -139,6 +139,23 @@
           <span class="score">{{ rating.score.toFixed(1) }}</span>
         </div>
       </div>
+
+      <div v-if="reviews.length > 0" class="reviews-list-section">
+        <div v-for="review in displayedReviews" :key="review.id" class="review-item">
+            <div class="review-header">
+                <img :src="review.reviewerPhoto" alt="Reviewer" class="reviewer-avatar" />
+                <div class="reviewer-info">
+                    <span class="reviewer-name">{{ review.reviewerName }}</span>
+                    <span class="review-date">{{ formatTimestampToDate(review.createdAt) }}</span>
+                </div>
+            </div>
+            <p class="review-comment">{{ review.comment }}</p>
+        </div>
+        <button v-if="reviews.length > 2" @click="toggleReviews" class="see-all-btn">
+            {{ showAllReviews ? 'Show less reviews' : `Show all ${reviews.length} reviews` }}
+        </button>
+      </div>
+
     </div>
     <hr class="divider" />
     <div class="rules-section">
@@ -188,6 +205,7 @@ const host = ref({
   profilePicture: 'https://placehold.co/100x100/A0A0A0/FFFFFF?text=Host',
   memberSince: 'N/A',
 });
+const showAllReviews = ref(false);
 
 const hasFeatures = computed(
   () =>
@@ -232,6 +250,13 @@ const displayedCategories = computed(() => {
   return Object.fromEntries(Object.entries(nonEmtpy).slice(0, 2));
 });
 
+const displayedReviews = computed(() => {
+    if (showAllReviews.value) {
+        return reviews.value;
+    }
+    return reviews.value.slice(0, 2);
+});
+
 const totalFeatureCount = computed(() => {
   if (!props.vehicle || !props.vehicle.features) return 0;
   return props.vehicle.features.length;
@@ -239,6 +264,10 @@ const totalFeatureCount = computed(() => {
 
 const toggleFeatures = () => {
   showAllFeatures.value = !showAllFeatures.value;
+};
+
+const toggleReviews = () => {
+    showAllReviews.value = !showAllReviews.value;
 };
 
 const formatTimestampToDate = (timestamp) => {
@@ -286,37 +315,63 @@ const fetchHostData = async (ownerId) => {
 const fetchReviews = (vehicleId) => {
   const reviewsRef = collection(db, 'reviews');
   const q = query(reviewsRef, where('vehicleId', '==', vehicleId));
-  onSnapshot(q, (snapshot) => {
-    const fetchedReviews = [];
-    let totalRatings = 0;
-    const scores = { cleanliness: 0, maintenance: 0, communication: 0, convenience: 0, accuracy: 0 };
-    snapshot.forEach((doc) => {
-      const reviewData = doc.data();
-      fetchedReviews.push({ id: doc.id, ...reviewData });
-      if (reviewData.categoricalRatings) {
-        totalRatings++;
-        for (const category in scores) {
-          if (reviewData.categoricalRatings[category]) {
-            scores[category] += reviewData.categoricalRatings[category];
-          }
+  
+  onSnapshot(q, async (snapshot) => {
+    const reviewPromises = snapshot.docs.map(async (doc) => {
+        const reviewData = doc.data();
+        let reviewerName = 'Anonymous';
+        let reviewerPhoto = 'https://placehold.co/100x100/A0A0A0/FFFFFF?text=User';
+        if(reviewData.renterId) {
+            try {
+                const userDoc = await getDoc(doc(db, 'users', reviewData.renterId));
+                if(userDoc.exists()) {
+                    const userData = userDoc.data();
+                    reviewerName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'User';
+                    reviewerPhoto = userData.profilePhotoUrl || reviewerPhoto;
+                }
+            } catch (e) {
+                console.error(`Failed to fetch user data for renterId: ${reviewData.renterId}`, e);
+            }
         }
-      }
+        return { id: doc.id, ...reviewData, reviewerName, reviewerPhoto };
     });
-    reviews.value = fetchedReviews;
-    totalReviews.value = totalRatings;
-    categoricalRatings.value = Object.keys(scores).map((category) => ({
-      category,
-      score: totalRatings > 0 ? scores[category] / totalRatings : 0,
-    }));
+    
+    reviews.value = await Promise.all(reviewPromises);
   });
 };
 
-const categoricalRatings = ref([]);
-const totalReviews = ref(0);
+const totalReviews = computed(() => {
+    return reviews.value.filter(r => r.categoricalRatings).length;
+});
+
+const categoricalRatings = computed(() => {
+    const scores = { cleanliness: 0, maintenance: 0, communication: 0, convenience: 0, accuracy: 0 };
+    const count = totalReviews.value;
+
+    if (count === 0) {
+        return Object.keys(scores).map(category => ({ category: formatCategoryName(category), score: 0 }));
+    }
+
+    reviews.value.forEach(review => {
+        if (review.categoricalRatings) {
+            for (const category in scores) {
+                if (review.categoricalRatings[category]) {
+                    scores[category] += review.categoricalRatings[category];
+                }
+            }
+        }
+    });
+    
+    return Object.keys(scores).map(category => ({
+        category: formatCategoryName(category),
+        score: scores[category] / count,
+    }));
+});
+
 const overallRating = computed(() => {
-  if (categoricalRatings.value.length === 0) return 0;
+  if (totalReviews.value === 0) return 0;
   const sum = categoricalRatings.value.reduce((acc, rating) => acc + rating.score, 0);
-  return sum / categoricalRatings.value.length;
+  return sum > 0 ? sum / categoricalRatings.value.length : 0;
 });
 
 const formatCategoryName = (name) => {
@@ -458,7 +513,7 @@ onMounted(() => {
   border: none;
   font-weight: 600;
   cursor: pointer;
-  padding: 0;
+  padding: 0.5rem 0;
   font-size: 0.9rem;
   transition: color 0.3s ease;
   align-self: flex-start;
@@ -539,6 +594,7 @@ onMounted(() => {
   font-size: 1rem;
   color: $text-color-medium;
   font-weight: 500;
+  text-transform: capitalize;
 }
 .bar-chart {
   width: 100%;
@@ -577,4 +633,44 @@ onMounted(() => {
     margin-bottom: 0.25rem;
   }
 }
+
+.reviews-list-section {
+    margin-top: 2rem;
+}
+.review-item {
+    padding: 1.5rem 0;
+    border-bottom: 1px solid $border-color;
+    &:last-of-type {
+        border-bottom: none;
+    }
+}
+.review-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.reviewer-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.reviewer-info {
+    display: flex;
+    flex-direction: column;
+}
+.reviewer-name {
+    font-weight: 600;
+    color: $text-color-dark;
+}
+.review-date {
+    font-size: 0.85rem;
+    color: $text-color-medium;
+}
+.review-comment {
+    color: $text-color-dark;
+    line-height: 1.6;
+}
 </style>
+

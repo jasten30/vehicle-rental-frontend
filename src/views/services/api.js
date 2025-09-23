@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create a configured instance of axios
 const apiClient = axios.create({
-  baseURL: 'http://localhost:5001/api', // Your backend's base URL
+  baseURL: process.env.VUE_APP_API_BASE_URL || 'http://localhost:5001/api', // Fallback for safety
   headers: {
     'Content-Type': 'application/json',
   },
@@ -22,69 +22,59 @@ export default {
   // Auth
   login: (credentials) => apiClient.post('/auth/login', credentials),
   register: (userData) => apiClient.post('/auth/register', userData),
+  tokenLogin: () => apiClient.post('/auth/token-login'),
+  reauthenticate: (password) => apiClient.post('/auth/reauthenticate', { password }),
 
   // Users
   getUserProfile: () => apiClient.get('/users/profile'),
   updateUserProfile: (profileData) => apiClient.put('/users/profile', profileData),
   getAllUsers: () => apiClient.get('/users/all-users'),
-  deleteUser: (userId) => apiClient.delete(`/users/${userId}`),
-  updateUserRole: (userId, role) =>
-    apiClient.put(`/users/update-role/${userId}`, { role }),
+  updateUserRole: (userId, role) => apiClient.put(`/users/update-role/${userId}`, { role }),
   sendEmailVerificationCode: () => apiClient.post('/users/send-email-verification'),
   verifyEmailCode: (code) => apiClient.post('/users/verify-email-code', { code }),
+  deleteUser: (userId) => apiClient.delete(`/users/${userId}`),
+  
+  // Host Applications (for becoming an owner)
+  submitHostApplication: (applicationData) => apiClient.post('/users/submit-host-application', applicationData),
+  getHostApplications: () => apiClient.get('/users/host-applications'),
+  approveHostApplication: (applicationId, userId) => apiClient.put('/users/approve-host-application', { applicationId, userId }),
+  declineHostApplication: (applicationId) => apiClient.put('/users/decline-host-application', { applicationId }),
+
+  // Drive Applications (for getting verified to drive)
+  submitDriveApplication: (applicationData) => apiClient.post('/users/drive-application', applicationData),
+  getDriveApplications: () => apiClient.get('/admin/drive-applications'),
+  approveDriveApplication: (applicationId, userId) => apiClient.post(`/admin/drive-applications/approve`, { applicationId, userId }),
+  declineDriveApplication: (applicationId, userId) => apiClient.post(`/admin/drive-applications/decline`, { applicationId, userId }),
 
   // Vehicles
   getAllVehicles: () => apiClient.get('/vehicles'),
   getVehicleById: (vehicleId) => apiClient.get(`/vehicles/${vehicleId}`),
   addVehicle: (vehicleData) => apiClient.post('/vehicles', vehicleData),
-  updateVehicle: (vehicleId, vehicleData) =>
-    apiClient.put(`/vehicles/${vehicleId}`, vehicleData),
+  updateVehicle: (vehicleId, vehicleData) => apiClient.put(`/vehicles/${vehicleId}`, vehicleData),
   getVehiclesByOwner: () => apiClient.get('/vehicles/my-listings'),
+  deleteVehicle: (vehicleId) => apiClient.delete(`/vehicles/${vehicleId}`),
 
   // Bookings
-  checkVehicleAvailability: (vehicleId, startDate, endDate) =>
-    apiClient.get(
-      `/bookings/availability/${vehicleId}?startDate=${startDate}&endDate=${endDate}`
-    ),
+  checkVehicleAvailability: (vehicleId, startDate, endDate) => apiClient.get(`/bookings/availability/${vehicleId}?startDate=${startDate}&endDate=${endDate}`),
   createBooking: (bookingData) => apiClient.post('/bookings', bookingData),
   getBookingById: (bookingId) => apiClient.get(`/bookings/${bookingId}`),
   getAllBookings: (params) => apiClient.get('/bookings/all', { params }),
   getOwnerBookings: () => apiClient.get('/bookings/owner'),
-  
-  // Specific booking update functions
-  updateBookingStatus: (bookingId, data) => apiClient.put(`/bookings/${bookingId}/status`, data),
-  updateBookingPaymentMethod: (bookingId, data) =>
-    apiClient.put(`/bookings/${bookingId}/payment-method`, data),
-
-  // Function to fetch bookings for specific user
   fetchBookingsByUser: (userId) => apiClient.get(`/bookings/user/${userId}`),
-
-  // Function for phone-based login
-  tokenLogin: () => apiClient.post('/auth/token-login'),
-
-  reauthenticate: (password) => apiClient.post('/auth/reauthenticate', { password }),
-
-  confirmBookingPayment: (bookingId) =>
-    apiClient.put(`/bookings/${bookingId}/confirm-payment`),
-
+  updateBookingStatus: (bookingId, data) => apiClient.put(`/bookings/${bookingId}/status`, data),
   approveBooking: (bookingId) => apiClient.put(`/bookings/${bookingId}/approve`),
   declineBooking: (bookingId) => apiClient.put(`/bookings/${bookingId}/decline`),
-
-  // Host Applications
-  submitHostApplication: (applicationData) => apiClient.post('/users/submit-host-application', applicationData),
-  getHostApplications: () => apiClient.get('/users/host-applications'),
-  approveHostApplication: (applicationId, userId) => apiClient.put('/users/approve-host-application', { applicationId, userId }),
-  declineHostApplication: (applicationId) => apiClient.put('/users/decline-host-application', { applicationId }),
 
   // Chats
   getUserChats: () => apiClient.get('/chats'),
   sendMessage: (chatId, text) => apiClient.post(`/chats/${chatId}/messages`, { text }),
   markChatAsRead: (chatId) => apiClient.put(`/chats/${chatId}/read`),
 
-  // Drive Application Endpoints
-  submitDriveApplication: (applicationData) => apiClient.post('/users/drive-application', applicationData),
-  getDriveApplications: () => apiClient.get('/admin/drive-applications'),
-  approveDriveApplication: (applicationId, userId) => apiClient.post('/admin/drive-applications/approve', { applicationId, userId }),
-  declineDriveApplication: (applicationId, userId) => apiClient.post('/admin/drive-applications/decline', { applicationId, userId }),
+  // Reviews
+  submitReview: (reviewData) => {
+    // --- NEW DEBUGGING LOG ---
+    console.log('[api.js] Preparing to send POST request to /reviews with data:', reviewData);
+    return apiClient.post('/reviews', reviewData);
+  },
 };
 

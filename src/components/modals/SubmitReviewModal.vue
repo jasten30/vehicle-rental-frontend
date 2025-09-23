@@ -70,7 +70,6 @@ export default {
         convenience: 0,
         accuracy: 0,
       },
-      // NEW: State to manage the hover effect independently
       hoveredRatings: {
         cleanliness: 0,
         maintenance: 0,
@@ -84,7 +83,7 @@ export default {
       reviewSent: false,
     };
   },
-   watch: {
+    watch: {
     isOpen(newVal) {
       if (newVal) {
         this.resetForm();
@@ -92,11 +91,12 @@ export default {
     },
   },
   methods: {
-    ...mapActions(['submitReview']),
+    ...mapActions({
+      dispatchSubmitReview: 'submitReview'
+    }),
     formatCategoryName(name) {
         return name.charAt(0).toUpperCase() + name.slice(1);
     },
-    // NEW: Improved star class logic for better hover effect
     getStarClass(category, star) {
         const ratingToShow = this.hoveredRatings[category] || this.ratings[category];
         return star <= ratingToShow ? 'bi-star-fill' : 'bi-star';
@@ -107,7 +107,6 @@ export default {
     hoverRating(category, rating) {
       this.hoveredRatings[category] = rating;
     },
-    // FIXED: This method no longer has an unused parameter and correctly resets the hover state.
     resetHover(category) {
       this.hoveredRatings[category] = 0;
     },
@@ -130,6 +129,14 @@ export default {
 
       this.isSubmitting = true;
       try {
+        // --- FIX: Added validation to ensure vehicle and vehicle.id exist ---
+        if (!this.vehicle || !this.vehicle.id) {
+          this.errorMessage = 'Vehicle information is missing. Cannot submit review.';
+          console.error('[SubmitReviewModal] Critical Error: The "vehicle" prop is missing or does not have an ID.');
+          this.isSubmitting = false;
+          return;
+        }
+
         const reviewPayload = {
           bookingId: this.booking.id,
           vehicleId: this.vehicle.id,
@@ -137,10 +144,14 @@ export default {
           categoricalRatings: this.ratings,
           comment: this.comment,
         };
-        await this.submitReview(reviewPayload);
+
+        await this.dispatchSubmitReview(reviewPayload);
+
         this.reviewSent = true;
         this.$emit('review-submitted');
+
       } catch (error) {
+        console.error('[SubmitReviewModal] An error occurred while dispatching the Vuex action:', error);
         this.errorMessage = error.response?.data?.message || 'Failed to submit review.';
       } finally {
         this.isSubmitting = false;

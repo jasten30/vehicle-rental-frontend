@@ -524,6 +524,22 @@ export default createStore({
             throw error;
         }
     },
+    async submitReview({ _commit }, reviewData) {
+      // --- NEW DEBUGGING LOG ---
+      console.log('[Vuex Action] "submitReview" action triggered with payload:', reviewData);
+
+      try {
+        // --- NEW DEBUGGING LOG ---
+        console.log('[Vuex Action] Calling api.submitReview...');
+        await api.submitReview(reviewData);
+        console.log('[Vuex Action] api.submitReview call was successful.');
+      } catch (error) {
+        // --- NEW DEBUGGING LOG ---
+        // This log is CRITICAL. It will show us the exact error if the API call fails.
+        console.error('[Vuex Action] ERROR in submitReview action:', error);
+        throw error;
+      }
+    },
     setVehicleFilter({ commit }, payload) {
       commit('SET_VEHICLE_FILTER', payload);
     },

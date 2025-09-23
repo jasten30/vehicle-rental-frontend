@@ -107,11 +107,12 @@
       </div>
     </div>
     
+    <!-- *** FIX: The :vehicle prop is now bound to the full 'vehicle' object *** -->
     <SubmitReviewModal
-        v-if="booking"
+        v-if="booking && vehicle"
         :is-open="isReviewModalOpen"
         :booking="booking"
-        :vehicle="booking.vehicleDetails"
+        :vehicle="vehicle" 
         @close="isReviewModalOpen = false"
         @review-submitted="handleReviewSubmission"
     />
@@ -132,6 +133,7 @@ export default {
       loading: true,
       errorMessage: null,
       booking: null,
+      vehicle: null, // *** FIX: Added a new data property to hold the full vehicle object ***
       isReviewModalOpen: false,
     };
   },
@@ -172,13 +174,28 @@ export default {
     }
   },
   methods: {
-    ...mapActions(['getBookingById', 'updateBookingStatus']),
+    // *** FIX: Mapped the getVehicleById action from the Vuex store ***
+    ...mapActions(['getBookingById', 'updateBookingStatus', 'getVehicleById']),
+    
     async fetchBooking() {
       this.loading = true;
       this.errorMessage = null;
       try {
-        this.booking = await this.getBookingById(this.bookingId);
+        // Step 1: Fetch the booking data
+        const bookingData = await this.getBookingById(this.bookingId);
+        this.booking = bookingData;
+
+        // *** FIX: Use the vehicleId from the booking to fetch the full vehicle object ***
+        if (this.booking && this.booking.vehicleId) {
+          // Step 2: Fetch the complete vehicle object and store it
+          this.vehicle = await this.getVehicleById(this.booking.vehicleId);
+        } else {
+          // If the booking doesn't have a vehicleId, we can't proceed
+          throw new Error("Vehicle ID not found in booking details.");
+        }
+
       } catch (error) {
+        console.error("Failed to load booking or vehicle details:", error);
         this.errorMessage = 'Failed to load booking details.';
       } finally {
         this.loading = false;
@@ -197,12 +214,8 @@ export default {
             console.error("Error marking as returned:", error);
         }
     },
-    // --- THIS IS THE FIX ---
-    // This method now performs an "optimistic update" to avoid the failing network call.
     handleReviewSubmission() {
         this.isReviewModalOpen = false;
-        // Instead of re-fetching, we just update the local data directly.
-        // This hides the "Write a Review" button immediately and avoids the error.
         if (this.booking) {
             this.booking.reviewSubmitted = true;
         }
