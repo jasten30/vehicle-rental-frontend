@@ -11,6 +11,13 @@
       </div>
     </div>
 
+    <!-- NEW: Tabbed navigation for filtering users by role -->
+    <div class="user-filters">
+        <button class="filter-tab" :class="{ active: activeTab === 'all' }" @click="activeTab = 'all'">All Users</button>
+        <button class="filter-tab" :class="{ active: activeTab === 'owner' }" @click="activeTab = 'owner'">Owners</button>
+        <button class="filter-tab" :class="{ active: activeTab === 'renter' }" @click="activeTab = 'renter'">Renters</button>
+    </div>
+
     <div v-if="loading" class="loading-state">
       <p>Loading user data...</p>
     </div>
@@ -54,6 +61,9 @@
                 <button @click="viewProfile(user.uid)" class="button icon-button" title="View Profile">
                   <i class="bi bi-eye-fill"></i>
                 </button>
+                <button @click="handleDeleteUser(user)" class="button icon-button danger" title="Delete User" :disabled="user.role === 'admin'">
+                    <i class="bi bi-trash3-fill"></i>
+                </button>
               </div>
             </td>
           </tr>
@@ -74,16 +84,27 @@ export default {
       loading: true,
       error: null,
       searchQuery: '',
+      activeTab: 'all', // 'all', 'owner', 'renter'
     };
   },
   computed: {
     ...mapGetters(['allUsers']),
+    // This computed property now chains the filtering: first by role, then by search query.
     filteredUsers() {
+      // 1. Filter by the active tab
+      let usersByRole;
+      if (this.activeTab === 'all') {
+        usersByRole = this.allUsers;
+      } else {
+        usersByRole = this.allUsers.filter(user => user.role === this.activeTab);
+      }
+
+      // 2. Apply the search query on the result of the tab filter
       if (!this.searchQuery) {
-        return this.allUsers;
+        return usersByRole;
       }
       const lowerQuery = this.searchQuery.toLowerCase();
-      return this.allUsers.filter(user => {
+      return usersByRole.filter(user => {
         const name = user.name || '';
         const email = user.email || '';
         return (
@@ -94,7 +115,7 @@ export default {
     },
   },
   methods: {
-    ...mapActions(['fetchAllUsers', 'updateUserRole']), // Add updateUserRole action
+    ...mapActions(['fetchAllUsers', 'updateUserRole', 'deleteUser']),
     async fetchData() {
       this.loading = true;
       this.error = null;
@@ -112,22 +133,30 @@ export default {
       
       try {
         await this.updateUserRole({ userId: user.uid, role: newRole });
-        // Optimistically update the UI. The store should ideally handle this.
-        const userInList = this.allUsers.find(u => u.uid === user.uid);
-        if (userInList) {
-          userInList.role = newRole;
-        }
+        await this.fetchData();
       } catch (error) {
         alert('Failed to update user role. Please try again.');
         console.error('Role update error:', error);
       }
+    },
+    async handleDeleteUser(user) {
+        const confirmationMessage = `Are you sure you want to permanently delete the user ${user.email}? This will also delete all vehicles they own. This action cannot be undone.`;
+        if (!confirm(confirmationMessage)) return;
+
+        try {
+            await this.deleteUser(user.uid);
+            alert('User deleted successfully.');
+            await this.fetchData();
+        } catch (error) {
+            alert('Failed to delete user. Please try again.');
+            console.error('User deletion error:', error);
+        }
     },
     viewProfile(userId) {
       this.$router.push({ name: 'UserProfileView', params: { userId } });
     },
     formatDate(dateObj) {
       if (!dateObj) return 'N/A';
-      // Handle both serialized and live timestamps
       const date = dateObj._seconds ? new Date(dateObj._seconds * 1000) : new Date(dateObj);
       return DateTime.fromJSDate(date).toFormat('MMM dd, yyyy');
     },
@@ -146,7 +175,7 @@ export default {
 <style lang="scss" scoped>
 @import '@/assets/styles/variables.scss';
 
-.admin-page-container { max-width: 1200px; margin: 0 auto; }
+.admin-page-container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -171,6 +200,32 @@ export default {
     width: 300px;
     font-size: 1rem;
   }
+}
+/* NEW Styles for the filter tabs */
+.user-filters {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid $border-color;
+}
+.filter-tab {
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-size: 1rem;
+    font-weight: 600;
+    color: $text-color-medium;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+
+    &.active {
+        color: $primary-color;
+        border-bottom-color: $primary-color;
+    }
+    &:hover:not(.active) {
+        background-color: #f9fafb;
+    }
 }
 .table-container { background-color: $card-background; border-radius: $border-radius-lg; box-shadow: $shadow-light; overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; text-align: left; }
@@ -203,12 +258,16 @@ tbody tr:last-child td { border-bottom: none; }
   border-radius: 50%;
   display: flex;
   transition: background-color 0.2s ease;
-  &:hover { background-color: #f3f4f6; color: $primary-color; }
+  &:hover:not(:disabled) { background-color: #f3f4f6; color: $primary-color; }
   i { font-size: 1.25rem; }
+  &.danger:hover:not(:disabled) {
+      background-color: lighten($admin-color, 40%);
+      color: $admin-color;
+  }
   &:disabled {
     opacity: 0.4;
     cursor: not-allowed;
-    background-color: transparent !important;
   }
 }
 </style>
+

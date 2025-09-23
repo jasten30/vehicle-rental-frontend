@@ -23,6 +23,15 @@
       </div>
     </div>
 
+    <!-- UPDATED: Tabbed navigation now includes a "Completed" tab -->
+    <div class="vehicle-filters">
+        <button class="filter-tab" :class="{ active: activeTab === 'all' }" @click="activeTab = 'all'">All Vehicles</button>
+        <button class="filter-tab" :class="{ active: activeTab === 'available' }" @click="activeTab = 'available'">Available</button>
+        <button class="filter-tab" :class="{ active: activeTab === 'on trip' }" @click="activeTab = 'on trip'">On Trip</button>
+        <button class="filter-tab" :class="{ active: activeTab === 'pending' }" @click="activeTab = 'pending'">Pending Request</button>
+        <button class="filter-tab" :class="{ active: activeTab === 'completed' }" @click="activeTab = 'completed'">Completed</button>
+    </div>
+
     <div v-if="loading" class="loading-state">
       <p>Loading all vehicles...</p>
     </div>
@@ -65,8 +74,8 @@
             <td>{{ vehicle.ownerEmail || 'N/A' }}</td>
             <td>₱{{ vehicle.rentalPricePerDay.toLocaleString() }}</td>
             <td>
-              <span :class="['status-badge', getStatusClass(vehicle.status)]">{{
-                vehicle.status
+              <span :class="['status-badge', getStatusClass(vehicle.dynamicStatus)]">{{
+                vehicle.dynamicStatus
               }}</span>
             </td>
             <td>
@@ -121,6 +130,7 @@
 
 <script>
 import { mapGetters, mapActions } from 'vuex';
+import { DateTime } from 'luxon';
 
 export default {
   name: 'AdminVehiclesView',
@@ -131,22 +141,59 @@ export default {
       searchQuery: '',
       currentPage: 1,
       itemsPerPage: 10,
+      activeTab: 'all',
     };
   },
   computed: {
-    ...mapGetters(['allVehicles']),
+    ...mapGetters(['allVehicles', 'allBookings']),
     filteredAndSortedVehicles() {
-      let vehicles = [...this.allVehicles];
+      const today = DateTime.now().startOf('day');
+
+      let vehiclesWithStatus = this.allVehicles.map(vehicle => {
+        let dynamicStatus = 'available';
+
+        const vehicleBookings = this.allBookings.filter(b => b.vehicleId === vehicle.id);
+
+        const hasPending = vehicleBookings.some(b => b.paymentStatus === 'pending_owner_approval');
+        const onTripBooking = vehicleBookings.find(b => {
+            if (b.paymentStatus !== 'confirmed') return false;
+            const startDate = DateTime.fromISO(b.startDate).startOf('day');
+            const endDate = DateTime.fromISO(b.endDate).startOf('day');
+            return today >= startDate && today <= endDate;
+        });
+        
+        if (hasPending) {
+            dynamicStatus = 'pending';
+        } else if (onTripBooking) {
+            dynamicStatus = 'on trip';
+        } else {
+            const pastBookings = vehicleBookings
+                .filter(b => ['completed', 'returned'].includes(b.paymentStatus) && DateTime.fromISO(b.endDate).startOf('day') < today)
+                .sort((a, b) => DateTime.fromISO(b.endDate) - DateTime.fromISO(a.endDate));
+            
+            if (pastBookings.length > 0) {
+                dynamicStatus = 'completed';
+            }
+        }
+        
+        return { ...vehicle, dynamicStatus };
+      });
+
+      if (this.activeTab !== 'all') {
+          vehiclesWithStatus = vehiclesWithStatus.filter(v => v.dynamicStatus === this.activeTab);
+      }
+
       if (this.searchQuery) {
         const lowerQuery = this.searchQuery.toLowerCase();
-        vehicles = vehicles.filter(
+        vehiclesWithStatus = vehiclesWithStatus.filter(
           (v) =>
             v.make?.toLowerCase().includes(lowerQuery) ||
             v.model?.toLowerCase().includes(lowerQuery) ||
             v.ownerEmail?.toLowerCase().includes(lowerQuery)
         );
       }
-      return vehicles.sort(
+
+      return vehiclesWithStatus.sort(
         (a, b) =>
           new Date(b.createdAt?.seconds * 1000) -
           new Date(a.createdAt?.seconds * 1000)
@@ -162,14 +209,14 @@ export default {
     },
   },
   methods: {
-    ...mapActions(['fetchAllVehicles']),
+    ...mapActions(['fetchAllVehicles', 'fetchAllBookings', 'deleteVehicle']),
     async fetchData() {
       this.loading = true;
       this.error = null;
       try {
-        await this.fetchAllVehicles();
+        await Promise.all([this.fetchAllVehicles(), this.fetchAllBookings()]);
       } catch (err) {
-        this.error = 'An error occurred while fetching vehicle data.';
+        this.error = 'An error occurred while fetching data.';
       } finally {
         this.loading = false;
       }
@@ -183,10 +230,16 @@ export default {
     editVehicle(vehicleId) {
       this.$router.push({ name: 'EditVehicle', params: { vehicleId } });
     },
-    deleteVehicle(vehicleId) {
-      if (confirm('Are you sure?')) {
-        console.log(`Request to delete vehicle with ID: ${vehicleId}`);
-        alert('Delete functionality is not yet implemented.');
+    async deleteVehicle(vehicleId) {
+      if (confirm('Are you sure you want to permanently delete this vehicle? This action cannot be undone.')) {
+        try {
+            await this.deleteVehicle(vehicleId);
+            alert('Vehicle deleted successfully.');
+            await this.fetchData();
+        } catch(error) {
+            alert('Failed to delete vehicle. Please try again.');
+            console.error("Vehicle deletion error:", error);
+        }
       }
     },
     nextPage() {
@@ -196,8 +249,10 @@ export default {
       if (this.currentPage > 1) this.currentPage--;
     },
     getStatusClass(status) {
-      if (status === 'active') return 'status-success';
-      if (status === 'inactive') return 'status-danger';
+      if (status === 'available') return 'status-success';
+      if (status === 'on trip') return 'status-booked';
+      if (status === 'pending') return 'status-warning';
+      if (status === 'completed') return 'status-returned'; // Using a new style
       return 'status-default';
     },
   },
@@ -212,7 +267,8 @@ export default {
 
 .admin-page-container {
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 2rem auto;
+  padding: 0 1rem;
 }
 .page-header {
   display: flex;
@@ -250,6 +306,31 @@ export default {
     width: 300px;
     font-size: 1rem;
   }
+}
+.vehicle-filters {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid $border-color;
+}
+.filter-tab {
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-size: 1rem;
+    font-weight: 600;
+    color: $text-color-medium;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+
+    &.active {
+        color: $primary-color;
+        border-bottom-color: $primary-color;
+    }
+    &:hover:not(.active) {
+        background-color: #f9fafb;
+    }
 }
 .table-container {
   background-color: $card-background;
@@ -305,13 +386,21 @@ tbody tr:last-child td {
   font-weight: 600;
   font-size: 0.8rem;
   text-transform: capitalize;
-  &.status-success {
+  &.status-success, &.status-available {
     background-color: lighten($secondary-color, 35%);
     color: darken($secondary-color, 20%);
   }
-  &.status-danger {
+   &.status-booked, &.status-on-trip {
     background-color: lighten($admin-color, 40%);
     color: darken($admin-color, 20%);
+  }
+  &.status-warning, &.status-pending {
+    background-color: lighten($accent-color, 35%);
+    color: darken($accent-color, 20%);
+  }
+  &.status-returned, &.status-completed {
+    background-color: #e0e7ff;
+    color: #3730a3;
   }
   &.status-default {
     background-color: #e5e7eb;
@@ -355,3 +444,4 @@ tbody tr:last-child td {
   gap: 0.5rem;
 }
 </style>
+

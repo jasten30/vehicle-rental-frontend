@@ -507,6 +507,23 @@ export default createStore({
             throw error;
         }
     },
+    async deleteUser({ _commit }, userId) {
+        try {
+            await api.deleteUser(userId);
+        } catch (error) {
+            console.error('[Vuex] Failed to delete user:', error);
+            throw error;
+        }
+    },
+    async updateBookingStatus({ _commit }, { bookingId, newStatus }) {
+        try {
+            const response = await api.updateBookingStatus(bookingId, { newStatus });
+            return response.data;
+        } catch (error) {
+            console.error('[Vuex] Failed to update booking status:', error);
+            throw error;
+        }
+    },
     setVehicleFilter({ commit }, payload) {
       commit('SET_VEHICLE_FILTER', payload);
     },

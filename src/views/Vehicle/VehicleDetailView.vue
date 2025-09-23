@@ -14,8 +14,6 @@
           :vehicle-make="vehicle.make"
           :vehicle-model="vehicle.model"
         />
-        <!-- This component now has a much simpler interface. -->
-        <!-- It only needs the vehicle object and its availability data. -->
         <VehicleDetailsAndBooking
           :vehicle="vehicle"
           :unavailable-dates="vehicle.availability || []"
@@ -54,7 +52,6 @@ export default {
     },
   },
   methods: {
-    // Only needs the action to fetch the vehicle data.
     ...mapActions(['getVehicleById']),
     async fetchVehicle() {
       this.loading = true;
@@ -68,7 +65,6 @@ export default {
         this.loading = false;
       }
     },
-    // The bookVehicle method has been removed as this logic now lives in BookingBox.
   },
 };
 </script>

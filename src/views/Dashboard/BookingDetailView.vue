@@ -76,10 +76,9 @@
           <p class="email">{{ booking.renterDetails.email }}</p>
         </div>
 
-        <div class="info-card actions-card">
+        <div v-if="!isTripFinished" class="info-card actions-card">
           <h3 class="card-title">Actions</h3>
           
-          <!-- UPDATED: Logic for showing and disabling the cancel button -->
           <div v-if="showCancelAction">
             <button class="button danger" :disabled="isCancellationWindowClosed">
               Cancel Booking
@@ -89,60 +88,91 @@
             </p>
           </div>
           
-          <button v-if="canConfirmPayment" class="button primary">
-            Confirm Payment
+          <button v-if="canMarkAsReturned" @click="handleMarkAsReturned" class="button primary">
+            Mark as Returned
           </button>
           
           <button @click="goBack" class="button secondary">Go Back</button>
         </div>
+
+        <div v-else class="info-card completed-card">
+            <i class="bi bi-patch-check-fill"></i>
+            <h3 class="card-title">Trip Completed</h3>
+            <p>This trip was successfully completed. Thank you for using RentCycle!</p>
+            
+            <button v-if="canSubmitReview" @click="isReviewModalOpen = true" class="button review-button">
+                Write a Review
+            </button>
+        </div>
       </div>
     </div>
+    
+    <SubmitReviewModal
+        v-if="booking"
+        :is-open="isReviewModalOpen"
+        :booking="booking"
+        :vehicle="booking.vehicleDetails"
+        @close="isReviewModalOpen = false"
+        @review-submitted="handleReviewSubmission"
+    />
   </div>
 </template>
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
 import { DateTime } from 'luxon';
+import SubmitReviewModal from '@/components/modals/SubmitReviewModal.vue';
 
 export default {
   name: 'BookingDetailView',
+  components: { SubmitReviewModal },
   props: ['bookingId'],
   data() {
     return {
       loading: true,
       errorMessage: null,
       booking: null,
+      isReviewModalOpen: false,
     };
   },
   computed: {
     ...mapGetters(['userRole', 'user']),
-    // NEW: Determines if the cancel action section should be shown at all
     showCancelAction() {
       if (!this.booking || !this.user) return false;
       const isRenter = this.user.uid === this.booking.renterId;
       const cancellableStatuses = ['pending_verification', 'confirmed', 'pending_owner_approval', 'pending_payment'];
       return isRenter && cancellableStatuses.includes(this.booking.paymentStatus);
     },
-    // NEW: Determines if the 48-hour cancellation window has passed
     isCancellationWindowClosed() {
-        if (!this.booking?.createdAt) return true; // Disable if no creation date
+        if (!this.booking?.createdAt) return true;
         const bookedOn = DateTime.fromISO(this.booking.createdAt);
         const now = DateTime.now();
         const hoursSinceBooking = now.diff(bookedOn, 'hours').toObject().hours;
         return hoursSinceBooking > 48;
     },
-    canConfirmPayment() {
-      if (!this.booking || !this.user) return false;
-      const isOwner = this.user.uid === this.booking.vehicleDetails.ownerId;
-      const isAdmin = this.userRole === 'admin';
-      return (
-        (isOwner || isAdmin) &&
-        this.booking.paymentStatus === 'pending_verification'
-      );
+    canMarkAsReturned() {
+        if (!this.booking || !this.user) return false;
+        const isOwner = this.user.uid === this.booking.vehicleDetails.ownerId;
+        const isConfirmed = this.booking.paymentStatus === 'confirmed';
+        const returnDate = DateTime.fromISO(this.booking.endDate);
+        const hasTripEnded = DateTime.now() > returnDate;
+        return isOwner && isConfirmed && hasTripEnded;
     },
+    isTripFinished() {
+        if (!this.booking) return false;
+        return ['completed', 'returned'].includes(this.booking.paymentStatus);
+    },
+    canSubmitReview() {
+        if (!this.booking || !this.user) return false;
+        const isRenter = this.user.uid === this.booking.renterId;
+        const isFinished = ['completed', 'returned'].includes(this.booking.paymentStatus);
+        const hasNotReviewed = !this.booking.reviewSubmitted;
+
+        return isRenter && isFinished && hasNotReviewed;
+    }
   },
   methods: {
-    ...mapActions(['getBookingById']),
+    ...mapActions(['getBookingById', 'updateBookingStatus']),
     async fetchBooking() {
       this.loading = true;
       this.errorMessage = null;
@@ -153,6 +183,29 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    async handleMarkAsReturned() {
+        if (!confirm("Are you sure you want to mark this vehicle as returned? This will complete the trip.")) return;
+        try {
+            await this.updateBookingStatus({
+                bookingId: this.booking.id,
+                newStatus: 'returned'
+            });
+            await this.fetchBooking();
+        } catch (error) {
+            alert("Failed to update booking status. Please try again.");
+            console.error("Error marking as returned:", error);
+        }
+    },
+    // --- THIS IS THE FIX ---
+    // This method now performs an "optimistic update" to avoid the failing network call.
+    handleReviewSubmission() {
+        this.isReviewModalOpen = false;
+        // Instead of re-fetching, we just update the local data directly.
+        // This hides the "Write a Review" button immediately and avoids the error.
+        if (this.booking) {
+            this.booking.reviewSubmitted = true;
+        }
     },
     getVehicleImageUrl(vehicle) {
       if (vehicle?.exteriorPhotos?.length > 0) {
@@ -171,7 +224,7 @@ export default {
       return status.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
     },
     getStatusClass(status) {
-      if (['confirmed', 'completed'].includes(status)) return 'status-success';
+      if (['confirmed', 'completed', 'returned'].includes(status)) return 'status-success';
       if (['pending_verification', 'pending_owner_approval', 'pending_payment'].includes(status)) return 'status-warning';
       if (status?.includes('cancelled')) return 'status-danger';
       return 'status-default';
@@ -308,11 +361,45 @@ export default {
     text-align: center;
     margin-top: 0.5rem;
 }
+.completed-card {
+    text-align: center;
+    background-color: lighten($secondary-color, 40%);
+    border-color: lighten($secondary-color, 30%);
 
-/* Status badge colors */
+    i {
+        font-size: 2.5rem;
+        color: $secondary-color;
+        margin-bottom: 1rem;
+    }
+    h3 {
+        color: darken($secondary-color, 15%);
+    }
+    p {
+        color: darken($secondary-color, 10%);
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin: 0;
+    }
+}
+.review-button {
+    margin-top: 1rem;
+    background-color: #fff;
+    color: darken($secondary-color, 15%);
+    border: 1px solid darken($secondary-color, 15%);
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    &:hover {
+        background-color: lighten($secondary-color, 35%);
+    }
+}
+
 .status-success { background-color: lighten($secondary-color, 35%); color: darken($secondary-color, 20%); }
 .status-warning { background-color: lighten($accent-color, 35%); color: darken($accent-color, 20%); }
 .status-danger { background-color: lighten($admin-color, 40%); color: darken($admin-color, 20%); }
 .status-default { background-color: #e5e7eb; color: #4b5568; }
 
 </style>
+

@@ -27,6 +27,7 @@ export default {
   getUserProfile: () => apiClient.get('/users/profile'),
   updateUserProfile: (profileData) => apiClient.put('/users/profile', profileData),
   getAllUsers: () => apiClient.get('/users/all-users'),
+  deleteUser: (userId) => apiClient.delete(`/users/${userId}`),
   updateUserRole: (userId, role) =>
     apiClient.put(`/users/update-role/${userId}`, { role }),
   sendEmailVerificationCode: () => apiClient.post('/users/send-email-verification'),
@@ -51,8 +52,7 @@ export default {
   getOwnerBookings: () => apiClient.get('/bookings/owner'),
   
   // Specific booking update functions
-  updateBookingStatus: (bookingId, data) =>
-    apiClient.put(`/bookings/${bookingId}/status`, data),
+  updateBookingStatus: (bookingId, data) => apiClient.put(`/bookings/${bookingId}/status`, data),
   updateBookingPaymentMethod: (bookingId, data) =>
     apiClient.put(`/bookings/${bookingId}/payment-method`, data),
 
