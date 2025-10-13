@@ -14,6 +14,9 @@
         <router-link to="/contact" class="nav-link">Contact</router-link>
       </nav>
       <div class="header-right">
+        <!-- --- NEW: Notification Bell added here --- -->
+        <NotificationBell v-if="isAuthenticated" />
+
         <router-link
           v-if="$route.name !== 'VehicleList'"
           :to="hostLinkTarget"
@@ -177,11 +180,13 @@
 <script>
 import { mapGetters, mapActions } from 'vuex';
 import NotificationBadge from './utils/NotificationBadge.vue';
+import NotificationBell from './components/utils/NotificationBell.vue'; // --- NEW: Import NotificationBell ---
 
 export default {
   name: 'App',
   components: {
     NotificationBadge,
+    NotificationBell, // --- NEW: Register NotificationBell ---
   },
   data() {
     return {
@@ -674,3 +679,4 @@ body {
   align-items: center;
 }
 </style>
+

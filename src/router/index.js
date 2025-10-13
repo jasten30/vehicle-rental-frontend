@@ -3,6 +3,7 @@ import store from '../store'; // Import the Vuex store
 
 // Public Views
 import HomeView from '../views/HomeView.vue';
+import AboutView from '../views/AboutView.vue';
 import VehicleListView from '../views/Vehicle/VehicleListView.vue';
 import VehicleDetailView from '../views/Vehicle/VehicleDetailView.vue';
 import LoginView from '../views/Auth/LoginView.vue';
@@ -30,7 +31,6 @@ import AdminDashboardView from '../views/Dashboard/Admin/AdminDashboardView.vue'
 import AdminHostApplicationsView from '../views/Dashboard/Admin/AdminHostApplicationsView.vue';
 import BookingStatusView from '../views/Dashboard/BookingStatusView.vue';
 import ChatView from '../views/Dashboard/ChatView.vue';
-// NEW: Import the component for the dedicated driver application page
 import BecomeDriveVerified from '../views/Dashboard/BecomeDriveVerified.vue';
 
 const dashboardRoutes = [
@@ -75,7 +75,6 @@ const dashboardRoutes = [
         component: ChatView,
         meta: { requiresAuth: true },
       },
-      // NEW: Route for the "Approved to Drive" application page
       {
         path: 'verify-driver',
         name: 'BecomeDriveVerified',
@@ -179,7 +178,6 @@ const dashboardRoutes = [
             component: () => import('@/views/Dashboard/Admin/AdminDriveApplicationsView.vue'),
             meta: { requiresAuth: true, authorize: ['admin'] },
           },
-          // THIS IS THE NEW ROUTE TO FIX THE ERROR
           {
             path: 'reports',
             name: 'AdminReports',
@@ -203,6 +201,11 @@ const routes = [
     path: '/',
     name: 'Home',
     component: HomeView,
+  },
+  {
+    path: '/about',
+    name: 'About',
+    component: AboutView,
   },
   {
     path: '/vehicles',
@@ -280,6 +283,16 @@ const routes = [
       props: true, 
       meta: { requiresAuth: true },
     },
+    
+  // 👇 THIS IS THE NEW ROUTE TO FIX THE ERROR
+  {
+    path: '/chat/:chatId',
+    name: 'ChatConversation',
+    component: ChatView,
+    props: true,
+    meta: { requiresAuth: true },
+  },
+
   ...dashboardRoutes,
   {
     path: '/:catchAll(.*)',
@@ -331,4 +344,3 @@ router.beforeEach(async (to, from, next) => {
 });
 
 export default router;
-

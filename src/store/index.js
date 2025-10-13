@@ -39,8 +39,37 @@ export default createStore({
     },
     allVehicles: [],
     userChats: [],
+    notifications: [],
+    isLoadingNotifications: false,
   },
   mutations: {
+    SET_NOTIFICATIONS(state, notifications) {
+      state.notifications = notifications;
+    },
+    SET_NOTIFICATIONS_LOADING(state, isLoading) {
+      state.isLoadingNotifications = isLoading;
+    },
+    MARK_NOTIFICATION_AS_READ(state, notificationId) {
+      const notification = state.notifications.find(n => n.id === notificationId);
+      if (notification) {
+        notification.isRead = true;
+      }
+    },
+    MARK_ALL_NOTIFICATIONS_AS_READ(state) {
+      state.notifications.forEach(n => n.isRead = true);
+    },
+    SET_BOOKING(state, booking) {
+      state.booking = booking;
+    },
+    UPDATE_BOOKING_STATUS(state, { bookingId, newStatus }) {
+      if (state.booking && state.booking.id === bookingId) {
+        state.booking.paymentStatus = newStatus;
+      }
+      const bookingInList = state.allBookings.find(b => b.id === bookingId);
+      if (bookingInList) {
+        bookingInList.paymentStatus = newStatus;
+      }
+    },
     SET_USER(state, userPayload) {
       state.user = userPayload;
     },
@@ -96,12 +125,77 @@ export default createStore({
     SET_ALL_USERS(state, users) {
       state.allUsers = users;
     },
-      SET_USER_CHATS(state, chats) {
+    SET_USER_CHATS(state, chats) {
       state.userChats = chats;
     },
   },
   actions: {
-    // ... all other actions
+    async fetchNotifications({ commit }) {
+      commit('SET_NOTIFICATIONS_LOADING', true);
+      try {
+        const response = await api.getNotifications();
+        commit('SET_NOTIFICATIONS', response.data);
+      } catch (error) {
+        console.error('[Vuex] Failed to fetch notifications:', error);
+      } finally {
+        commit('SET_NOTIFICATIONS_LOADING', false);
+      }
+    },
+    async markAllNotificationsAsRead({ commit }) {
+      try {
+        await api.markAllNotificationsAsRead();
+        commit('MARK_ALL_NOTIFICATIONS_AS_READ');
+      } catch (error) {
+        console.error('[Vuex] Failed to mark all notifications as read:', error);
+        throw error;
+      }
+    },
+    async markNotificationAsRead({ commit }, notificationId) {
+      try {
+        await api.markNotificationAsRead(notificationId);
+        commit('MARK_NOTIFICATION_AS_READ', notificationId);
+      } catch (error) {
+        console.error(`[Vuex] Failed to mark notification ${notificationId} as read:`, error);
+        throw error;
+      }
+    },
+    async approveBooking({ commit }, bookingId) {
+      try {
+        await api.approveBooking(bookingId);
+        commit('UPDATE_BOOKING_STATUS', { bookingId, newStatus: 'pending_payment' });
+      } catch (error) {
+        console.error('Error approving booking:', error);
+        throw error;
+      }
+    },
+    async declineBooking({ commit }, bookingId) {
+      try {
+        await api.declineBooking(bookingId);
+        commit('UPDATE_BOOKING_STATUS', { bookingId, newStatus: 'declined_by_owner' });
+      } catch (error) {
+        console.error('Error declining booking:', error);
+        throw error;
+      }
+    },
+    async confirmDownpaymentByUser({ commit }, bookingId) {
+      try {
+        await api.confirmDownpaymentByUser(bookingId);
+        commit('UPDATE_BOOKING_STATUS', { bookingId, newStatus: 'downpayment_pending_verification' });
+      } catch (error) {
+        console.error('Error confirming downpayment:', error);
+        throw error;
+      }
+    },
+    // --- THIS IS THE NEWLY ADDED ACTION ---
+    async confirmOwnerPayment({ commit }, bookingId) {
+      try {
+        await api.confirmOwnerPayment(bookingId); // Assumes an API endpoint exists
+        commit('UPDATE_BOOKING_STATUS', { bookingId, newStatus: 'downpayment_verified' });
+      } catch (error) {
+        console.error('[Vuex] Failed to confirm owner payment:', error);
+        throw error;
+      }
+    },
     initializeAuth({ commit }) {
       return new Promise((resolve) => {
         const auth = getAuth();
@@ -248,9 +342,7 @@ export default createStore({
       try {
         const response = await api.createBooking(bookingData);
         const newBookingId = response.data.id;
-        
         router.push({ name: 'BookingStatus', params: { bookingId: newBookingId } });
-        
         return response.data;
       } catch (error) {
         console.error('[Vuex] Failed to create booking:', error);
@@ -322,10 +414,7 @@ export default createStore({
         throw error;
       }
     },
-    async updateBookingPaymentMethod(
-      { _commit },
-      { bookingId, paymentMethod, newStatus }
-    ) {
+    async updateBookingPaymentMethod({ _commit }, { bookingId, paymentMethod, newStatus }) {
       try {
         const response = await api.updateBookingPaymentMethod(bookingId, {
           paymentMethod,
@@ -338,15 +427,15 @@ export default createStore({
       }
     },
     async confirmBookingPayment({ _commit }, bookingId) {
-        try {
-          const response = await api.confirmBookingPayment(bookingId);
-          return response.data;
-        } catch (error) {
-          console.error('Failed to confirm booking payment:', error);
-          throw error;
-        }
-      },
-      async fetchAllUsers({ commit }) {
+      try {
+        const response = await api.confirmBookingPayment(bookingId);
+        return response.data;
+      } catch (error) {
+        console.error('Failed to confirm booking payment:', error);
+        throw error;
+      }
+    },
+    async fetchAllUsers({ commit }) {
       try {
         const response = await api.getAllUsers();
         commit('SET_ALL_USERS', response.data);
@@ -385,12 +474,9 @@ export default createStore({
       try {
         const response = await api.tokenLogin();
         const customToken = response.data.token;
-        
         const auth = getAuth();
         await signInWithCustomToken(auth, customToken);
-        
         await dispatch('fetchUserProfile');
-        
         const userRole = this.getters.userRole;
         if (userRole === 'admin') {
           router.push('/dashboard/admin/dashboard');
@@ -448,22 +534,22 @@ export default createStore({
       }
     },
     async fetchUserChats({ commit }) {
-        try {
-          const response = await api.getUserChats();
-          commit('SET_USER_CHATS', response.data);
-          return response.data;
-        } catch (error) {
-          console.error('[Vuex] Failed to fetch user chats:', error);
-          throw error;
-        }
+      try {
+        const response = await api.getUserChats();
+        commit('SET_USER_CHATS', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('[Vuex] Failed to fetch user chats:', error);
+        throw error;
+      }
     },
     async sendMessage({_commit}, { chatId, text }) {
-        try {
-          await api.sendMessage(chatId, text);
-        } catch (error) {
-          console.error('[Vuex] Failed to send message:', error);
-          throw error;
-        }
+      try {
+        await api.sendMessage(chatId, text);
+      } catch (error) {
+        console.error('[Vuex] Failed to send message:', error);
+        throw error;
+      }
     },
     async markChatAsRead({ dispatch }, chatId) {
       try {
@@ -474,69 +560,61 @@ export default createStore({
       }
     },
     async fetchDriveApplications({ _commit }) {
-        try {
-            const response = await api.getDriveApplications();
-            return response.data;
-        } catch (error) {
-            console.error('[Vuex] Failed to fetch drive applications:', error);
-            throw error;
-        }
+      try {
+        const response = await api.getDriveApplications();
+        return response.data;
+      } catch (error) {
+        console.error('[Vuex] Failed to fetch drive applications:', error);
+        throw error;
+      }
     },
     async approveDriveApplication({ _commit }, { applicationId, userId }) {
-        try {
-            await api.approveDriveApplication(applicationId, userId);
-        } catch (error) {
-            console.error('[Vuex] Failed to approve drive application:', error);
-            throw error;
-        }
+      try {
+        await api.approveDriveApplication(applicationId, userId);
+      } catch (error) {
+        console.error('[Vuex] Failed to approve drive application:', error);
+        throw error;
+      }
     },
     async declineDriveApplication({ _commit }, { applicationId, userId }) {
-        try {
-            await api.declineDriveApplication(applicationId, userId);
-        } catch (error) {
-            console.error('[Vuex] Failed to decline drive application:', error);
-            throw error;
-        }
+      try {
+        await api.declineDriveApplication(applicationId, userId);
+      } catch (error) {
+        console.error('[Vuex] Failed to decline drive application:', error);
+        throw error;
+      }
     },
     async submitDriveApplication({ _commit }, formData) {
-        try {
-            const response = await api.submitDriveApplication(formData);
-            return response.data;
-        } catch (error) {
-            console.error('[Vuex] Failed to submit drive application:', error);
-            throw error;
-        }
+      try {
+        const response = await api.submitDriveApplication(formData);
+        return response.data;
+      } catch (error) {
+        console.error('[Vuex] Failed to submit drive application:', error);
+        throw error;
+      }
     },
     async deleteUser({ _commit }, userId) {
-        try {
-            await api.deleteUser(userId);
-        } catch (error) {
-            console.error('[Vuex] Failed to delete user:', error);
-            throw error;
-        }
+      try {
+        await api.deleteUser(userId);
+      } catch (error) {
+        console.error('[Vuex] Failed to delete user:', error);
+        throw error;
+      }
     },
     async updateBookingStatus({ _commit }, { bookingId, newStatus }) {
-        try {
-            const response = await api.updateBookingStatus(bookingId, { newStatus });
-            return response.data;
-        } catch (error) {
-            console.error('[Vuex] Failed to update booking status:', error);
-            throw error;
-        }
+      try {
+        const response = await api.updateBookingStatus(bookingId, { newStatus });
+        return response.data;
+      } catch (error) {
+        console.error('[Vuex] Failed to update booking status:', error);
+        throw error;
+      }
     },
     async submitReview({ _commit }, reviewData) {
-      // --- NEW DEBUGGING LOG ---
-      console.log('[Vuex Action] "submitReview" action triggered with payload:', reviewData);
-
       try {
-        // --- NEW DEBUGGING LOG ---
-        console.log('[Vuex Action] Calling api.submitReview...');
         await api.submitReview(reviewData);
-        console.log('[Vuex Action] api.submitReview call was successful.');
       } catch (error) {
-        // --- NEW DEBUGGING LOG ---
-        // This log is CRITICAL. It will show us the exact error if the API call fails.
-        console.error('[Vuex Action] ERROR in submitReview action:', error);
+        console.error('[Vuex] Failed to submit review:', error);
         throw error;
       }
     },
@@ -551,7 +629,11 @@ export default createStore({
     },
   },
   getters: {
-    // ... all other getters
+    notifications: (state) => state.notifications,
+    unreadNotificationsCount: (state) => {
+      return state.notifications.filter(n => !n.isRead).length;
+    },
+    isLoadingNotifications: (state) => state.isLoadingNotifications,
     isAuthenticated: (state) => state.isAuthenticated,
     user: (state) => state.user,
     authLoading: (state) => state.authLoading,
@@ -667,4 +749,3 @@ export default createStore({
     owner,
   },
 });
-

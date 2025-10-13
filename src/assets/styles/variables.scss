@@ -1,5 +1,3 @@
-// frontend/src/assets/styles/variables.scss
-
 // Colors
 $primary-color: #007bff; // Blue
 $secondary-color: #28a745; // Green
@@ -24,6 +22,7 @@ $border-radius-pill: 9999px;
 
 $shadow-light: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 $shadow-medium: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+$shadow-large: 0 1rem 3rem rgba(0, 0, 0, 0.175);
 $shadow-small: 0 2px 4px rgba(0, 0, 0, 0.05);
 $shadow-hover: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 
@@ -42,5 +41,3 @@ $spacing-xl: 2rem;
 // Layout Heights (Add these lines)
 $header-height: 60px; // Example header height
 $footer-height: 80px; // Example footer height
-
-

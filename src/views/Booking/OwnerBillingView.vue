@@ -1,175 +1,249 @@
 <template>
-  <div class="owner-dashboard-container">
-    <div class="header-section">
-      <h1 class="page-title">Owner Dashboard</h1>
-      <p class="page-subtitle">
-        Track your monthly usage and manage incoming booking requests.
-      </p>
-    </div>
-
-    <div v-if="userLoading" class="info-state">
-      <p>Loading dashboard...</p>
-    </div>
-
-    <div v-else class="billing-summary-grid">
-      <div class="summary-card">
-        <div class="card-icon"><i class="bi bi-calendar-check"></i></div>
-        <div class="card-content">
-          <p class="card-label">Bookings This Month ({{ currentMonthName }})</p>
-          <p class="card-value">{{ currentMonthBookings }}</p>
+  <div class="owner-bookings-page">
+    <div class="page-container">
+      <div class="header-section">
+        <h1 class="page-title">My Bookings</h1>
+        <!-- --- UPDATED: Search Bar placeholder --- -->
+        <div class="search-wrapper">
+          <i class="bi bi-search search-icon"></i>
+          <input
+            type="text"
+            v-model="searchQuery"
+            placeholder="Search by renter, vehicle, or booking ID..."
+            class="search-input"
+          />
         </div>
       </div>
-      <div class="summary-card">
-        <div class="card-icon"><i class="bi bi-gift-fill"></i></div>
-        <div class="card-content">
-          <p class="card-label">Free Bookings Remaining</p>
-          <p class="card-value">{{ freeBookingsRemaining }}</p>
-        </div>
-      </div>
-      <div class="summary-card">
-        <div class="card-icon"><i class="bi bi-wallet2"></i></div>
-        <div class="card-content">
-          <p class="card-label">Billable Bookings</p>
-          <p class="card-value">{{ billableBookings }}</p>
-        </div>
-      </div>
-    </div>
 
-    <hr class="section-divider" />
+      <!-- Loading state -->
+      <div v-if="loadingStatus === 'loading'" class="info-state">
+        <svg class="spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p>Loading bookings...</p>
+      </div>
 
-    <div class="bookings-section">
-      <h2 class="section-heading">Booking Requests</h2>
-      <div v-if="bookingsLoading" class="info-state"><p>Loading bookings...</p></div>
-      <div v-else-if="bookingsError" class="info-state error-state"><p>{{ bookingsError }}</p></div>
-      <div v-else-if="bookings.length === 0" class="info-state"><p>You have no bookings for your vehicles yet.</p></div>
-      <div v-else class="table-wrapper">
-        <table class="bookings-table">
-          <thead class="table-header">
-            <tr>
-              <th>Renter</th>
-              <th>Vehicle</th>
-              <th>Dates</th>
-              <th>Status</th>
-              <th>Total Price</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody class="table-body">
-            <tr v-for="booking in bookings" :key="booking.id" class="table-row">
-              <td>{{ booking.renterDetails?.username || 'N/A' }}</td>
-              <td>{{ booking.vehicleDetails?.make }} {{ booking.vehicleDetails?.model }}</td>
-              <td>{{ formatDate(booking.startDate) }} - {{ formatDate(booking.endDate) }}</td>
-              <td>
+      <!-- Error state -->
+      <div v-else-if="loadingStatus === 'error'" class="info-state error-state">
+        <p>Failed to load bookings: {{ error }}</p>
+        <p>Please try again later.</p>
+      </div>
+
+      <!-- No bookings at all state -->
+      <div v-else-if="allBookings.length === 0" class="info-state">
+        <p>You currently have no bookings for your vehicles.</p>
+      </div>
+
+      <!-- No search results state -->
+      <div v-else-if="filteredNewRequests.length === 0 && filteredUpcomingBookings.length === 0 && filteredPastBookings.length === 0" class="info-state">
+        <p>No bookings found for "{{ searchQuery }}".</p>
+      </div>
+
+      <!-- Bookings displayed in sections -->
+      <div v-else>
+        <!-- Section for New Requests -->
+        <section v-if="filteredNewRequests.length > 0" class="booking-section">
+          <h2 class="section-title">New Requests</h2>
+          <div class="requests-grid">
+            <div v-for="booking in filteredNewRequests" :key="booking.id" class="request-card">
+              <div class="card-header">
+                <span class="renter-name">{{ booking.renterDetails?.username || 'N/A' }}</span>
                 <span :class="getStatusBadgeClass(booking.paymentStatus)">
                   {{ formatStatus(booking.paymentStatus) }}
                 </span>
-              </td>
-              <td>{{ formatPrice(booking.totalCost) }}</td>
-              <td class="action-cell">
-                <div v-if="booking.paymentStatus === 'pending_owner_approval'" class="action-buttons">
-                  <button @click="handleApproval(booking.id, 'approve')" class="button approve">Accept</button>
-                  <button @click="handleApproval(booking.id, 'decline')" class="button decline">Decline</button>
-                </div>
-                <button v-else @click="viewBookingDetails(booking.id)" class="button view">View Details</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </div>
+              <div class="card-body">
+                <!-- --- NEW: Booking ID added --- -->
+                <p class="booking-id">ID: {{ booking.id }}</p>
+                <p class="vehicle-name">{{ booking.vehicleDetails?.make }} {{ booking.vehicleDetails?.model }}</p>
+                <p class="booking-dates">{{ formatDate(booking.startDate) }} - {{ formatDate(booking.endDate) }}</p>
+              </div>
+              <div class="card-footer">
+                <span class="booking-price">{{ formatPrice(booking.totalCost) }}</span>
+                <button @click="viewBookingDetails(booking.id)" class="action-button">
+                  Review Request
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section for Upcoming Trips -->
+        <section v-if="filteredUpcomingBookings.length > 0" class="booking-section">
+          <h2 class="section-title">Upcoming & Active Trips</h2>
+          <div class="table-wrapper">
+            <table class="bookings-table">
+              <thead class="table-header">
+                <tr>
+                  <th class="table-header-cell">Renter</th>
+                  <th class="table-header-cell">Vehicle</th>
+                  <th class="table-header-cell">Dates</th>
+                  <th class="table-header-cell">Status</th>
+                  <th class="table-header-cell">Total Price</th>
+                  <th class="table-header-cell">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="table-body">
+                <tr v-for="booking in filteredUpcomingBookings" :key="booking.id" class="table-row">
+                  <td class="table-data">{{ booking.renterDetails?.username || 'N/A' }}</td>
+                  <td class="table-data">{{ booking.vehicleDetails?.make }} {{ booking.vehicleDetails?.model }}</td>
+                  <td class="table-data">{{ formatDate(booking.startDate) }} - {{ formatDate(booking.endDate) }}</td>
+                  <td class="table-data">
+                    <span :class="getStatusBadgeClass(booking.paymentStatus)">{{ formatStatus(booking.paymentStatus) }}</span>
+                  </td>
+                  <td class="table-data">{{ formatPrice(booking.totalCost) }}</td>
+                  <td class="table-data">
+                    <button @click="viewBookingDetails(booking.id)" class="action-button view-details-button">View Details</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Section for Past Trips -->
+        <section v-if="filteredPastBookings.length > 0" class="booking-section">
+          <h2 class="section-title">Past & Completed Trips</h2>
+          <div class="table-wrapper">
+            <table class="bookings-table">
+              <thead class="table-header">
+                <tr>
+                  <th class="table-header-cell">Renter</th>
+                  <th class="table-header-cell">Vehicle</th>
+                  <th class="table-header-cell">Dates</th>
+                  <th class="table-header-cell">Status</th>
+                  <th class="table-header-cell">Total Price</th>
+                  <th class="table-header-cell">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="table-body">
+                <tr v-for="booking in filteredPastBookings" :key="booking.id" class="table-row">
+                  <td class="table-data">{{ booking.renterDetails?.username || 'N/A' }}</td>
+                  <td class="table-data">{{ booking.vehicleDetails?.make }} {{ booking.vehicleDetails?.model }}</td>
+                  <td class="table-data">{{ formatDate(booking.startDate) }} - {{ formatDate(booking.endDate) }}</td>
+                  <td class="table-data">
+                    <span :class="getStatusBadgeClass(booking.paymentStatus)">{{ formatStatus(booking.paymentStatus) }}</span>
+                  </td>
+                  <td class="table-data">{{ formatPrice(booking.totalCost) }}</td>
+                  <td class="table-data">
+                    <button @click="viewBookingDetails(booking.id)" class="action-button view-details-button">View Details</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { mapGetters, mapState, mapActions } from 'vuex';
+import { mapState, mapActions } from 'vuex';
 import { DateTime } from 'luxon';
 
 export default {
-  name: 'OwnerBillingView',
+  name: 'OwnerBookings',
+  data() {
+    return {
+      searchQuery: '',
+    };
+  },
   computed: {
-    ...mapGetters(['user']),
     ...mapState('owner', {
-      bookings: state => state.ownerBookings,
-      bookingsLoading: state => state.ownerBookingsStatus === 'loading',
-      bookingsError: state => state.ownerBookingsError,
+      allBookings: state => state.ownerBookings,
+      loadingStatus: state => state.ownerBookingsStatus,
+      error: state => state.ownerBookingsError,
     }),
-    userLoading() {
-      return !this.user;
+
+    filteredNewRequests() {
+      const baseRequests = this.allBookings
+        .filter(b => b.paymentStatus === 'pending_owner_approval')
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      if (!this.searchQuery) return baseRequests;
+
+      const lowerCaseQuery = this.searchQuery.toLowerCase();
+      return baseRequests.filter(booking => this.matchesSearch(booking, lowerCaseQuery));
     },
-    currentMonthKey() {
-      return DateTime.now().toFormat('yyyy-MM');
+
+    filteredUpcomingBookings() {
+      const upcomingStatuses = [
+        'confirmed', 'downpayment_received', 'full_payment_received',
+        'pending_payment', 'downpayment_pending_verification'
+      ];
+      const baseBookings = this.allBookings
+        .filter(b => upcomingStatuses.includes(b.paymentStatus) && new Date(b.endDate) >= new Date())
+        .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+      if (!this.searchQuery) return baseBookings;
+      
+      const lowerCaseQuery = this.searchQuery.toLowerCase();
+      return baseBookings.filter(booking => this.matchesSearch(booking, lowerCaseQuery));
     },
-    currentMonthName() {
-      return DateTime.now().toFormat('MMMM yyyy');
-    },
-    currentMonthBookings() {
-      if (this.user?.monthlyBookingCounts) {
-        return this.user.monthlyBookingCounts[this.currentMonthKey] || 0;
-      }
-      return 0;
-    },
-    freeBookingsRemaining() {
-      const remaining = 10 - this.currentMonthBookings;
-      return remaining > 0 ? remaining : 0;
-    },
-    billableBookings() {
-      const billable = this.currentMonthBookings - 10;
-      return billable > 0 ? billable : 0;
+
+    filteredPastBookings() {
+      const pastStatuses = ['completed', 'returned', 'cancelled', 'declined_by_owner'];
+      const baseBookings = this.allBookings
+        .filter(b => pastStatuses.includes(b.paymentStatus) || new Date(b.endDate) < new Date())
+        .sort((a, b) => new Date(b.endDate) - new Date(a.endDate));
+      
+      if (!this.searchQuery) return baseBookings;
+
+      const lowerCaseQuery = this.searchQuery.toLowerCase();
+      return baseBookings.filter(booking => this.matchesSearch(booking, lowerCaseQuery));
     },
   },
   async created() {
-    this.fetchOwnerBookings();
-    if (!this.user) {
-        await this.fetchUserProfile();
-    }
+    await this.fetchOwnerBookings();
   },
   methods: {
-    ...mapActions(['fetchUserProfile']),
-    ...mapActions('owner', [
-      'fetchOwnerBookings',
-      'approveBooking',
-      'declineBooking',
-    ]),
-    async handleApproval(bookingId, action) {
-      const confirmMessage =
-        action === 'approve'
-          ? 'Are you sure you want to approve this booking request?'
-          : 'Are you sure you want to decline this booking request?';
-      if (window.confirm(confirmMessage)) {
-        try {
-          if (action === 'approve') {
-            await this.approveBooking(bookingId);
-          } else {
-            await this.declineBooking(bookingId);
-          }
-          await this.fetchOwnerBookings();
-        } catch (error) {
-          alert(`Failed to ${action} booking.`);
-        }
-      }
+    ...mapActions('owner', ['fetchOwnerBookings']),
+
+    // --- UPDATED: Search logic now includes booking ID ---
+    matchesSearch(booking, query) {
+        const renterName = (booking.renterDetails?.username || '').toLowerCase();
+        const vehicleMake = (booking.vehicleDetails?.make || '').toLowerCase();
+        const vehicleModel = (booking.vehicleDetails?.model || '').toLowerCase();
+        const bookingId = (booking.id || '').toLowerCase(); // Add booking ID to search
+        
+        return renterName.includes(query) || 
+               vehicleMake.includes(query) || 
+               vehicleModel.includes(query) ||
+               bookingId.includes(query);
     },
+    
     viewBookingDetails(bookingId) {
-      this.$router.push({ name: 'BookingDetails', params: { bookingId } });
+      this.$router.push({ name: 'BookingDetails', params: { bookingId: bookingId } });
     },
     formatDate(dateString) {
       if (!dateString) return 'N/A';
       return DateTime.fromISO(dateString).toLocaleString(DateTime.DATE_SHORT);
     },
     formatPrice(price) {
-      return typeof price === 'number' ? `₱${price.toFixed(2)}` : 'N/A';
+      return price ? `₱${Number(price).toFixed(2)}` : 'N/A';
     },
     formatStatus(status) {
       if (!status) return 'N/A';
-      return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      return status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     },
     getStatusBadgeClass(status) {
-      switch (status) {
-        case 'confirmed':
-          return 'status-badge status-confirmed';
+       switch (status) {
         case 'pending_owner_approval':
+          return 'status-badge status-new';
+        case 'confirmed':
+        case 'downpayment_received':
+        case 'full_payment_received':
+          return 'status-badge status-confirmed';
+        case 'pending_payment':
+        case 'downpayment_pending_verification':
           return 'status-badge status-pending';
-        case 'declined_by_owner':
+        case 'completed':
+        case 'returned':
+            return 'status-badge status-completed';
         case 'cancelled':
+        case 'declined_by_owner':
           return 'status-badge status-cancelled';
         default:
           return 'status-badge status-default';
@@ -180,178 +254,238 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '@/assets/styles/variables.scss';
-
-.owner-dashboard-container {
-  max-width: 1100px;
-  margin: 2rem auto;
-  padding: 0 1rem;
+.owner-bookings-page {
+  background-color: #f9fafb;
+  min-height: 100vh;
+  padding: 1rem;
 }
+
+.page-container {
+  max-width: 64rem;
+  margin: 0 auto;
+}
+
 .header-section {
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.page-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+.search-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 350px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem; /* Add padding for the icon */
+  border-radius: 9999px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  font-size: 0.9rem;
+  transition: box-shadow 0.2s, border-color 0.2s;
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  }
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+}
+
+
+.booking-section {
   margin-bottom: 3rem;
 }
-.page-title {
-  font-size: 2.25rem;
-  font-weight: 700;
-  color: $text-color-dark;
-}
-.page-subtitle {
-  font-size: 1.1rem;
-  color: $text-color-medium;
-  margin-top: 0.5rem;
-}
-.billing-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-}
-.summary-card {
-  background-color: $card-background;
-  border: 1px solid $border-color;
-  border-radius: $border-radius-lg;
-  padding: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-.card-icon {
-  background-color: lighten($primary-color, 40%);
-  color: $primary-color;
-  font-size: 1.75rem;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.card-label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: $text-color-medium;
-  margin-bottom: 0.25rem;
-  text-align: left;
-}
-.card-value {
-  font-size: 2.25rem;
-  font-weight: 700;
-  color: $text-color-dark;
-  line-height: 1;
-  text-align: left;
-}
-.section-divider {
-  border: 0;
-  height: 1px;
-  background-color: $border-color;
-  margin: 3rem 0;
-}
-.bookings-section {
-  text-align: center;
-}
-.section-heading {
-  font-size: 1.75rem;
+
+.section-title {
+  font-size: 1.25rem;
   font-weight: 600;
-  color: $text-color-dark;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
 }
+
 .info-state {
   text-align: center;
-  padding: 3rem 0;
-  color: $text-color-medium;
+  padding: 2.5rem 0;
+  color: #6b7280;
 }
+
+.spinner {
+  animation: spin 1s linear infinite;
+  height: 2rem;
+  width: 2rem;
+  color: #3b82f6;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* New Request Cards Styles */
+.requests-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.request-card {
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  }
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.renter-name {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.card-body {
+  padding: 1.25rem;
+  flex-grow: 1;
+}
+
+/* --- NEW: Style for booking ID --- */
+.booking-id {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-bottom: 0.75rem;
+  word-break: break-all;
+}
+
+.vehicle-name {
+  font-weight: 500;
+  color: #374151;
+  margin: 0 0 0.5rem;
+}
+
+.booking-dates {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background-color: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+}
+
+.booking-price {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #1f2937;
+}
+
+/* Table Styles */
 .table-wrapper {
   overflow-x: auto;
-  border: 1px solid $border-color;
-  border-radius: $border-radius-md;
-  box-shadow: $shadow-light;
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
 }
+
 .bookings-table {
   min-width: 100%;
   border-collapse: collapse;
 }
+
 .table-header {
   background-color: #f9fafb;
-  th {
-    padding: 0.75rem 1rem;
-    text-align: left;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: $text-color-medium;
-    text-transform: uppercase;
-  }
 }
-.table-body .table-row {
-  border-top: 1px solid $border-color;
-  &:hover {
-    background-color: lighten($primary-color, 45%);
-  }
-}
-td {
-  padding: 1rem;
-  white-space: nowrap;
-  font-size: 0.9rem;
-  color: $text-color-dark;
+
+.table-header-cell {
+  padding: 0.75rem 1rem;
   text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
 }
+
+.table-body .table-row {
+  border-top: 1px solid #e5e7eb;
+}
+
+.table-body .table-row:hover {
+  background-color: #f3f4f6;
+}
+
+.table-data {
+  padding: 1rem 1rem;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+/* Badge Styles */
 .status-badge {
   display: inline-block;
   padding: 0.25rem 0.625rem;
-  border-radius: $border-radius-pill;
+  border-radius: 9999px;
   font-weight: 500;
   font-size: 0.75rem;
   line-height: 1;
-  &.status-confirmed {
-    background-color: #d1fae5;
-    color: #065f46;
-  }
-  &.status-pending {
-    background-color: #fffbeb;
-    color: #92400e;
-  }
-  &.status-cancelled {
-    background-color: #fee2e2;
-    color: #991b1b;
-  }
-  &.status-default {
-    background-color: #f3f4f6;
-    color: #374151;
-  }
 }
-.action-buttons {
-  display: flex;
-  gap: 0.5rem;
-}
-.button {
-  padding: 0.4rem 0.8rem;
-  border-radius: $border-radius-pill;
-  font-size: 0.8rem;
+
+.status-new { background-color: #e0f2fe; color: #0284c7; }
+.status-confirmed { background-color: #d1fae5; color: #065f46; }
+.status-pending { background-color: #fef3c7; color: #92400e; }
+.status-completed { background-color: #e5e7eb; color: #374151; }
+.status-cancelled { background-color: #fee2e2; color: #991b1b; }
+.status-refunded { background-color: #e0f2fe; color: #0284c7; }
+.status-default { background-color: #f3f4f6; color: #374151; }
+
+.action-button {
+  background-color: #3b82f6;
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
   font-weight: 600;
+  transition: background-color 150ms ease-in-out;
   border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
-
-  &.approve {
-    background-color: $secondary-color;
-    color: white;
-    &:hover {
-      background-color: darken($secondary-color, 10%);
-    }
-  }
-  &.decline {
-    background-color: lighten($admin-color, 40%);
-    color: $admin-color;
-    &:hover {
-      background-color: lighten($admin-color, 35%);
-    }
-  }
-  &.view {
-    background-color: #e0f2fe;
-    color: #0284c7;
-    &:hover {
-      background-color: darken(#e0f2fe, 5%);
-    }
+  
+  &:hover {
+    background-color: darken(#3b82f6, 10%);
   }
 }
 </style>

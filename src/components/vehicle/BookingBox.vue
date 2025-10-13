@@ -1,184 +1,184 @@
 <template>
-  <div class="booking-box card">
-    <p class="price">
-      <span class="price-amount">₱{{ vehicle.rentalPricePerDay }}</span> / day
-    </p>
+  <div class="booking-box-card">
+    <div class="price-header">
+      <span class="price-amount">₱{{ vehicle.rentalPricePerDay ? vehicle.rentalPricePerDay.toLocaleString() : 'N/A' }}</span>
+      <span class="price-period">per day</span>
+    </div>
 
-    <!-- Date inputs to open the picker -->
-    <div class="date-inputs">
+    <div class="date-picker-section">
       <div class="date-input-group">
-        <label>PICK-UP</label>
-        <input
-          type="text"
-          :value="formattedStartDate"
-          @click="showDatePicker = true"
-          readonly
-          placeholder="Select date"
-        />
+        <label for="start-date">PICKUP</label>
+        <input type="date" id="start-date" v-model="startDate" :min="today" />
       </div>
       <div class="date-input-group">
-        <label>RETURN</label>
-        <input
-          type="text"
-          :value="formattedEndDate"
-          @click="showDatePicker = true"
-          readonly
-          placeholder="Select date"
-        />
+        <label for="end-date">RETURN</label>
+        <input type="date" id="end-date" v-model="endDate" :min="minEndDate" />
       </div>
     </div>
 
-    <!-- Price breakdown -->
-    <div v-if="totalPrice > 0" class="price-calculation">
-      <span>₱{{ vehicle.rentalPricePerDay }} x {{ tripDuration }} days</span>
-      <span class="total-price">₱{{ totalPrice.toLocaleString() }}</span>
-    </div>
-    <div v-else class="prompt-text">
-      <p>Select your dates to see the total price.</p>
+    <div v-if="totalCost > 0" class="price-calculation">
+      <div class="price-row">
+        <span>₱{{ vehicle.rentalPricePerDay.toLocaleString() }} x {{ numberOfDays }} days</span>
+        <span>₱{{ totalCost.toLocaleString() }}</span>
+      </div>
+      <hr class="price-divider" />
+      <div class="price-row total">
+        <span>Total Price</span>
+        <span>₱{{ totalCost.toLocaleString() }}</span>
+      </div>
     </div>
 
-    <!-- The button now calls a local method in this component -->
-    <button
-      @click="handleBookingRequest"
-      :disabled="bookingLoading || !startDate || !endDate"
-      class="book-now-button"
+    <div v-if="availabilityMessage" class="availability-message" :class="availabilityStatus">
+      <i class="bi" :class="availabilityIcon"></i>
+      <span>{{ availabilityMessage }}</span>
+    </div>
+
+    <button 
+      @click="handleContinueClick" 
+      class="continue-button" 
+      :disabled="!isBookingValid"
     >
-      <span v-if="bookingLoading">Booking...</span>
+      <span v-if="isLoadingAvailability">Checking...</span>
       <span v-else>Continue</span>
     </button>
 
-    <!-- Local error message display -->
-    <div v-if="errorMessage" class="booking-message error">{{ errorMessage }}</div>
-
-    <!-- Location Section -->
-    <hr class="divider" />
-    <div class="location-section">
-      <div class="location-item">
-        <span>Pickup location</span>
-        <span class="location-value">{{ pickupLocation }}</span>
-      </div>
-       <div class="location-item">
-        <span>Return location</span>
-        <span class="location-value">{{ pickupLocation }}</span>
-      </div>
-    </div>
-
-    <!-- Report Button Section -->
-    <div class="report-section">
-        <!-- UPDATED: This button now opens the report modal -->
-        <button class="report-button" @click="isReportModalOpen = true">
-            <i class="bi bi-flag"></i>
-            <span>Report this listing</span>
-        </button>
-    </div>
-
-    <!-- DateRangePicker component -->
-    <DateRangePicker
-      v-if="showDatePicker"
-      :start-date="startDate"
-      :end-date="endDate"
-      :unavailable-dates="unavailableDates"
-      @close="showDatePicker = false"
-      @save="handleDateSave"
-    />
-    
-    <!-- NEW: Report Listing Modal component -->
-    <ReportListingModal
-      :is-open="isReportModalOpen"
-      :vehicle="vehicle"
-      @close="isReportModalOpen = false"
+    <DownpaymentConfirmationModal
+      :is-open="isConfirmationModalOpen"
+      @close="isConfirmationModalOpen = false"
+      @confirm="proceedWithBooking"
     />
   </div>
 </template>
 
 <script>
-import { mapActions, mapGetters } from 'vuex';
-import DateRangePicker from "@/components/HomeViewComponents/DateRangePicker.vue";
-import ReportListingModal from "@/components/modals/ReportListingModal.vue"; // NEW: Import modal
-import { DateTime } from "luxon";
+import DownpaymentConfirmationModal from '@/components/modals/DownpaymentConfirmationModal.vue';
+import { mapActions } from 'vuex';
+import { DateTime } from 'luxon';
 
 export default {
-  name: "BookingBox",
-  components: { DateRangePicker, ReportListingModal }, // NEW: Register modal
+  name: 'BookingBox',
+  components: {
+    DownpaymentConfirmationModal,
+  },
   props: {
-    vehicle: Object,
-    unavailableDates: {
-      type: Array,
-      default: () => [],
+    vehicle: {
+      type: Object,
+      required: true,
     },
   },
   data() {
     return {
-      showDatePicker: false,
+      isConfirmationModalOpen: false,
       startDate: null,
       endDate: null,
-      bookingLoading: false,
-      errorMessage: null,
-      isReportModalOpen: false, // NEW: State to control the report modal
+      totalCost: 0,
+      numberOfDays: 0,
+      isLoadingAvailability: false,
+      availabilityMessage: '',
+      availabilityStatus: '', // 'available', 'unavailable', 'checking'
     };
   },
   computed: {
-    ...mapGetters(['isAuthenticated', 'user']),
-    formattedStartDate() {
-      if (!this.startDate) return "";
-      return DateTime.fromISO(this.startDate).toFormat("LLL dd, yyyy");
+    today() {
+      return DateTime.now().toISODate();
     },
-    formattedEndDate() {
-      if (!this.endDate) return "";
-      return DateTime.fromISO(this.endDate).toFormat("LLL dd, yyyy");
+    minEndDate() {
+      return this.startDate ? this.startDate : this.today;
     },
-    tripDuration() {
-      if (!this.startDate || !this.endDate) return 0;
-      const start = DateTime.fromISO(this.startDate);
-      const end = DateTime.fromISO(this.endDate);
-      if (start >= end) return 0;
-      return Math.ceil(end.diff(start, "days").days) + 1;
+    isBookingValid() {
+      return this.availabilityStatus === 'available' && !this.isLoadingAvailability;
     },
-    totalPrice() {
-      if (this.tripDuration <= 0) return 0;
-      return this.vehicle.rentalPricePerDay * this.tripDuration;
-    },
-    pickupLocation() {
-        if (this.vehicle && this.vehicle.location) {
-            return `${this.vehicle.location.barangay}, ${this.vehicle.location.city}`;
-        }
-        return 'Location not specified';
+    availabilityIcon() {
+        if (this.availabilityStatus === 'available') return 'bi-check-circle-fill';
+        if (this.availabilityStatus === 'unavailable') return 'bi-x-circle-fill';
+        return 'bi-hourglass-split';
     }
   },
-  methods: {
-    ...mapActions(['createBooking']),
-    handleDateSave(dates) {
-      this.startDate = dates.startDate;
-      this.endDate = dates.endDate;
-      this.showDatePicker = false;
+  watch: {
+    startDate() {
+      this.checkAvailabilityAndCalculateCost();
     },
-    async handleBookingRequest() {
-      this.bookingLoading = true;
-      this.errorMessage = null;
+    endDate() {
+      this.checkAvailabilityAndCalculateCost();
+    },
+  },
+  methods: {
+    ...mapActions(['createBooking', 'checkVehicleAvailability']),
 
-      if (!this.isAuthenticated) {
-        this.$router.push('/login');
-        return;
-      }
+    async checkAvailabilityAndCalculateCost() {
       if (!this.startDate || !this.endDate) {
-        this.errorMessage = 'Please select both pick-up and return dates.';
-        this.bookingLoading = false;
+        this.totalCost = 0;
+        this.availabilityMessage = '';
+        this.availabilityStatus = '';
         return;
       }
+      
+      const start = DateTime.fromISO(this.startDate);
+      const end = DateTime.fromISO(this.endDate);
+
+      if (start >= end) {
+        this.totalCost = 0;
+        this.availabilityMessage = 'Return date must be after the pickup date.';
+        this.availabilityStatus = 'unavailable';
+        return;
+      }
+
+      this.isLoadingAvailability = true;
+      this.availabilityMessage = 'Checking availability...';
+      this.availabilityStatus = 'checking';
 
       try {
-        const bookingPayload = {
+        const payload = {
           vehicleId: this.vehicle.id,
           startDate: this.startDate,
           endDate: this.endDate,
-          totalCost: this.totalPrice,
         };
         
-        await this.createBooking(bookingPayload);
+        const response = await this.checkVehicleAvailability(payload);
+
+        if (response.isAvailable) {
+          this.availabilityMessage = response.message;
+          this.availabilityStatus = 'available';
+          this.totalCost = response.totalCost;
+          this.numberOfDays = Math.ceil(end.diff(start, 'days').days);
+        } else {
+          this.availabilityMessage = response.message;
+          this.availabilityStatus = 'unavailable';
+          this.totalCost = 0;
+        }
       } catch (error) {
-        this.errorMessage = error.response?.data?.message || 'An unexpected error occurred.';
+        this.availabilityMessage = 'Could not check availability. Please try again.';
+        this.availabilityStatus = 'unavailable';
+        this.totalCost = 0;
       } finally {
-        this.bookingLoading = false;
+        this.isLoadingAvailability = false;
+      }
+    },
+
+    handleContinueClick() {
+      if (this.isBookingValid) {
+        this.isConfirmationModalOpen = true;
+      }
+    },
+
+    async proceedWithBooking() {
+      this.isConfirmationModalOpen = false;
+
+      try {
+        const bookingData = {
+          vehicleId: this.vehicle.id,
+          startDate: this.startDate,
+          endDate: this.endDate,
+          totalCost: this.totalCost,
+        };
+        
+        const newBooking = await this.createBooking(bookingData);
+        
+        this.$router.push({ name: 'BookingSummary', params: { bookingId: newBooking.id } });
+
+      } catch (error) {
+        console.error("Failed to create booking:", error);
+        // You can add a user-facing error notification here
       }
     },
   },
@@ -188,163 +188,118 @@ export default {
 <style lang="scss" scoped>
 @import '@/assets/styles/variables.scss';
 
-.booking-box {
-  flex: 1;
-  max-width: 400px;
+.booking-box-card {
   padding: 1.5rem;
   border: 1px solid $border-color;
   border-radius: $border-radius-lg;
-  background-color: #fff;
-  box-shadow: $shadow-light;
-  align-self: flex-start;
-  position: sticky;
-  top: 2rem;
+  box-shadow: $shadow-medium;
+  background-color: $card-background;
 }
 
-.price {
-  font-size: 1.125rem;
-  color: $text-color-medium;
-  margin-top: 0;
+.price-header {
+  margin-bottom: 1.5rem;
   .price-amount {
     font-size: 1.75rem;
     font-weight: 700;
-    color: $text-color-dark;
+  }
+  .price-period {
+    font-size: 1rem;
+    color: $text-color-medium;
+    margin-left: $spacing-sm;
   }
 }
 
-.date-inputs {
+.date-picker-section {
   display: flex;
   gap: 1rem;
-  margin-top: 1.5rem;
   border: 1px solid $border-color;
   border-radius: $border-radius-md;
-  overflow: hidden;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .date-input-group {
   flex: 1;
-  padding: 0.5rem 0.75rem;
-  &:first-child {
-    border-right: 1px solid $border-color;
-  }
+  padding: 0.25rem 0.5rem;
   label {
     display: block;
     font-size: 0.7rem;
-    font-weight: 600;
-    color: $text-color-medium;
+    font-weight: 700;
     text-transform: uppercase;
+    color: $text-color-medium;
   }
-  input {
+  input[type="date"] {
     border: none;
-    outline: none;
     width: 100%;
-    padding: 0.25rem 0 0;
+    font-family: $font-family-base;
     font-size: 0.9rem;
-    background-color: transparent;
-    cursor: pointer;
+    &:focus {
+      outline: none;
+    }
   }
 }
 
 .price-calculation {
+  margin-bottom: 1rem;
+}
+
+.price-row {
   display: flex;
   justify-content: space-between;
-  margin-top: 1rem;
-  font-size: 0.9rem;
-  color: $text-color-dark;
+  margin: 0.5rem 0;
+  &.total {
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
 }
 
-.total-price {
-  font-weight: 700;
+.price-divider {
+  border: 0;
+  border-top: 1px solid $border-color;
+  margin: 0.5rem 0;
 }
 
-.prompt-text {
-  text-align: center;
-  color: $text-color-medium;
-  font-size: 0.9rem;
-  margin: 1.5rem 0;
+.availability-message {
+  padding: 0.75rem;
+  border-radius: $border-radius-md;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  &.available {
+    background-color: lighten($secondary-color, 40%);
+    color: darken($secondary-color, 15%);
+  }
+  &.unavailable {
+    background-color: lighten($admin-color, 40%);
+    color: darken($admin-color, 20%);
+  }
+  &.checking {
+    background-color: #e2e8f0;
+    color: #4a5568;
+  }
 }
 
-.book-now-button {
+.continue-button {
   width: 100%;
-  padding: 0.875rem;
-  margin-top: 1.5rem;
+  padding: 0.75rem;
   background-color: $primary-color;
   color: white;
   border: none;
   border-radius: $border-radius-md;
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
-  &:hover:not(:disabled) {
+  transition: background-color 0.2s ease-in-out;
+
+  &:hover {
     background-color: darken($primary-color, 10%);
   }
+  
   &:disabled {
-    background-color: lighten($primary-color, 20%);
+    background-color: #ccc;
     cursor: not-allowed;
   }
-}
-
-.booking-message {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  border-radius: $border-radius-md;
-  font-size: 0.9rem;
-  &.error {
-    background-color: lighten($admin-color, 40%);
-    color: darken($admin-color, 10%);
-  }
-}
-
-.divider {
-    border: none;
-    height: 1px;
-    background-color: $border-color;
-    margin: 1.5rem 0;
-}
-
-.location-section {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.location-item {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.9rem;
-    color: $text-color-medium;
-
-    .location-value {
-        font-weight: 600;
-        color: $text-color-dark;
-    }
-}
-
-.report-section {
-    text-align: center;
-    margin-top: 1.5rem;
-}
-
-.report-button {
-    background: none;
-    border: none;
-    color: $text-color-medium;
-    cursor: pointer;
-    font-weight: 600;
-    text-decoration: underline;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.9rem;
-
-    &:hover {
-        color: $text-color-dark;
-    }
-
-    i {
-        font-size: 1rem;
-    }
 }
 </style>
 
