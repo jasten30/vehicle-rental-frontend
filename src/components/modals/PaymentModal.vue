@@ -3,15 +3,25 @@
     <div class="modal-card">
       <h3 class="modal-title">Confirm Downpayment</h3>
       <p v-if="booking" class="modal-subtitle">
-        Scan the QR code to pay the <strong>₱{{ booking.downPayment ? booking.downPayment.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00' }}</strong> downpayment.
+        Scan the QR code to pay <strong>₱{{ booking.downPayment ? booking.downPayment.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00' }}</strong>.
       </p>
 
       <div class="payment-content">
         <img src="https://placehold.co/250x250/e2e8f0/666666?text=Sample+GCash+QR" alt="QR Code" class="qr-code-image" />
         <p class="qr-instructions">
-          After paying, check the box below and confirm to notify the owner for verification.
+          After paying, please enter the transaction reference number below, check the box, and confirm.
         </p>
-      </div>
+
+        <div class="input-group">
+          <label for="referenceNumber">Reference Number:</label>
+          <input
+            type="text"
+            id="referenceNumber"
+            v-model="referenceNumber"
+            placeholder="Enter transaction reference"
+          />
+        </div>
+         </div>
 
       <div class="terms-section">
         <label class="checkbox-container">
@@ -20,14 +30,14 @@
           I agree to the <a href="/terms" target="_blank">terms and conditions</a> and confirm that I have completed the payment.
         </label>
       </div>
-      
+
        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
       <div class="modal-actions">
         <button @click="$emit('close')" class="button secondary-button">Cancel</button>
-        <button 
-          @click="handleConfirmPayment" 
-          :disabled="!termsAccepted || isSubmitting" 
+        <button
+          @click="handleConfirmPayment"
+          :disabled="!isReadyToConfirm || isSubmitting"
           class="button primary-button">
           <span v-if="isSubmitting">Confirming...</span>
           <span v-else>I Have Paid</span>
@@ -50,14 +60,22 @@ export default {
   data() {
     return {
       termsAccepted: false,
+      referenceNumber: '', // 👈 Added data property
       isSubmitting: false,
       errorMessage: '',
     };
+  },
+  computed: {
+    // 👇 Added computed property for button disabling logic
+    isReadyToConfirm() {
+        return this.termsAccepted && this.referenceNumber.trim() !== '';
+    }
   },
   watch: {
     isOpen(newVal) {
       if (newVal) {
         this.termsAccepted = false;
+        this.referenceNumber = ''; // Reset reference number
         this.isSubmitting = false;
         this.errorMessage = '';
       }
@@ -67,13 +85,23 @@ export default {
     ...mapActions(['confirmDownpaymentByUser']),
     async handleConfirmPayment() {
       if (!this.termsAccepted) {
-        this.errorMessage = "You must accept the terms and confirm payment to continue.";
+        this.errorMessage = "You must accept the terms and conditions.";
         return;
       }
+      // 👇 Added check for reference number
+      if (!this.referenceNumber.trim()) {
+          this.errorMessage = "Please enter the transaction reference number.";
+          return;
+      }
+
       this.isSubmitting = true;
       this.errorMessage = '';
       try {
-        await this.confirmDownpaymentByUser(this.booking.id);
+        // 👇 Pass payload object with ID and reference number
+        await this.confirmDownpaymentByUser({
+            bookingId: this.booking.id,
+            referenceNumber: this.referenceNumber.trim()
+        });
         this.$emit('payment-confirmed');
       } catch (error) {
         this.errorMessage = error.response?.data?.message || "Failed to confirm payment. Please try again.";
@@ -87,6 +115,24 @@ export default {
 
 <style lang="scss" scoped>
 @import '@/assets/styles/variables.scss';
+
+.input-group {
+    margin-top: 1rem;
+    text-align: left;
+    label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    input[type="text"] {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid $border-color;
+        border-radius: $border-radius-md;
+        font-size: 1rem;
+    }
+}
 
 .modal-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;

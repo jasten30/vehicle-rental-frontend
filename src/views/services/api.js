@@ -55,7 +55,15 @@ export default {
     deleteVehicle: (vehicleId) => apiClient.delete(`/vehicles/${vehicleId}`),
 
     // Bookings
-    checkVehicleAvailability: (vehicleId, startDate, endDate) => apiClient.get(`/bookings/availability/${vehicleId}?startDate=${startDate}&endDate=${endDate}`),
+    checkVehicleAvailability: (vehicleId, startDate, endDate) => apiClient.get(
+        `/bookings/availability/${vehicleId}`, // URL path without query params
+        {
+        params: { // Let axios handle query parameter encoding
+            startDate: startDate,
+            endDate: endDate,
+        }
+        }
+    ),
     createBooking: (bookingData) => apiClient.post('/bookings', bookingData),
     getBookingById: (bookingId) => apiClient.get(`/bookings/${bookingId}`),
     getAllBookings: (params) => apiClient.get('/bookings/all', { params }),
@@ -64,19 +72,28 @@ export default {
     updateBookingStatus: (bookingId, data) => apiClient.put(`/bookings/${bookingId}/status`, data),
     approveBooking: (bookingId) => apiClient.put(`/bookings/${bookingId}/approve`),
     declineBooking: (bookingId) => apiClient.put(`/bookings/${bookingId}/decline`),
-    confirmDownpaymentByUser: (bookingId) => apiClient.post(`/bookings/${bookingId}/confirm-downpayment-by-user`),
+    confirmDownpaymentByUser: (bookingId, data) => apiClient.post(`/bookings/${bookingId}/confirm-downpayment-by-user`, data),
     confirmOwnerPayment: (bookingId) => apiClient.post(`/bookings/${bookingId}/confirm-owner-payment`),
     confirmBookingPayment: (bookingId) => apiClient.put(`/bookings/${bookingId}/confirm-payment`),
+    cancelBooking: (bookingId) => apiClient.put(`/bookings/${bookingId}/cancel`),
+    submitBookingReport: (reportData) => apiClient.post(`/bookings/${reportData.bookingId}/report`, reportData),
+    requestBookingExtension: (bookingId, data) => apiClient.post(`/bookings/${bookingId}/request-extension`, data), // 👈 ADD THIS LINE
 
     // Chats
     getUserChats: () => apiClient.get('/chats'),
     sendMessage: (chatId, text) => apiClient.post(`/chats/${chatId}/messages`, { text }),
     markChatAsRead: (chatId) => apiClient.put(`/chats/${chatId}/read`),
+    findOrCreateAdminUserChat: (payload) => apiClient.post('/admin/chats/find-or-create', payload),
 
     // Reviews
     submitReview: (reviewData) => apiClient.post('/reviews', reviewData),
 
     // Notifications
     getNotifications: () => apiClient.get('/notifications'),
-    markNotificationAsRead: (notificationId) => apiClient.post(`/notifications/${notificationId}/mark-read`), 
+    markNotificationAsRead: (notificationId) => apiClient.post(`/notifications/${notificationId}/mark-read`),
+    markAllNotificationsAsRead: () => apiClient.post('/notifications/mark-all-read'),
+
+    // Reports (Admin)
+    getBookingReports: () => apiClient.get('/admin/reports'),
+    resolveBookingReport: (reportId) => apiClient.put(`/admin/reports/${reportId}/resolve`),
 };

@@ -1,55 +1,76 @@
 <template>
-  <div class="container">
-    <h1>Booking Summary</h1>
-    <p>Your booking request has been submitted. Details for booking ID: {{ bookingId }}</p>
+  <transition name="fade-up" appear>
+    <div class="container">
+      <h1>Booking Summary</h1>
+      <p class="subtitle">Your booking request has been submitted successfully!</p>
 
-    <div v-if="loading" class="loading-message">
-      <p>Loading booking details...</p>
-    </div>
-    <div v-else-if="errorMessage" class="error-message">
-      <p>{{ errorMessage }}</p>
-      <button @click="fetchBookingDetails" class="button primary-button">Retry</button>
-    </div>
-    <div v-else-if="booking">
-      <div class="booking-details-card">
-        <h4>Booking Information</h4>
-        <p class="summary-line"><strong>Status:</strong> {{ booking.paymentStatus.replace(/_/g, ' ') }}</p>
-        <p v-if="booking.vehicle" class="summary-line">
-          <strong>Vehicle:</strong> {{ booking.vehicle.make }} {{ booking.vehicle.model }} ({{ booking.vehicle.year }})
-        </p>
-        <p class="summary-line"><strong>Dates:</strong> {{ formatDate(booking.startDate) }} to {{ formatDate(booking.endDate) }}</p>
+      <div v-if="loading" class="loading-message">
+        <p>Loading booking details...</p>
+        </div>
+      <div v-else-if="errorMessage" class="error-message">
+        <i class="bi bi-exclamation-triangle-fill icon"></i>
+        <p>{{ errorMessage }}</p>
+        <button @click="fetchBookingDetails" class="button primary">Retry</button>
+      </div>
+      <div v-else-if="booking" class="booking-details-card">
+        <div class="card-header">
+          <h4>Booking #{{ bookingId }}</h4>
+          <span class="status-badge" :class="getStatusClass(booking.paymentStatus)">
+            {{ formatStatus(booking.paymentStatus) }}
+          </span>
+        </div>
 
-        
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">Vehicle</span>
+            <span v-if="booking.vehicle" class="value">
+              {{ booking.vehicle.make }} {{ booking.vehicle.model }} ({{ booking.vehicle.year }})
+            </span>
+             <span v-else class="value">Vehicle details loading...</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Pickup Date & Time</span>
+            <span class="value">{{ formatDateTime(booking.startDate) }}</span>
+          </div>
+           <div class="info-item">
+            <span class="label">Return Date & Time</span>
+            <span class="value">{{ formatDateTime(booking.endDate) }}</span>
+          </div>
+        </div>
+
+        <hr class="divider"/>
+
         <div class="price-summary">
+          <h5>Payment Overview</h5>
           <div class="price-row">
             <span>Total Trip Price</span>
-            <span>₱{{ booking.totalCost ? booking.totalCost.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00' }}</span>
+            <span class="price-value">₱{{ booking.totalCost ? booking.totalCost.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00' }}</span>
           </div>
-          <hr />
           <div class="price-row downpayment">
             <span>Amount Due for Downpayment (20%)</span>
-            <span>₱{{ booking.downPayment ? booking.downPayment.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00' }}</span>
+            <span class="price-value highlight">₱{{ booking.downPayment ? booking.downPayment.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00' }}</span>
           </div>
           <div class="price-row remaining-balance">
             <span>Remaining Balance (due at pickup)</span>
-            <span>₱{{ booking.remainingBalance ? booking.remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00' }}</span>
+            <span class="price-value">₱{{ booking.remainingBalance ? booking.remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00' }}</span>
           </div>
         </div>
-        
-
-        <p v-if="booking.cancellationGracePeriodEnd" class="summary-line small-text">
-          <strong>Cancellation Grace Period Ends:</strong> {{ formatDate(booking.cancellationGracePeriodEnd) }}
-        </p>
 
         <div v-if="booking.paymentDetails && booking.paymentDetails.method === 'qr_manual' && booking.paymentDetails.qrCodeInfo" class="qr-info-section">
-          <h5>QR Payment Details</h5>
-          <img :src="booking.paymentDetails.qrCodeInfo.qrImageUrl" alt="QR Code" class="qr-image">
-          <p><strong>Instructions:</strong> {{ booking.paymentDetails.qrCodeInfo.instructions }}</p>
+           <hr class="divider"/>
+           <h5>QR Payment Details</h5>
+           <div class="qr-content">
+             <img :src="booking.paymentDetails.qrCodeInfo.qrImageUrl" alt="QR Code" class="qr-image">
+             <p><strong>Instructions:</strong> {{ booking.paymentDetails.qrCodeInfo.instructions }}</p>
+           </div>
         </div>
+
       </div>
+      <router-link to="/dashboard/my-bookings" class="button secondary view-bookings-btn">
+         <i class="bi bi-arrow-left"></i> View My Bookings
+      </router-link>
     </div>
-    <router-link to="/dashboard/my-bookings" class="button primary-button">Go to My Bookings</router-link>
-  </div>
+  </transition>
 </template>
 
 <script>
@@ -82,146 +103,301 @@ export default {
       this.errorMessage = null;
       try {
         const fetchedBooking = await this.getBookingById(this.bookingId);
+        // Normalize vehicle data
         if (fetchedBooking && fetchedBooking.vehicleDetails) {
           fetchedBooking.vehicle = fetchedBooking.vehicleDetails;
         }
         this.booking = fetchedBooking;
       } catch (error) {
+        console.error("Error fetching booking summary:", error); // Log the full error
         this.errorMessage = error.response?.data?.message || 'Failed to load booking summary.';
       } finally {
         this.loading = false;
       }
     },
-    formatDate(dateString) {
+    // Updated to show Date + Time
+    formatDateTime(dateString) {
       if (!dateString) return 'N/A';
       const date = DateTime.fromISO(dateString);
-      return date.isValid ? date.toLocaleString(DateTime.DATE_FULL) : 'Invalid Date';
+      // Example format: Oct 22, 2025, 9:00 AM
+      return date.isValid ? date.toLocaleString(DateTime.DATETIME_MED) : 'Invalid Date';
+    },
+     // Added for status formatting and styling
+    formatStatus(status) {
+      if (!status) return 'Unknown';
+      return status.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    },
+    getStatusClass(status) {
+      if (!status) return 'status-default';
+      if (['confirmed', 'completed', 'returned', 'downpayment_verified'].includes(status)) return 'status-success';
+      if (['pending_owner_approval', 'pending_payment', 'downpayment_pending_verification'].includes(status)) return 'status-warning';
+      if (status?.includes('cancelled') || status?.includes('declined')) return 'status-danger';
+      return 'status-default';
     },
   },
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+/* --- Import Variables --- */
+@import '@/assets/styles/variables.scss';
+
+/* --- Container and General Styles --- */
 .container {
+  max-width: 800px; /* Wider container */
+  margin: 3rem auto; /* More margin */
+  padding: 2.5rem; /* More padding */
+  background-color: #ffffff;
+  border-radius: $border-radius-xl; /* More rounded */
+  box-shadow: $shadow-subtle;
   text-align: center;
-  padding: 2rem;
-  max-width: 700px;
-  margin: 2rem auto;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid $border-color-light; /* Subtle border */
 }
 
 h1 {
-  color: #333;
-  margin-bottom: 1rem;
+  color: $text-color-dark;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
 }
 
+.subtitle {
+  color: $text-color-medium;
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+}
+
+/* --- Loading and Error States --- */
 .loading-message, .error-message {
-  padding: 1rem;
-  margin-top: 1rem;
-  border-radius: 5px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  border-radius: $border-radius-md;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.loading-message {
+  color: $text-color-medium;
   font-size: 1.1rem;
 }
 
 .error-message {
-  background-color: #ffe0e0;
-  color: #cc0000;
+  background-color: lighten($admin-color, 45%);
+  border: 1px solid lighten($admin-color, 35%);
+  color: darken($admin-color, 15%);
+  .icon {
+    font-size: 1.5rem;
+    color: $admin-color;
+  }
 }
 
+/* --- Booking Details Card --- */
 .booking-details-card {
-  background-color: #f9f9f9;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 1.5rem;
+  background-color: $background-light; /* Very light gray */
+  border: 1px solid $border-color-light;
+  border-radius: $border-radius-lg;
+  padding: 2rem;
   margin-top: 1.5rem;
   text-align: left;
 }
 
-.booking-details-card h4 {
-  color: #333;
-  margin-bottom: 1rem;
-  border-bottom: 2px solid #007bff;
-  padding-bottom: 0.5rem;
-  display: inline-block;
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid $border-color-light;
+
+  h4 {
+    margin: 0;
+    color: $text-color-dark;
+    font-weight: 600;
+  }
 }
 
-.summary-line {
-  margin-bottom: 0.75rem;
-  color: #555;
-}
-
-.summary-line.small-text {
-    font-size: 0.8rem;
-    color: #777;
-    margin-top: 1rem;
-}
-
-.summary-line strong {
+/* --- Status Badge --- */
+.status-badge {
+  padding: 0.3rem 0.8rem;
+  border-radius: $border-radius-pill;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: #333;
+  text-transform: capitalize; /* Cleaner look */
 }
 
-/* --- NEW: Styles for Price Breakdown --- */
+.status-success { background-color: lighten($secondary-color, 40%); color: darken($secondary-color, 25%); border: 1px solid lighten($secondary-color, 30%); }
+.status-warning { background-color: lighten($accent-color, 40%); color: darken($accent-color, 25%); border: 1px solid lighten($accent-color, 30%); }
+.status-danger { background-color: lighten($admin-color, 45%); color: darken($admin-color, 25%); border: 1px solid lighten($admin-color, 35%); }
+.status-default { background-color: $background-medium; color: $text-color-medium; border: 1px solid $border-color; }
+
+/* --- Info Grid --- */
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr; /* Default to single column */
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  @media (min-width: 576px) { /* Two columns on small screens and up */
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  font-size: 0.8rem;
+  color: $text-color-light;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.value {
+  font-size: 1rem;
+  color: $text-color-dark;
+  font-weight: 500;
+}
+
+/* --- Divider --- */
+.divider {
+  border: 0;
+  border-top: 1px solid $border-color-light;
+  margin: 1.5rem 0;
+}
+
+/* --- Price Summary --- */
 .price-summary {
   margin-top: 1.5rem;
-  padding-top: 1rem;
+  h5 {
+    font-weight: 600;
+    color: $text-color-dark;
+    margin-bottom: 1rem;
+  }
 }
 
 .price-row {
   display: flex;
   justify-content: space-between;
+  align-items: baseline; /* Align text nicely */
   margin-bottom: 0.75rem;
   font-size: 1rem;
+  color: $text-color-medium;
+
+  span:first-child {
+    flex-grow: 1; /* Allow label to take space */
+    padding-right: 1rem;
+  }
 }
 
-.price-row span:last-child {
+.price-value {
   font-weight: 600;
-}
+  color: $text-color-dark;
+  white-space: nowrap; /* Prevent wrapping */
 
-.price-row.downpayment span:last-child {
-  color: #28a745;
-  font-weight: 700;
-  font-size: 1.1rem;
+  &.highlight {
+    color: $secondary-color; /* Use secondary color for emphasis */
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
 }
 
 .price-row.remaining-balance {
-    font-size: 0.9rem;
-    color: #6c757d;
+  font-size: 0.9rem;
+  color: $text-color-light;
+  .price-value {
+     font-weight: 500;
+     color: $text-color-medium;
+  }
 }
-/* --- End of New Styles --- */
 
+/* --- QR Code Section --- */
 .qr-info-section {
   margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px dashed #ccc;
-  text-align: center;
+  h5 {
+    font-weight: 600;
+    color: $text-color-dark;
+    margin-bottom: 1rem;
+  }
+}
+.qr-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center QR content */
+    gap: 1rem;
+    text-align: center;
+     p {
+        font-size: 0.9rem;
+        color: $text-color-medium;
+        max-width: 400px; /* Limit instruction width */
+        line-height: 1.5;
+     }
 }
 
 .qr-image {
-  width: 180px;
-  height: 180px;
-  border: 1px solid #ddd;
+  max-width: 160px; /* Slightly smaller QR */
+  height: auto;
+  border: 1px solid $border-color-light;
   padding: 0.5rem;
-  margin-bottom: 1rem;
+  background-color: white; /* Ensure white background */
+  border-radius: $border-radius-md;
 }
 
+/* --- Buttons --- */
 .button {
-  display: inline-block;
-  padding: 12px 24px;
-  background-color: #007bff;
-  color: white;
-  text-decoration: none;
-  border-radius: 5px;
-  margin-top: 2rem;
+  display: inline-flex; /* Use flex for icon alignment */
+  align-items: center;
+  gap: 0.5rem; /* Space between icon and text */
+  padding: 10px 20px; /* Slightly smaller padding */
+  border-radius: $border-radius-md; /* Consistent rounding */
+  margin-top: 2.5rem; /* More space above button */
   font-size: 1rem;
   font-weight: 600;
   border: none;
   cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
+  text-decoration: none; /* Remove underline from router-link */
+  transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+
+  &:hover {
+     transform: translateY(-2px); /* Subtle lift on hover */
+  }
+  &:active {
+     transform: translateY(0);
+  }
 }
 
-.button:hover {
-  background-color: #0056b3;
+.button.primary {
+  background-color: $primary-color;
+  color: white;
+  &:hover { background-color: darken($primary-color, 10%); }
+}
+
+.button.secondary {
+  background-color: transparent;
+  color: $primary-color;
+  border: 1px solid $primary-color;
+  &:hover { background-color: lighten($primary-color, 45%); }
+}
+
+/* Specific button margin if needed */
+.view-bookings-btn {
+  margin-top: 2rem;
+}
+
+
+/* --- Entrance Animation --- */
+/* 2. Define the transition classes */
+.fade-up-enter-active,
+.fade-up-leave-active {
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.fade-up-enter-from,
+.fade-up-leave-to {
+  opacity: 0;
+  transform: translateY(20px); /* Start slightly lower */
 }
 </style>

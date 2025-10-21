@@ -251,6 +251,5 @@ export default {
     }
   }
 }
-/* Styles for phone input are no longer needed */
 </style>
 

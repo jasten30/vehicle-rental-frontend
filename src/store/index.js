@@ -177,16 +177,17 @@ export default createStore({
         throw error;
       }
     },
-    async confirmDownpaymentByUser({ commit }, bookingId) {
-      try {
-        await api.confirmDownpaymentByUser(bookingId);
-        commit('UPDATE_BOOKING_STATUS', { bookingId, newStatus: 'downpayment_pending_verification' });
-      } catch (error) {
-        console.error('Error confirming downpayment:', error);
-        throw error;
-      }
+    async confirmDownpaymentByUser({ commit }, payload) { // 👈 Accept payload object
+        const { bookingId, referenceNumber } = payload; // 👈 Destructure payload
+        try {
+          // 👇 Pass referenceNumber to the API call
+          await api.confirmDownpaymentByUser(bookingId, { referenceNumber });
+          commit('UPDATE_BOOKING_STATUS', { bookingId, newStatus: 'downpayment_pending_verification' });
+        } catch (error) {
+          console.error('Error confirming downpayment:', error);
+          throw error; // Re-throw to be caught in the component
+        }
     },
-    // --- THIS IS THE NEWLY ADDED ACTION ---
     async confirmOwnerPayment({ commit }, bookingId) {
       try {
         await api.confirmOwnerPayment(bookingId); // Assumes an API endpoint exists
@@ -615,6 +616,82 @@ export default createStore({
         await api.submitReview(reviewData);
       } catch (error) {
         console.error('[Vuex] Failed to submit review:', error);
+        throw error;
+      }
+    },
+    async cancelBooking({ commit }, bookingId) {
+      try {
+        await api.cancelBooking(bookingId); 
+        commit('UPDATE_BOOKING_STATUS', { bookingId, newStatus: 'cancelled_by_renter' });
+      } catch (error) {
+        console.error('[Vuex] Failed to cancel booking:', error);
+        throw error; 
+      }
+    },
+    async submitBookingReport({ _commit }, reportData) { 
+        try {
+          await api.submitBookingReport(reportData); 
+          
+        } catch (error) {
+          console.error('[Vuex] Failed to submit booking report:', error);
+          throw error;
+        }
+    },
+    async fetchBookingReports({ _commit }) {
+        try {
+          const response = await api.getBookingReports(); 
+
+          
+          if (response && Array.isArray(response.data)) {
+              
+              return response.data; 
+          } else {
+              
+              console.error("[Vuex] Invalid response structure from getBookingReports API:", response);
+              return []; 
+          }
+        } catch (error) {
+          console.error('[Vuex] Failed to fetch booking reports:', error);
+          throw error; 
+        }
+    },
+
+    async resolveBookingReport({ _commit }, reportId) { 
+        try {
+            await api.resolveBookingReport(reportId);
+        } catch (error) {
+            console.error('[Vuex] Failed to resolve booking report:', error);
+            throw error;
+        }
+    },
+    async findOrCreateAdminUserChat({ _commit }, targetUserId) {
+      try {
+        // Call the new API function, passing the target user's ID
+        const response = await api.findOrCreateAdminUserChat({ targetUserId });
+        if (response && response.data && response.data.chatId) {
+          return response.data.chatId; // Return the chat ID to the component
+        } else {
+            throw new Error("Invalid response from findOrCreateAdminUserChat API");
+        }
+      } catch (error) {
+        console.error('[Vuex] Failed to find or create admin-user chat:', error);
+        throw error; // Re-throw to be caught in the component
+      }
+    },
+    async requestBookingExtension({ _commit }, payload) { // Use commit if needed later
+      try {
+        // Assuming payload is { bookingId: '...', extensionHours: ... }
+        const response = await api.requestBookingExtension(payload.bookingId, {
+            extensionHours: payload.extensionHours
+        });
+        // Optionally update local booking state upon success if needed
+        // commit('UPDATE_BOOKING_EXTENSION_DETAILS', { bookingId: payload.bookingId, extensionData: response.data });
+
+        // Return data from backend (e.g., confirmed cost, new end date) to the component
+        return response.data;
+      } catch (error) {
+        console.error('[Vuex] Failed to request booking extension:', error);
+        // Re-throw the error so the component's catch block can handle it
         throw error;
       }
     },
