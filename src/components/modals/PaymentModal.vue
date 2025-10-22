@@ -1,9 +1,10 @@
 <template>
   <div v-if="isOpen" class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-card">
-      <h3 class="modal-title">Confirm Downpayment</h3>
+      <h3 class="modal-title">{{ modalTitle }}</h3>
+
       <p v-if="booking" class="modal-subtitle">
-        Scan the QR code to pay <strong>₱{{ booking.downPayment ? booking.downPayment.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00' }}</strong>.
+        Scan the QR code to pay <strong>₱{{ amountToPay }}</strong>.
       </p>
 
       <div class="payment-content">
@@ -21,7 +22,7 @@
             placeholder="Enter transaction reference"
           />
         </div>
-         </div>
+      </div>
 
       <div class="terms-section">
         <label class="checkbox-container">
@@ -54,41 +55,60 @@ export default {
   name: 'PaymentModal',
   props: {
     isOpen: Boolean,
-    booking: Object,
+    booking: Object, // Still needed for booking.id
+    // 3. Added new props to control the modal's behavior
+    paymentType: {
+      type: String,
+      default: 'downpayment', // 'downpayment' or 'extension'
+    },
+    amountDue: {
+      type: Number,
+      required: true,
+      default: 0,
+    }
   },
   emits: ['close', 'payment-confirmed'],
   data() {
     return {
       termsAccepted: false,
-      referenceNumber: '', // 👈 Added data property
+      referenceNumber: '',
       isSubmitting: false,
       errorMessage: '',
     };
   },
   computed: {
-    // 👇 Added computed property for button disabling logic
     isReadyToConfirm() {
         return this.termsAccepted && this.referenceNumber.trim() !== '';
+    },
+    // 4. Added computed properties for dynamic text
+    modalTitle() {
+      return this.paymentType === 'extension'
+        ? 'Confirm Extension Payment'
+        : 'Confirm Downpayment';
+    },
+    amountToPay() {
+      return this.amountDue ? this.amountDue.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00';
     }
   },
   watch: {
     isOpen(newVal) {
       if (newVal) {
         this.termsAccepted = false;
-        this.referenceNumber = ''; // Reset reference number
+        this.referenceNumber = '';
         this.isSubmitting = false;
         this.errorMessage = '';
       }
     }
   },
   methods: {
-    ...mapActions(['confirmDownpaymentByUser']),
+    // 5. Mapped the new action for confirming extension payment
+    ...mapActions(['confirmDownpaymentByUser', 'confirmExtensionPayment']),
+
     async handleConfirmPayment() {
       if (!this.termsAccepted) {
         this.errorMessage = "You must accept the terms and conditions.";
         return;
       }
-      // 👇 Added check for reference number
       if (!this.referenceNumber.trim()) {
           this.errorMessage = "Please enter the transaction reference number.";
           return;
@@ -97,12 +117,23 @@ export default {
       this.isSubmitting = true;
       this.errorMessage = '';
       try {
-        // 👇 Pass payload object with ID and reference number
-        await this.confirmDownpaymentByUser({
+        const payload = {
             bookingId: this.booking.id,
-            referenceNumber: this.referenceNumber.trim()
-        });
-        this.$emit('payment-confirmed');
+            referenceNumber: this.referenceNumber.trim(),
+            // Pass the amount in case the backend needs it
+            amount: this.amountDue 
+        };
+
+        // 6. Use v-if (or ternary) to call the correct action
+        if (this.paymentType === 'extension') {
+          // Call the action for paying an extension
+          await this.confirmExtensionPayment(payload); 
+        } else {
+          // Call the original action for the downpayment
+          await this.confirmDownpaymentByUser(payload);
+        }
+        
+        this.$emit('payment-confirmed'); // Emit generic success event
       } catch (error) {
         this.errorMessage = error.response?.data?.message || "Failed to confirm payment. Please try again.";
       } finally {

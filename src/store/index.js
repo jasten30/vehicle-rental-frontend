@@ -678,21 +678,30 @@ export default createStore({
         throw error; // Re-throw to be caught in the component
       }
     },
-    async requestBookingExtension({ _commit }, payload) { // Use commit if needed later
+    async requestBookingExtension({ _commit }, payload) {
       try {
-        // Assuming payload is { bookingId: '...', extensionHours: ... }
+        
         const response = await api.requestBookingExtension(payload.bookingId, {
             extensionHours: payload.extensionHours
         });
-        // Optionally update local booking state upon success if needed
-        // commit('UPDATE_BOOKING_EXTENSION_DETAILS', { bookingId: payload.bookingId, extensionData: response.data });
-
-        // Return data from backend (e.g., confirmed cost, new end date) to the component
         return response.data;
       } catch (error) {
         console.error('[Vuex] Failed to request booking extension:', error);
         // Re-throw the error so the component's catch block can handle it
         throw error;
+      }
+    },
+    async confirmExtensionPayment({ commit }, payload) {
+      try {
+        // payload = { bookingId, referenceNumber, amount }
+        // We pass the bookingId in the URL and the rest in the body
+        await api.confirmExtensionPayment(payload.bookingId, payload);
+        
+        // Optimistically update status to 'confirmed'
+        commit('UPDATE_BOOKING_STATUS', { bookingId: payload.bookingId, newStatus: 'confirmed' });
+      } catch (error) {
+        console.error('[Vuex] Failed to confirm extension payment:', error);
+        throw error; // Re-throw so the modal can catch it and show a message
       }
     },
     setVehicleFilter({ commit }, payload) {

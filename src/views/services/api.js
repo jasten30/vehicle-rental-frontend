@@ -77,7 +77,8 @@ export default {
     confirmBookingPayment: (bookingId) => apiClient.put(`/bookings/${bookingId}/confirm-payment`),
     cancelBooking: (bookingId) => apiClient.put(`/bookings/${bookingId}/cancel`),
     submitBookingReport: (reportData) => apiClient.post(`/bookings/${reportData.bookingId}/report`, reportData),
-    requestBookingExtension: (bookingId, data) => apiClient.post(`/bookings/${bookingId}/request-extension`, data), // 👈 ADD THIS LINE
+    requestBookingExtension: (bookingId, data) => apiClient.post(`/bookings/${bookingId}/request-extension`, data), 
+    confirmExtensionPayment: (bookingId, data) => apiClient.post(`/bookings/${bookingId}/confirm-extension`, data),
 
     // Chats
     getUserChats: () => apiClient.get('/chats'),
