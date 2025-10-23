@@ -3,7 +3,7 @@ import store from '../store'; // Import the Vuex store
 
 // Public Views
 import HomeView from '../views/HomeView.vue';
-import AboutView from '../views/AboutView.vue';
+import AboutView from '../views/AboutView.vue'; 
 import VehicleListView from '../views/Vehicle/VehicleListView.vue';
 import VehicleDetailView from '../views/Vehicle/VehicleDetailView.vue';
 import LoginView from '../views/Auth/LoginView.vue';
@@ -15,6 +15,7 @@ import BecomeOwnerApplication from '../views/Auth/BecomeOwnerApplication.vue';
 import AdminLayout from '../views/Dashboard/Admin/AdminLayout.vue';
 import DashboardLayout from '../views/Dashboard/DashboardLayout.vue';
 import MyBookingsView from '../views/Dashboard/MyBookings.vue';
+import MyFavoritesView from '../views/Dashboard/MyFavoritesView.vue'; // 👈 IMPORTED
 import BookingDetailView from '../views/Dashboard/BookingDetailView.vue';
 import ProfileSettingsView from '../views/Dashboard/ProfileSettings.vue';
 import ApplicationSubmittedView from '../views/Auth/ApplicationSubmittedView.vue';
@@ -50,6 +51,16 @@ const dashboardRoutes = [
           authorize: ['renter', 'admin', 'owner'],
         },
       },
+      // 👇 ADDED THIS ROUTE
+      {
+        path: 'my-favorites',
+        name: 'MyFavorites',
+        component: MyFavoritesView,
+        meta: {
+          requiresAuth: true,
+          authorize: ['renter', 'owner', 'admin'], // Only renters can have favorites
+        },
+      },
       {
         path: 'my-bookings/:bookingId',
         name: 'BookingDetails',
@@ -75,11 +86,12 @@ const dashboardRoutes = [
         component: ChatView,
         meta: { requiresAuth: true },
       },
+      
       {
         path: 'verify-driver',
         name: 'BecomeDriveVerified',
         component: BecomeDriveVerified,
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, authorize: ['renter'] }, 
       },
       {
         path: 'owner/vehicles',
@@ -228,6 +240,7 @@ const routes = [
     name: 'Register',
     component: RegisterView,
   },
+  
   {
     path: '/become-a-host',
     name: 'BecomeOwnerApplication',
@@ -235,6 +248,7 @@ const routes = [
     meta: {
       requiresAuth: true,
       authorize: ['renter'],
+      requiresDriveVerified: true, 
     },
   },
   {
@@ -283,8 +297,7 @@ const routes = [
       props: true, 
       meta: { requiresAuth: true },
     },
-    
-  // 👇 THIS IS THE NEW ROUTE TO FIX THE ERROR
+  
   {
     path: '/chat/:chatId',
     name: 'ChatConversation',
@@ -292,7 +305,7 @@ const routes = [
     props: true,
     meta: { requiresAuth: true },
   },
-
+  // 👈 REMOVED from here
   ...dashboardRoutes,
   {
     path: '/:catchAll(.*)',
@@ -306,7 +319,7 @@ const router = createRouter({
   routes,
 });
 
-// The central navigation guard
+
 router.beforeEach(async (to, from, next) => {
   const isAuthReady = store.getters.isAuthReady;
 
@@ -318,6 +331,11 @@ router.beforeEach(async (to, from, next) => {
   const authorizedRoles = to.meta.authorize;
   const isAuthenticated = store.getters.isAuthenticated;
   const userRole = store.getters.userRole;
+  
+  
+  const isApprovedToDrive = store.state.user?.isApprovedToDrive || false;
+  
+  const requiresDriveVerified = to.matched.some((record) => record.meta.requiresDriveVerified);
 
   if (isAuthenticated && (to.name === 'Login' || to.name === 'Register')) {
     if (userRole === 'admin') {
@@ -338,9 +356,16 @@ router.beforeEach(async (to, from, next) => {
       `[Router Guard] User role '${userRole}' not authorized for route '${to.path}'.`
     );
     next('/dashboard');
-  } else {
+  } 
+  
+  else if (requiresDriveVerified && !isApprovedToDrive && userRole === 'renter') {
+    console.warn(`[Router Guard] User not approved to drive. Redirecting to driver verification.`);
+    next({ name: 'BecomeDriveVerified' }); 
+  }
+  else {
     next();
   }
 });
 
 export default router;
+

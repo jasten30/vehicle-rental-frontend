@@ -128,6 +128,11 @@ export default createStore({
     SET_USER_CHATS(state, chats) {
       state.userChats = chats;
     },
+    UPDATE_USER_FAVORITES(state, favoritesArray) {
+    if (state.user) {
+      state.user.favorites = favoritesArray;
+    }
+  },
   },
   actions: {
     async fetchNotifications({ commit }) {
@@ -544,12 +549,16 @@ export default createStore({
         throw error;
       }
     },
-    async sendMessage({_commit}, { chatId, text }) {
+    async sendMessage({ _commit }, payload) {
+      // payload from component is { chatId, text, imageBase64 }
       try {
-        await api.sendMessage(chatId, text);
+        await api.sendMessage(payload.chatId, { 
+            text: payload.text, 
+            imageBase64: payload.imageBase64 
+        });
       } catch (error) {
         console.error('[Vuex] Failed to send message:', error);
-        throw error;
+        throw error; // Re-throw to be caught in component
       }
     },
     async markChatAsRead({ dispatch }, chatId) {
@@ -704,6 +713,69 @@ export default createStore({
         throw error; // Re-throw so the modal can catch it and show a message
       }
     },
+    async downloadBookingContract({ _commit }, bookingId) {
+      try {
+        // Call new API function, expecting a file blob
+        const response = await api.downloadBookingContract(bookingId);
+        
+        // Extract filename from Content-Disposition header
+        const contentDisposition = response.headers['content-disposition'];
+        let filename = `BookingContract-${bookingId}.txt`; // default
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+            if (filenameMatch && filenameMatch.length === 2) filename = filenameMatch[1];
+        }
+        
+        // Return blob data and filename
+        return { data: response.data, filename: filename }; 
+      } catch (error) {
+        console.error('[Vuex] Failed to download contract:', error);
+        throw error;
+      }
+    },
+    async deferExtensionPayment({ commit }, payload) {
+      try {
+        // payload = { bookingId, amount, paymentMethod: 'cash_on_return' }
+        await api.deferExtensionPayment(payload.bookingId, payload);
+        
+        // Update status to 'confirmed' because the extension is now active
+        commit('UPDATE_BOOKING_STATUS', { bookingId: payload.bookingId, newStatus: 'confirmed' });
+      } catch (error) {
+        console.error('[Vuex] Failed to defer extension payment:', error);
+        throw error;
+      }
+    },
+    async toggleFavorite({ commit, getters }, vehicleId) {
+      if (!getters.isAuthenticated) {
+        // Safeguard, though button shouldn't be clickable
+        return;
+      }
+      
+      const currentFavorites = getters.userFavorites;
+      let optimisticFavorites;
+
+      // Optimistic Update: Update UI immediately
+      if (currentFavorites.includes(vehicleId)) {
+        optimisticFavorites = currentFavorites.filter(id => id !== vehicleId);
+      } else {
+        optimisticFavorites = [...currentFavorites, vehicleId];
+      }
+      commit('UPDATE_USER_FAVORITES', optimisticFavorites);
+
+      // Call API
+      try {
+        // This assumes 'api.toggleFavoriteVehicle' exists in your api.js file
+        const response = await api.toggleFavoriteVehicle({ vehicleId });
+        // API call succeeded, confirm state with server response
+        commit('UPDATE_USER_FAVORITES', response.data.favorites);
+      } catch (error) {
+        console.error("Error toggling favorite:", error);
+        // Rollback on error
+        commit('UPDATE_USER_FAVORITES', currentFavorites);
+        // Show error to user
+        alert("Failed to update favorites. Please try again.");
+      }
+    },
     setVehicleFilter({ commit }, payload) {
       commit('SET_VEHICLE_FILTER', payload);
     },
@@ -733,6 +805,7 @@ export default createStore({
     allBookings: (state) => state.allBookings,
     vehicleSort: (state) => state.vehicleSort,
     userChats: (state) => state.userChats,
+    userFavorites: (state) => state.user?.favorites || [],
     filteredAndSortedVehicles: (state) => {
       let vehicles = Array.isArray(state.allVehicles)
         ? [...state.allVehicles]

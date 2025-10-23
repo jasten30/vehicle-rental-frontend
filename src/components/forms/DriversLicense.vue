@@ -1,17 +1,42 @@
 <template>
-  <div class="form-section step-5">
+  <div class="form-section">
     <h3>Driver's License Details</h3>
     <p class="step-info-text">
-      Please provide your driver's license number and upload a clear photo of
-      your license. Your privacy is important to us.
+      Please provide your name as it appears on your license, your license number, and upload a clear photo.
     </p>
+
+    <!-- 👇 ADDED First Name and Last Name inputs -->
+    <div class="name-grid">
+      <div class="form-group">
+        <label for="dl-firstName">First Name (on License)</label>
+        <input
+          type="text"
+          id="dl-firstName"
+          v-model="localDriversLicense.firstName"
+          placeholder="e.g., Juan"
+          required
+          @input="emitUpdate"
+        />
+      </div>
+      <div class="form-group">
+        <label for="dl-lastName">Last Name (on License)</label>
+        <input
+          type="text"
+          id="dl-lastName"
+          v-model="localDriversLicense.lastName"
+          placeholder="e.g., Dela Cruz"
+          required
+          @input="emitUpdate"
+        />
+      </div>
+    </div>
 
     <div class="form-group">
       <label for="licenseNumber">Driver's License Number</label>
       <input
         type="text"
         id="licenseNumber"
-        v-model="localDriversLicense.number"
+        v-model="localDriversLicense.licenseNumber"
         placeholder="e.g., L12-34-567890"
         required
         @input="emitUpdate"
@@ -24,7 +49,7 @@
         type="file"
         ref="licensePhotoInput"
         @change="handleLicensePhotoUpload"
-        accept="image/*"
+        accept="image/png, image/jpeg, image/jpg"
         class="hidden-input"
         required
       />
@@ -82,6 +107,7 @@
 export default {
   name: 'DriversLicense',
   props: {
+    // This prop name matches what BecomeOwnerApplication.vue provides
     initialDriversLicense: {
       type: Object,
       required: true,
@@ -91,12 +117,20 @@ export default {
       default: true,
     },
   },
+  // 👇 UPDATED: Emit the correct event name
   emits: ['update:driversLicense', 'next', 'prev', 'error'],
   data() {
     return {
+      // Clone the prop to local data to avoid mutating prop
       localDriversLicense: { ...this.initialDriversLicense },
       error: '',
     };
+  },
+  watch: {
+    // Keep local data in sync if the prop changes (e.g., parent form reset)
+    initialDriversLicense(newVal) {
+      this.localDriversLicense = { ...newVal };
+    }
   },
   methods: {
     triggerLicensePhotoInput() {
@@ -105,29 +139,40 @@ export default {
     handleLicensePhotoUpload(event) {
       const file = event.target.files[0];
       if (file) {
+        // Validation for size (e.g., 2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            this.error = "File is too large (Max 2MB).";
+            return;
+        }
         const reader = new FileReader();
         reader.onload = (e) => {
+          // This is the Base64 string
           this.localDriversLicense.imageUrl = e.target.result;
           this.emitUpdate();
+        };
+        reader.onerror = () => {
+            this.error = "Failed to read file.";
         };
         reader.readAsDataURL(file);
       }
     },
     emitUpdate() {
+      // Emit the full local data object back to the parent
       this.$emit('update:driversLicense', this.localDriversLicense);
     },
     nextStep() {
-      console.log(
-        'DriversLicense component data:',
-        JSON.stringify(this.localDriversLicense, null, 2)
-      );
-
-      if (this.localDriversLicense.number && this.localDriversLicense.imageUrl) {
+      // Validate all new fields
+      if (
+        this.localDriversLicense.firstName &&
+        this.localDriversLicense.lastName &&
+        this.localDriversLicense.licenseNumber &&
+        this.localDriversLicense.imageUrl
+      ) {
         this.$emit('next');
         this.error = '';
       } else {
         this.error =
-          'Please fill in your license number and upload a photo before proceeding.';
+          'Please fill in all fields (Name, License #) and upload a photo to continue.';
       }
     },
   },
@@ -136,6 +181,17 @@ export default {
 
 <style lang="scss" scoped>
 @import '@/assets/styles/variables.scss';
+
+/* Added styles for the new name grid */
+.name-grid {
+  display: flex;
+  gap: 1rem;
+  flex-direction: column;
+
+  @media (min-width: 576px) {
+    flex-direction: row;
+  }
+}
 
 h3 {
   font-size: 1.5rem;
@@ -151,6 +207,7 @@ h3 {
 
 .form-group {
   margin-bottom: 1.25rem;
+  flex: 1; // Allows fields in name-grid to share space
 
   label {
     display: block;
@@ -168,6 +225,7 @@ input[type='text'] {
   font-size: 1rem;
   transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
   background-color: #ffffff;
+  box-sizing: border-box; // Ensures padding doesn't break layout
 
   &:focus {
     outline: none;

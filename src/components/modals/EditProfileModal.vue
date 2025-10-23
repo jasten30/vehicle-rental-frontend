@@ -10,9 +10,28 @@
         </div>
 
         <div class="modal-body">
-          <!-- Step 1: Name -->
+          <!-- Step 1: Name & Profile Photo -->
           <div v-if="currentStep === 1">
-            <p class="step-info-text">Update your name.</p>
+            <p class="step-info-text">Update your name and profile picture.</p>
+            
+            <!-- NEW: Profile Photo Uploader -->
+            <div class="form-group">
+              <label>Profile Picture</label>
+              <div class="profile-photo-uploader">
+                <img :src="profilePhotoPreview" alt="Profile preview" class="photo-preview" @error="setDefaultAvatar"/>
+                <div class="photo-buttons">
+                  <input type="file" ref="fileInput" @change="onFileSelected" accept="image/png, image/jpeg" hidden>
+                  <button type="button" @click="triggerFileInput" class="button-upload">
+                    <i class="bi bi-camera-fill"></i> Change
+                  </button>
+                  <button v-if="profilePhotoPreview" type="button" @click="removeImage" class="button-remove">
+                    <i class="bi bi-trash-fill"></i> Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+            <!-- END NEW -->
+
             <div class="name-grid">
               <div class="form-group">
                 <label for="firstName">First Name</label>
@@ -85,7 +104,10 @@ export default {
         lastName: '',
         address: { barangay: '', city: '' },
         about: '',
+        profilePhotoUrl: null, // Track the URL (or null if removed)
       },
+      profilePhotoPreview: null, // For displaying the image
+      profilePhotoBase64: null, // For sending the new file data
       isSaving: false,
       successMessage: '',
       errorMessage: '',
@@ -93,7 +115,6 @@ export default {
   },
   computed: {
     nextButtonText() {
-      // The modal now only has 3 steps for basic profile info
       if (this.currentStep === 3) return 'Save Changes';
       return 'Next';
     },
@@ -110,10 +131,25 @@ export default {
   },
   methods: {
     ...mapActions(['updateUserProfile']),
+    
+    getDefaultAvatar() {
+        return 'https://placehold.co/150x150/e2e8f0/666666?text=User'; // Default placeholder
+    },
+    
+    setDefaultAvatar(event) {
+        event.target.src = this.getDefaultAvatar();
+    },
+
     populateEditForm(profileData) {
       this.editableProfile.firstName = profileData.firstName || '';
       this.editableProfile.lastName = profileData.lastName || '';
       this.editableProfile.about = profileData.about || '';
+      this.editableProfile.profilePhotoUrl = profileData.profilePhotoUrl || null;
+
+      // Set initial preview
+      this.profilePhotoPreview = profileData.profilePhotoUrl || this.getDefaultAvatar();
+      this.profilePhotoBase64 = null; // Clear any staged file
+
       if (typeof profileData.address === 'object' && profileData.address !== null) {
         this.editableProfile.address.barangay = profileData.address.barangay || '';
         this.editableProfile.address.city = profileData.address.city || '';
@@ -121,6 +157,45 @@ export default {
         this.editableProfile.address = { barangay: '', city: '' };
       }
     },
+
+    triggerFileInput() {
+      this.$refs.fileInput.click();
+    },
+
+    onFileSelected(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      // Validate type and size (e.g., 2MB limit)
+      if (!file.type.startsWith('image/')) {
+        this.errorMessage = 'Please select a valid image file.';
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        this.errorMessage = 'File is too large (Max 2MB).';
+        return;
+      }
+      
+      this.errorMessage = '';
+
+      // Create local preview URL
+      this.profilePhotoPreview = URL.createObjectURL(file);
+
+      // Convert to Base64 for upload
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.profilePhotoBase64 = e.target.result;
+        this.editableProfile.profilePhotoUrl = null; // Clear old URL, new one will be sent
+      };
+      reader.readAsDataURL(file);
+    },
+
+    removeImage() {
+        this.profilePhotoPreview = this.getDefaultAvatar(); // Set to default placeholder
+        this.profilePhotoBase64 = null; // Clear staged file
+        this.editableProfile.profilePhotoUrl = null; // Mark for removal on save
+    },
+
     nextStep() {
       this.successMessage = '';
       this.errorMessage = '';
@@ -139,10 +214,25 @@ export default {
       this.isSaving = true;
       this.successMessage = '';
       this.errorMessage = '';
+
+      // Prepare payload
+      const payload = { ...this.editableProfile };
+      
+      if (this.profilePhotoBase64) {
+        // If a new image was staged, send it
+        payload.profilePhotoBase64 = this.profilePhotoBase64;
+      }
+      // 'payload.profilePhotoUrl' is already set to the original URL or 'null' (if removed)
+      // The backend will handle this.
+      
       try {
-        await this.updateUserProfile(this.editableProfile);
+        await this.updateUserProfile(payload);
         this.successMessage = 'Profile updated successfully!';
-        this.$emit('profile-updated');
+        this.$emit('profile-updated'); // Tell parent to refetch profile
+        
+        // Reset base64 data after successful save
+        this.profilePhotoBase64 = null; 
+        
         setTimeout(() => this.$emit('close'), 1500);
       } catch (error) {
         this.errorMessage = error.response?.data?.message || 'Failed to update profile.';
@@ -200,6 +290,57 @@ export default {
   }
   textarea { resize: vertical; min-height: 120px; }
 }
+
+/* --- New Profile Photo Styles --- */
+.profile-photo-uploader {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.photo-preview {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid $border-color;
+  background-color: $background-light;
+}
+.photo-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.button-upload, .button-remove {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-md;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+.button-upload {
+  background-color: $card-background;
+  color: $text-color-dark;
+  &:hover {
+    background-color: #f3f4f6;
+  }
+}
+.button-remove {
+  background: none;
+  border: none;
+  color: $text-color-medium;
+  padding: 0.25rem;
+  &:hover {
+    color: $admin-color;
+  }
+}
+/* --- End New Styles --- */
+
 .navigation-controls {
   display: flex; justify-content: space-between; align-items: center; gap: 1rem;
 }
@@ -222,4 +363,3 @@ export default {
   opacity: 0;
 }
 </style>
-

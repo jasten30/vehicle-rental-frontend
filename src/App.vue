@@ -78,15 +78,17 @@
 
               <div v-if="isAuthenticated" class="dropdown-section">
                 <h6 class="dropdown-header">My RentCycle</h6>
+                <!-- 👇 UPDATED this link -->
                 <router-link
-                  to="/favorites"
+                  :to="{ name: 'MyFavorites' }"
                   class="dropdown-item with-icon"
                   @click="closeMenu"
                 >
                   <i class="bi bi-heart-fill"></i>Favorites
                 </router-link>
+                <!-- 👇 UPDATED this link -->
                 <router-link
-                  to="/dashboard/my-bookings"
+                  :to="{ name: 'MyBookings' }"
                   class="dropdown-item with-icon"
                   @click="closeMenu"
                 >
@@ -112,22 +114,25 @@
                 class="dropdown-section"
               >
                 <h6 class="dropdown-header">Hosting</h6>
+                <!-- 👇 UPDATED this link -->
                 <router-link
-                  to="/dashboard/owner/vehicles"
+                  :to="{ name: 'OwnerVehicles' }"
                   class="dropdown-item with-icon"
                   @click="closeMenu"
                 >
                   <i class="bi bi-card-checklist"></i>My Listings
                 </router-link>
+                <!-- 👇 UPDATED this link -->
                 <router-link
-                  to="/dashboard/earnings"
+                  :to="{ name: 'OwnerBilling' }"
                   class="dropdown-item with-icon"
                   @click="closeMenu"
                 >
                   <i class="bi bi-cash-stack"></i>Earnings
                 </router-link>
+                <!-- 👇 UPDATED this link (Calendar points to bookings overview) -->
                 <router-link
-                  to="/dashboard/calendar"
+                  :to="{ name: 'OwnerBookings' }"
                   class="dropdown-item with-icon"
                   @click="closeMenu"
                 >
@@ -145,7 +150,12 @@
               <hr class="dropdown-divider" />
 
               <div class="dropdown-section">
-                <router-link to="#" class="dropdown-item with-icon">
+                <!-- *** MODIFICATION: Updated to="/how-it-works" *** -->
+                <router-link
+                  to="/how-it-works"
+                  class="dropdown-item with-icon"
+                  @click="closeMenu"
+                >
                   <i class="bi bi-key"></i>How RentCycle Works
                 </router-link>
                 <router-link to="#" class="dropdown-item with-icon">
@@ -679,4 +689,3 @@ body {
   align-items: center;
 }
 </style>
-

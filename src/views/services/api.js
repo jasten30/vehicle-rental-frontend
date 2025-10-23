@@ -33,6 +33,7 @@ export default {
     sendEmailVerificationCode: () => apiClient.post('/users/send-email-verification'),
     verifyEmailCode: (code) => apiClient.post('/users/verify-email-code', { code }),
     deleteUser: (userId) => apiClient.delete(`/users/${userId}`),
+    toggleFavoriteVehicle: (data) => apiClient.post('/users/me/favorites/toggle', data),
 
     // Host Applications (for becoming an owner)
     submitHostApplication: (applicationData) => apiClient.post('/users/submit-host-application', applicationData),
@@ -79,10 +80,11 @@ export default {
     submitBookingReport: (reportData) => apiClient.post(`/bookings/${reportData.bookingId}/report`, reportData),
     requestBookingExtension: (bookingId, data) => apiClient.post(`/bookings/${bookingId}/request-extension`, data), 
     confirmExtensionPayment: (bookingId, data) => apiClient.post(`/bookings/${bookingId}/confirm-extension`, data),
+    deferExtensionPayment: (bookingId, data) => apiClient.post(`/bookings/${bookingId}/defer-extension`, data),
 
     // Chats
     getUserChats: () => apiClient.get('/chats'),
-    sendMessage: (chatId, text) => apiClient.post(`/chats/${chatId}/messages`, { text }),
+    sendMessage: (chatId, payload) => apiClient.post(`/chats/${chatId}/messages`, payload), // Pass payload object
     markChatAsRead: (chatId) => apiClient.put(`/chats/${chatId}/read`),
     findOrCreateAdminUserChat: (payload) => apiClient.post('/admin/chats/find-or-create', payload),
 
@@ -97,4 +99,10 @@ export default {
     // Reports (Admin)
     getBookingReports: () => apiClient.get('/admin/reports'),
     resolveBookingReport: (reportId) => apiClient.put(`/admin/reports/${reportId}/resolve`),
+
+    // Download Contract (Owner)
+    downloadBookingContract: (bookingId) => apiClient.get(
+    `/bookings/${bookingId}/contract`,
+    { responseType: 'blob' }
+  ),
 };

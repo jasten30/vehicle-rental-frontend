@@ -11,6 +11,7 @@
 
     <div v-else-if="booking" class="booking-details-layout">
 
+      <!-- == Main Content Area == -->
       <div class="main-content">
         <div class="header">
           <span class="booking-status" :class="getStatusClass(booking.paymentStatus)">
@@ -20,6 +21,7 @@
           <p class="booking-id">#{{ booking.id }}</p>
         </div>
 
+        <!-- Action Card: Owner Approval -->
         <div v-if="showOwnerActionCard" class="action-card owner-approval">
           <div class="card-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
           <div class="card-content">
@@ -32,17 +34,19 @@
           </div>
         </div>
 
+        <!-- Action Card: Renter Initial Payment -->
         <div v-if="showPaymentActionCard" class="action-card renter-payment">
           <div class="card-icon"><i class="bi bi-credit-card-fill"></i></div>
           <div class="card-content">
             <h3 class="card-title">Payment Required</h3>
             <p>The owner approved your request. Pay the downpayment to confirm.</p>
-            <button @click="isPaymentModalOpen = true" class="button primary pay-now-button">
+            <button @click="openDownpaymentModal" class="button primary pay-now-button">
               Pay ₱{{ booking.downPayment.toLocaleString('en-US', { minimumFractionDigits: 2 }) }} Downpayment
             </button>
           </div>
         </div>
 
+        <!-- Action Card: Owner Confirm Downpayment -->
         <div v-if="showOwnerPaymentConfirmationCard" class="action-card owner-confirm">
           <div class="card-icon"><i class="bi bi-patch-check-fill"></i></div>
           <div class="card-content">
@@ -53,15 +57,16 @@
             </div>
           </div>
         </div>
-
-        <div v-if="showPayExtensionCard" class="action-card renter-payment extension-payment">
+        
+        <!-- Action Card: Pay Extension Fee -->
+        <div v-if="showPayExtensionCard && latestPendingExtension" class="action-card renter-payment extension-payment">
             <div class="card-icon"><i class="bi bi-clock-history"></i></div>
             <div class="card-content">
                 <h3 class="card-title">Extension Payment Required</h3>
                 <p>
                     Your extension request is pending payment. Please pay the extension fee of
-                    <strong>₱{{ booking.extensionRequest?.cost?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '0.00' }}</strong>
-                    to confirm the new return time: {{ formatFullDateTime(booking.extensionRequest?.newEndDate) || 'N/A' }}.
+                    <strong>₱{{ latestPendingExtension.cost.toLocaleString('en-US', { minimumFractionDigits: 2 }) }}</strong>
+                    to confirm the new return time: {{ formatFullDateTime(latestPendingExtension.newEndDate) || 'N/A' }}.
                 </p>
                 <button @click="openExtensionPaymentModal" class="button primary pay-now-button">
                     Pay Extension Fee Now
@@ -69,15 +74,17 @@
             </div>
         </div>
 
+        <!-- Info Card: Downpayment Verified Message -->
         <div v-if="showDownpaymentVerifiedMessage" class="info-card status-info-card downpayment-verified">
           <div class="card-icon"><i class="bi bi-shield-check"></i></div>
           <div class="card-content">
-            <h3 class="card-title">Downpayment Verified</h3>
-            <p>The owner has confirmed receipt of your downpayment. Your booking is secured!</p>
+            <h3 class="card-title">Booking Confirmed</h3>
+            <p>The owner has confirmed receipt of your payment. Your booking is secured!</p>
             <p class="next-steps">You can now contact the host via chat to coordinate pickup details.</p>
           </div>
         </div>
 
+        <!-- Info Card: Vehicle -->
         <div class="info-card vehicle-card">
            <img
              :src="getVehicleImageUrl(booking.vehicleDetails)"
@@ -95,6 +102,7 @@
            </div>
         </div>
 
+        <!-- Info Card: Trip Details -->
         <div class="info-card trip-details-card">
           <h3 class="card-section-title">Trip Details</h3>
           <div class="details-grid">
@@ -117,6 +125,7 @@
           </div>
         </div>
 
+        <!-- Info Card: Payment Details -->
         <div class="info-card payment-details-card">
             <h3 class="card-section-title">Payment Details</h3>
             <div class="payment-grid">
@@ -140,16 +149,19 @@
                      <span class="label">Payment Reference</span>
                      <span class="value">{{ booking.paymentReferenceNumber }}</span>
                  </div>
-                 <div class="detail-item" v-if="booking.extensionRequest?.cost">
-                     <span class="label">Extension Cost</span>
-                     <span class="value price">₱{{ booking.extensionRequest.cost.toLocaleString('en-US', { minimumFractionDigits: 2 }) }}</span>
+                 <!-- Loop through all extensions to show history -->
+                 <div class="detail-item" v-for="(ext, index) in booking.extensions" :key="`ext-${index}`">
+                     <span class="label">Extension {{ index + 1 }} ({{ ext.status }})</span>
+                     <span class="value price">₱{{ ext.cost.toLocaleString('en-US', { minimumFractionDigits: 2 }) }}</span>
                  </div>
             </div>
         </div>
 
       </div>
 
+      <!-- == Sidebar Content Area == -->
       <div class="sidebar-content">
+        <!-- Host Info Card -->
         <div class="info-card participant-card">
           <h3 class="card-section-title">Host</h3>
            <div class="participant-details">
@@ -160,6 +172,7 @@
           </div>
         </div>
 
+        <!-- Renter Info Card -->
         <div class="info-card participant-card">
           <h3 class="card-section-title">Renter</h3>
            <div class="participant-details">
@@ -170,11 +183,14 @@
           </div>
         </div>
 
+        <!-- Sidebar Actions -->
         <div class="info-card sidebar-actions-card">
            <h3 class="card-section-title">Actions</h3>
 
+           <!-- Actions shown BEFORE the trip is finished -->
            <div v-if="!isTripFinished">
 
+             <!-- Cancel Button (for Renter) -->
              <div v-if="showCancelAction" class="action-group">
                <button
                  @click="handleCancelBooking"
@@ -189,6 +205,7 @@
                </button>
              </div>
 
+             <!-- Extend Button (for Renter) -->
              <button
                  v-if="showExtensionButton"
                  @click="isExtensionModalOpen = true"
@@ -197,6 +214,7 @@
                  <i class="bi bi-clock-history"></i> Extend Booking
              </button>
 
+             <!-- Mark as Returned Button (for Owner) -->
              <button
                v-if="showMarkAsReturnedButton"
                @click="handleMarkAsReturned"
@@ -206,7 +224,19 @@
                <span v-if="isMarkingReturned">Updating...</span>
                <span v-else><i class="bi bi-check2-circle"></i> Mark as Returned</span>
              </button>
+             
+             <!-- Download Contract Button (for Owner/Admin/Renter) -->
+             <button
+                v-if="showDownloadContractButton"
+                @click="handleDownloadContract"
+                class="button secondary full-width"
+                :disabled="isDownloadingContract"
+              >
+                <span v-if="isDownloadingContract">Downloading...</span>
+                <span v-else><i class="bi bi-file-earmark-arrow-down-fill"></i> Download Contract</span>
+              </button>
 
+             <!-- Report Button -->
              <button
                 v-if="showReportButton"
                 @click="isReportModalOpen = true"
@@ -215,21 +245,25 @@
                 <i class="bi bi-flag-fill"></i> Report Issue
               </button>
 
+             <!-- Go Back Button -->
              <button @click="goBack" class="button secondary full-width">
                <i class="bi bi-arrow-left"></i> Go Back
              </button>
 
            </div>
 
-           <div v-else class="completed-state">
+           <!-- Actions shown AFTER the trip is finished -->
+            <div v-else class="completed-state">
               <i class="bi bi-patch-check-fill completed-icon"></i>
               <h4>Trip Completed</h4>
               <p>This trip finished successfully.</p>
 
+              <!-- Write Review Button (for Renter) -->
               <button v-if="canSubmitReview" @click="isReviewModalOpen = true" class="button secondary full-width review-button">
                  <i class="bi bi-star-fill"></i> Write a Review
               </button>
 
+             <!-- Report Button -->
              <button
                 v-if="showReportButton"
                 @click="isReportModalOpen = true"
@@ -239,6 +273,7 @@
                 <i class="bi bi-flag-fill"></i> Report Issue
               </button>
 
+             <!-- Go Back Button -->
              <button @click="goBack" class="button secondary full-width">
                <i class="bi bi-arrow-left"></i> Go Back
              </button>
@@ -248,6 +283,7 @@
       </div>
     </div>
 
+    <!-- Modals -->
     <SubmitReviewModal
         v-if="booking && vehicle"
         :is-open="isReviewModalOpen"
@@ -262,6 +298,7 @@
         :booking="booking"
         :payment-type="paymentModalType"
         :amount-due="paymentAmountDue"
+        :owner-details="booking.ownerDetails"
         @close="closePaymentModals"
         @payment-confirmed="handlePaymentSubmission"
     />
@@ -290,7 +327,7 @@ import { DateTime } from 'luxon';
 import SubmitReviewModal from '@/components/modals/SubmitReviewModal.vue';
 import PaymentModal from '@/components/modals/PaymentModal.vue';
 import ReportIssueModal from '@/components/modals/ReportIssueModal.vue';
-import BookingExtensionModal from '@/components/modals/BookingExtensionModal.vue'; // Import the new modal
+import BookingExtensionModal from '@/components/modals/BookingExtensionModal.vue';
 
 export default {
   name: 'BookingDetailView',
@@ -298,7 +335,7 @@ export default {
       SubmitReviewModal,
       PaymentModal,
       ReportIssueModal,
-      BookingExtensionModal // Register the new modal
+      BookingExtensionModal
   },
   props: ['bookingId'],
   data() {
@@ -314,6 +351,7 @@ export default {
       isExtensionModalOpen: false, // For requesting extension
       isExtensionPaymentModalOpen: false, // For paying extension fee
       isCancelling: false,
+      isDownloadingContract: false, // For contract download
       paymentModalType: 'downpayment', // 'downpayment' or 'extension'
       paymentAmountDue: 0,
     };
@@ -336,6 +374,11 @@ export default {
       const isOwner = this.user.uid === this.booking.ownerId;
       return isOwner && this.booking.paymentStatus === 'downpayment_pending_verification';
     },
+    showDownpaymentVerifiedMessage() {
+        if (!this.booking || !this.user) return false;
+        const isRenter = this.user.uid === this.booking.renterId;
+        return isRenter && this.booking.paymentStatus === 'confirmed';
+    },
     showCancelAction() {
       if (!this.booking || !this.user) return false;
       const isRenter = this.user.uid === this.booking.renterId;
@@ -351,20 +394,13 @@ export default {
     showMarkAsReturnedButton() {
       if (!this.booking || !this.user || !this.booking.vehicleDetails?.ownerId) return false;
       const isOwner = this.user.uid === this.booking.vehicleDetails.ownerId;
-      const isConfirmed = this.booking.paymentStatus === 'confirmed';
-      return isOwner && isConfirmed;
-    },
-     showDownpaymentVerifiedMessage() {
-      if (!this.booking || !this.user) return false;
-      const isRenter = this.user.uid === this.booking.renterId;
-      // Show when verified but not yet fully confirmed (if using 'downpayment_verified' status)
-      // Or show when 'confirmed' if that's your flow
-      // return isRenter && this.booking.paymentStatus === 'downpayment_verified';
-      return isRenter && this.booking.paymentStatus === 'confirmed'; // Show when fully confirmed
+      // Show if confirmed OR if extension is pending cash payment
+      const validStatuses = ['confirmed', 'pending_extension_payment'];
+      return isOwner && validStatuses.includes(this.booking.paymentStatus);
     },
     isTripFinished() {
       if (!this.booking) return false;
-      return ['completed', 'returned', 'cancelled_by_renter', 'declined_by_owner'].includes(this.booking.paymentStatus); // Include cancelled/declined
+      return ['completed', 'returned', 'cancelled_by_renter', 'declined_by_owner'].includes(this.booking.paymentStatus);
     },
     canSubmitReview() {
       if (!this.booking || !this.user) return false;
@@ -376,9 +412,7 @@ export default {
     showReportButton() {
       if (!this.booking) return false;
       // Show report button once confirmed and onwards
-      const relevantStatuses = ['confirmed', 'returned', 'completed'];
-      // Also potentially show if cancelled/declined after confirmation? Depends on policy
-      // const relevantStatuses = ['confirmed', 'returned', 'completed', 'cancelled_by_renter', 'declined_by_owner'];
+      const relevantStatuses = ['confirmed', 'returned', 'completed', 'pending_extension_payment'];
       return relevantStatuses.includes(this.booking.paymentStatus);
     },
     showExtensionButton() {
@@ -387,12 +421,28 @@ export default {
         // Show only if renter and booking is confirmed
         return isRenter && this.booking.paymentStatus === 'confirmed';
     },
-    // New computed property for showing the extension payment card
+    // UPDATED: Finds the latest pending extension from the array
+    latestPendingExtension() {
+        if (!this.booking || !Array.isArray(this.booking.extensions) || this.booking.extensions.length === 0) {
+            return null;
+        }
+        // Find the last extension in the array that has the 'pending_payment' status
+        return [...this.booking.extensions].reverse().find(ext => ext.status === 'pending_payment');
+    },
     showPayExtensionCard() {
       if (!this.booking || !this.user) return false;
       const isRenter = this.user.uid === this.booking.renterId;
-      return isRenter && this.booking.paymentStatus === 'pending_extension_payment';
+      // Show card if a pending extension exists and status matches
+      return isRenter && this.booking.paymentStatus === 'pending_extension_payment' && !!this.latestPendingExtension;
     },
+    showDownloadContractButton() {
+        if (!this.booking || !this.user) return false;
+        const isOwner = this.user.uid === this.booking.ownerId;
+        const isRenter = this.user.uid === this.booking.renterId;
+        // Show if owner/admin/renter and payment is confirmed or later
+        const validStatuses = ['confirmed', 'returned', 'completed', 'pending_extension_payment'];
+        return (isOwner || this.userRole === 'admin' || isRenter) && validStatuses.includes(this.booking.paymentStatus);
+    }
   },
   methods: {
     ...mapActions([
@@ -406,7 +456,8 @@ export default {
         'cancelBooking',
         'submitBookingReport',
         'requestBookingExtension',
-        'confirmExtensionPayment' // Make sure this action is created in Vuex/API/Backend
+        'confirmExtensionPayment',
+        'downloadBookingContract'
     ]),
 
     async fetchBooking() {
@@ -448,23 +499,17 @@ export default {
       }
     },
 
-    // Renamed from handlePaymentConfirmation
     async handlePaymentSubmission() {
-        this.closePaymentModals(); // Close modal first
+        this.closePaymentModals();
         if (this.paymentModalType === 'downpayment') {
              alert('Downpayment submitted for verification! The owner will confirm shortly.');
         } else if (this.paymentModalType === 'extension') {
-             // We need a specific action to confirm extension payment
-             // For now, assume it was handled and refresh
-             alert('Extension payment submitted! Your booking end time will be updated.');
-             // TODO: Ideally, the PaymentModal should emit which action succeeded,
-             // or this function calls the correct *confirmation* action based on paymentModalType.
-             // We'll assume confirmExtensionPayment was called by the modal for now.
+             alert('Extension payment submitted! Your booking has been updated.');
         }
         await this.fetchBooking();
     },
 
-    async handleConfirmPayment() { // OWNER confirms receipt of downpayment
+    async handleConfirmPayment() { // OWNER confirms receipt
       if (!window.confirm('Confirm receipt of downpayment? This finalizes the booking.')) return;
       try {
         await this.confirmBookingPayment(this.booking.id);
@@ -512,7 +557,7 @@ export default {
 
     handleReviewSubmission() {
       this.isReviewModalOpen = false;
-      if (this.booking) this.booking.reviewSubmitted = true; // Optimistic update
+      if (this.booking) this.booking.reviewSubmitted = true;
        alert('Review submitted!');
     },
 
@@ -524,19 +569,28 @@ export default {
     handleExtensionRequested(result) {
         this.isExtensionModalOpen = false;
         alert(`Extension requested. Status updated. Please pay the fee: ₱${result?.extensionCost?.toFixed(2) || 'N/A'}`);
-        this.fetchBooking(); // Refresh to show the "Pay Extension Fee" card/button
+        this.fetchBooking();
     },
 
-     // Method to open the correct payment modal for extensions
+     // Method to open the modal for DOWNPAYMENT
+    openDownpaymentModal() {
+        this.paymentModalType = 'downpayment';
+        this.paymentAmountDue = this.booking.downPayment;
+        this.isPaymentModalOpen = true;
+        this.isExtensionPaymentModalOpen = false;
+    },
+
+     // UPDATED: Method to open the modal for EXTENSION payment
     openExtensionPaymentModal() {
-        if (this.booking?.extensionRequest?.cost > 0) {
+        const pendingExtension = this.latestPendingExtension; // Use the computed prop
+        if (pendingExtension && pendingExtension.cost > 0) {
             this.paymentModalType = 'extension';
-            this.paymentAmountDue = this.booking.extensionRequest.cost;
-            this.isExtensionPaymentModalOpen = true; // Use specific flag
-            this.isPaymentModalOpen = false; // Ensure other flag is false
+            this.paymentAmountDue = pendingExtension.cost;
+            this.isExtensionPaymentModalOpen = true;
+            this.isPaymentModalOpen = false;
         } else {
-            console.error("Cannot open extension payment modal: Extension details missing.");
-            alert("Error: Extension details missing or invalid.");
+            console.error("Cannot open extension payment modal: No pending extension or cost is missing.");
+            alert("Error: No pending extension payment found.");
         }
     },
 
@@ -546,6 +600,29 @@ export default {
         this.isExtensionPaymentModalOpen = false;
     },
 
+    async handleDownloadContract() {
+        this.isDownloadingContract = true;
+        try {
+            const { data, filename } = await this.downloadBookingContract(this.booking.id);
+            
+            const url = window.URL.createObjectURL(new Blob([data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+        } catch (error) {
+             console.error("Error downloading contract:", error);
+             alert(`Failed to download contract: ${error.response?.data?.message || error.message}`);
+        } finally {
+            this.isDownloadingContract = false;
+        }
+    },
+
     // --- Formatting and Utility Methods ---
     getVehicleImageUrl(vehicle) {
       if (vehicle?.exteriorPhotos?.length > 0) return vehicle.exteriorPhotos[0];
@@ -553,15 +630,14 @@ export default {
     },
     formatFullDateTime(dateStr) {
         if (!dateStr) return 'N/A';
-        // Handle Firestore Timestamp object if needed
-        const jsDate = dateStr.toDate ? dateStr.toDate() : new Date(dateStr);
+        // Handle both ISO strings and Firestore Timestamp objects
+        const jsDate = dateStr && dateStr.toDate ? dateStr.toDate() : new Date(dateStr);
          if (isNaN(jsDate.getTime())) return 'Invalid Date';
         const dt = DateTime.fromJSDate(jsDate);
         return dt.isValid ? dt.toLocaleString(DateTime.DATETIME_MED) : 'Invalid Date';
     },
     calculateDuration(startStr, endStr) {
         if (!startStr || !endStr) return 'N/A';
-         // Handle Firestore Timestamp object if needed
         const startDate = startStr.toDate ? startStr.toDate() : new Date(startStr);
         const endDate = endStr.toDate ? endStr.toDate() : new Date(endStr);
          if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return 'Invalid dates';
@@ -570,10 +646,10 @@ export default {
         const end = DateTime.fromJSDate(endDate);
         if (!start.isValid || !end.isValid || start >= end) return 'Invalid dates';
 
-        const diff = end.diff(start, ['days', 'hours']).normalize(); // Simplify to days and hours
+        const diff = end.diff(start, ['days', 'hours']).normalize();
         let durationString = '';
         if (diff.days > 0) durationString += `${diff.days} day${diff.days > 1 ? 's' : ''}`;
-        if (diff.hours > 0) durationString += `${durationString ? ', ' : ''}${Math.round(diff.hours)} hour${diff.hours > 1 ? 's' : ''}`; // Round hours
+        if (diff.hours > 0) durationString += `${durationString ? ', ' : ''}${Math.round(diff.hours)} hour${diff.hours > 1 ? 's' : ''}`;
         return durationString || 'Less than an hour';
     },
     formatStatus(status) {
@@ -582,8 +658,7 @@ export default {
     },
     getStatusClass(status) {
       if (!status) return 'status-default';
-      if (['confirmed', 'completed', 'returned'].includes(status)) return 'status-success';
-      // Added pending_extension_payment to warning
+      if (['confirmed', 'completed', 'returned', 'downpayment_verified'].includes(status)) return 'status-success';
       if (['pending_owner_approval', 'pending_payment', 'downpayment_pending_verification', 'pending_extension_payment'].includes(status)) return 'status-warning';
       if (status?.includes('cancelled') || status?.includes('declined')) return 'status-danger';
       return 'status-default';
@@ -599,11 +674,11 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '@/assets/styles/variables.scss'; // Ensure variables are imported
+@import '@/assets/styles/variables.scss';
 
 /* --- Global Page Styles --- */
 .page-container {
-  max-width: 1100px; // Slightly wider for better spacing
+  max-width: 1100px;
   margin: $spacing-xl auto;
   padding: 0 $spacing-md;
 }
@@ -611,10 +686,10 @@ export default {
 /* --- Layout --- */
 .booking-details-layout {
   display: grid;
-  grid-template-columns: 1fr; // Single column by default
+  grid-template-columns: 1fr;
   gap: $spacing-lg;
 
-  @media (min-width: 992px) { // Two columns on larger screens
+  @media (min-width: 992px) {
     grid-template-columns: 2fr 1fr;
     gap: $spacing-xl;
   }
@@ -623,30 +698,30 @@ export default {
 .main-content {
   display: flex;
   flex-direction: column;
-  gap: $spacing-lg; // Consistent spacing between cards
+  gap: $spacing-lg;
 }
 
 .sidebar-content {
    display: flex;
    flex-direction: column;
    gap: $spacing-lg;
-   position: sticky; // Make sidebar sticky on large screens
-   top: $spacing-lg; // Adjust based on your header height if needed
+   position: sticky;
+   top: $spacing-lg;
 
-   @media (max-width: 991px) { // Unset sticky on smaller screens
+   @media (max-width: 991px) {
        position: static;
    }
 }
 
 /* --- Header --- */
 .header {
-  margin-bottom: $spacing-sm; // Reduced bottom margin
+  margin-bottom: $spacing-sm;
   border-bottom: 1px solid $border-color;
   padding-bottom: $spacing-md;
 }
 
 .booking-title {
-    font-size: 1.8rem; // Slightly smaller main title
+    font-size: 1.8rem;
     font-weight: 700;
     color: $text-color-dark;
     margin: 0 0 0.25rem;
@@ -655,7 +730,7 @@ export default {
 .booking-id {
     font-size: 0.9rem;
     color: $text-color-medium;
-    font-family: monospace; // Monospace for IDs often looks good
+    font-family: monospace;
     margin: 0;
 }
 
@@ -668,7 +743,6 @@ export default {
   margin-bottom: $spacing-md;
   text-transform: capitalize;
 }
-// Status Badge Colors (keep existing .status-success, etc.)
 .status-success { background-color: lighten($secondary-color, 40%); color: darken($secondary-color, 25%); border: 1px solid lighten($secondary-color, 30%); }
 .status-warning { background-color: lighten($accent-color, 40%); color: darken($accent-color, 25%); border: 1px solid lighten($accent-color, 30%); }
 .status-danger { background-color: lighten($admin-color, 45%); color: darken($admin-color, 25%); border: 1px solid lighten($admin-color, 35%); }
@@ -680,8 +754,8 @@ export default {
   background-color: $card-background;
   border-radius: $border-radius-lg;
   padding: $spacing-lg;
-  border: 1px solid $border-color-light; // Lighter border
-  box-shadow: $shadow-small; // Subtle shadow
+  border: 1px solid $border-color-light;
+  box-shadow: $shadow-small;
 }
 
 .card-section-title {
@@ -696,7 +770,7 @@ export default {
 /* --- Action Cards --- */
 .action-card {
   display: flex;
-  align-items: flex-start; // Align icon top
+  align-items: flex-start;
   gap: $spacing-md;
   padding: $spacing-lg;
   border-radius: $border-radius-lg;
@@ -704,15 +778,14 @@ export default {
   border-left-style: solid;
 
   .card-icon {
-    font-size: 1.8rem; // Smaller icon
-    margin-top: 0.25rem; // Align better with text
+    font-size: 1.8rem;
+    margin-top: 0.25rem;
   }
   .card-content { flex-grow: 1; }
   .card-title { font-size: 1.1rem; margin: 0 0 $spacing-sm 0; }
   p { font-size: 0.9rem; color: $text-color-medium; margin: 0 0 $spacing-md 0; line-height: 1.5; }
-  .action-buttons { display: flex; gap: $spacing-sm; margin-top: auto; } // Pushes buttons down if needed
+  .action-buttons { display: flex; gap: $spacing-sm; margin-top: auto; }
 }
-// Action Card Colors
 .action-card.owner-approval {
     background-color: lighten($accent-color, 45%); border-left-color: $accent-color;
     .card-icon { color: $accent-color; } .card-title { color: darken($accent-color, 15%); }
@@ -720,12 +793,41 @@ export default {
 .action-card.renter-payment {
     background-color: lighten($primary-color, 45%); border-left-color: $primary-color;
     .card-icon { color: $primary-color; } .card-title { color: darken($primary-color, 15%); }
-    .pay-now-button { width: 100%; margin-top: $spacing-sm; } // Make button full width
+    .pay-now-button { width: 100%; margin-top: $spacing-sm; }
 }
 .action-card.owner-confirm {
     background-color: lighten($secondary-color, 45%); border-left-color: $secondary-color;
     .card-icon { color: $secondary-color; } .card-title { color: darken($secondary-color, 15%); }
-     p strong { color: darken($secondary-color, 25%); } // Highlight amount
+     p strong { color: darken($secondary-color, 25%); }
+}
+.action-card.extension-payment {
+    background-color: lighten($accent-color, 45%);
+    border-left-color: $accent-color;
+    .card-icon { color: $accent-color; }
+    .card-title { color: darken($accent-color, 15%); }
+    p strong { color: darken($accent-color, 25%); }
+}
+
+/* Status Info Card (for verified message) */
+.status-info-card {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  padding: $spacing-lg;
+  border-radius: $border-radius-lg;
+  border-left-width: 5px;
+  border-left-style: solid;
+  .card-icon { font-size: 1.8rem; margin-top: 0.25rem; }
+  .card-content { flex-grow: 1; }
+  .card-title { font-size: 1.1rem; margin: 0 0 $spacing-sm 0; }
+  p { font-size: 0.9rem; color: $text-color-medium; margin: 0 0 $spacing-sm 0; line-height: 1.5; }
+  .next-steps { font-style: italic; font-size: 0.85rem; margin-top: $spacing-sm; }
+}
+.status-info-card.downpayment-verified {
+    background-color: lighten($secondary-color, 45%);
+    border-left-color: $secondary-color;
+    .card-icon { color: $secondary-color; }
+    .card-title { color: darken($secondary-color, 15%); }
 }
 
 
@@ -736,7 +838,7 @@ export default {
     gap: $spacing-lg;
 }
 .vehicle-image {
-  width: 120px; // Smaller image
+  width: 120px;
   height: 90px;
   object-fit: cover;
   border-radius: $border-radius-md;
@@ -753,16 +855,16 @@ export default {
 /* --- Details Grid (Trip & Payment) --- */
 .details-grid, .payment-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); // Responsive columns
-  gap: $spacing-md $spacing-lg; // Row and column gap
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: $spacing-md $spacing-lg;
 }
 .detail-item {
   display: flex;
   flex-direction: column;
 }
 .label {
-  font-size: 0.75rem; // Smaller label
-  color: black; 
+  font-size: 0.75rem;
+  color: $text-color-medium;
   margin-bottom: 0.25rem;
   text-transform: uppercase;
   font-weight: 600;
@@ -790,7 +892,7 @@ export default {
 /* --- Sidebar Actions Card --- */
 .sidebar-actions-card {
     .button { margin-bottom: $spacing-sm; }
-    .action-group { margin-bottom: $spacing-md; }
+    .action-group { margin-bottom: $spacing-sm; } // Reduced margin
     .cancellation-info { font-size: 0.8rem; color: $text-color-medium; text-align: center; margin-top: $spacing-sm; }
 }
 
@@ -804,15 +906,15 @@ export default {
 
 /* --- Buttons --- */
 .button {
-  display: inline-flex; // Allows icon alignment
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: $spacing-sm; // Space between icon and text
+  gap: $spacing-sm;
   padding: 10px 18px;
   border-radius: $border-radius-md;
-  font-size: 0.9rem; // Slightly smaller base button size
+  font-size: 0.9rem;
   font-weight: 600;
-  border: 1px solid transparent; // Base border
+  border: 1px solid transparent;
   cursor: pointer;
   text-decoration: none;
   transition: all 0.2s ease-in-out;
@@ -852,17 +954,11 @@ export default {
 .button.review-button:hover:not(:disabled) { background-color: lighten($secondary-color, 40%); }
 
 
+/* --- Loading/Error States --- */
 .loading-state, .error-state {
   text-align: center; padding: $spacing-xl; color: $text-color-medium;
   .icon { font-size: 2rem; color: $admin-color; margin-bottom: $spacing-sm; }
 }
 
-.action-card.extension-payment {
-    background-color: lighten($accent-color, 45%); // Use a different accent color base? e.g., orange
-    border-left-color: $accent-color;
-    .card-icon { color: $accent-color; }
-    .card-title { color: darken($accent-color, 15%); }
-    p strong { color: darken($accent-color, 25%); } // Highlight amount
-}
-
 </style>
+
