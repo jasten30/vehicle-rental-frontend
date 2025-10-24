@@ -268,11 +268,6 @@ h4 { // Style for sub-section titles
 }
 
 // Removed .calendar-section
-
-/* --- Styling for Date Input Section --- */
-.date-input-section {
-    // Inherits card styling
-}
 .date-inputs {
     display: flex;
     gap: 1.5rem; // Space between date inputs
