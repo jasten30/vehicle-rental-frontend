@@ -51,7 +51,9 @@ export default {
     getAllVehicles: () => apiClient.get('/vehicles'),
     getVehicleById: (vehicleId) => apiClient.get(`/vehicles/${vehicleId}`),
     addVehicle: (vehicleData) => apiClient.post('/vehicles', vehicleData),
-    updateVehicle: (vehicleId, vehicleData) => apiClient.put(`/vehicles/${vehicleId}`, vehicleData),
+    updateVehicle: (vehicleId, updates) => {
+        return apiClient.put(`/vehicles/${vehicleId}`, updates);
+    },
     getVehiclesByOwner: () => apiClient.get('/vehicles/my-listings'),
     deleteVehicle: (vehicleId) => apiClient.delete(`/vehicles/${vehicleId}`),
 
@@ -78,7 +80,7 @@ export default {
     confirmBookingPayment: (bookingId) => apiClient.put(`/bookings/${bookingId}/confirm-payment`),
     cancelBooking: (bookingId) => apiClient.put(`/bookings/${bookingId}/cancel`),
     submitBookingReport: (reportData) => apiClient.post(`/bookings/${reportData.bookingId}/report`, reportData),
-    requestBookingExtension: (bookingId, data) => apiClient.post(`/bookings/${bookingId}/request-extension`, data), 
+    requestBookingExtension: (bookingId, data) => apiClient.post(`/bookings/${bookingId}/request-extension`, data),
     confirmExtensionPayment: (bookingId, data) => apiClient.post(`/bookings/${bookingId}/confirm-extension`, data),
     deferExtensionPayment: (bookingId, data) => apiClient.post(`/bookings/${bookingId}/defer-extension`, data),
 
@@ -104,5 +106,5 @@ export default {
     downloadBookingContract: (bookingId) => apiClient.get(
     `/bookings/${bookingId}/contract`,
     { responseType: 'blob' }
-  ),
+    ),
 };

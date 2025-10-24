@@ -46,45 +46,25 @@
     <hr class="divider" />
     <div class="details-list">
       <h4>Vehicle Features</h4>
-      <div v-if="hasFeatures" class="features-grid-container">
+      <!-- Check if the selectedFeaturesList has items -->
+      <div v-if="selectedFeaturesList.length > 0" class="features-grid-container">
         <div class="features-grid">
-          <div
-            v-for="(features, category) in displayedCategories"
-            :key="category"
-            class="feature-category"
-          >
-            <div v-if="features.length > 0">
-              <h5 class="feature-category-title">
-                {{ formatCategoryName(category) }}
-              </h5>
-              <ul>
-                <li
-                  v-for="(feature, featureIndex) in features"
-                  :key="featureIndex"
-                >
-                  {{ feature }}
-                </li>
-              </ul>
-            </div>
-          </div>
+           <!-- Display features in two columns -->
+           <ul class="feature-column">
+             <li v-for="(feature, index) in selectedFeaturesList.slice(0, Math.ceil(selectedFeaturesList.length / 2))" :key="`col1-${index}`">
+               {{ feature }}
+             </li>
+           </ul>
+           <ul class="feature-column" v-if="selectedFeaturesList.length > 1">
+             <li v-for="(feature, index) in selectedFeaturesList.slice(Math.ceil(selectedFeaturesList.length / 2))" :key="`col2-${index}`">
+               {{ feature }}
+             </li>
+           </ul>
         </div>
-        <button
-          v-if="!showAllFeatures && totalFeatureCount > 4"
-          @click="toggleFeatures"
-          class="see-all-btn"
-        >
-          See all features
-        </button>
-        <button
-          v-else-if="showAllFeatures"
-          @click="toggleFeatures"
-          class="see-all-btn"
-        >
-          Show less
-        </button>
+        <!-- "See all/less" functionality removed for simplicity with the new structure -->
       </div>
       <div v-else class="loading-state">
-        <p>No features available for this vehicle.</p>
+        <p>No additional features listed for this vehicle.</p>
       </div>
     </div>
     <hr class="divider" />
@@ -197,7 +177,7 @@ const props = defineProps({
 });
 
 const db = getFirestore();
-const showAllFeatures = ref(false);
+// Removed showAllFeatures as we'll display all features now
 const reviews = ref([]);
 const host = ref({
   id: null,
@@ -207,48 +187,46 @@ const host = ref({
 });
 const showAllReviews = ref(false);
 
-const hasFeatures = computed(
-  () =>
-    props.vehicle && props.vehicle.features && props.vehicle.features.length > 0
-);
+// ======================================================
+//  NEW FEATURE LOGIC
+// ======================================================
+// 1. Define the map from keys to display names
+const featureNameMap = {
+  seatbeltsAndAirbags: "Seatbelts and Airbags",
+  abs: "Anti-lock Braking System (ABS)",
+  esc: "Electronic Stability Control (ESC)",
+  backupCamera: "Back-up Camera",
+  bsm: "Blind Spot Monitoring (BSM)",
+  tpms: "Tire Pressure Monitoring System (TPMS)",
+  fcw: "Forward Collision Warning (FCW)",
+  bluetooth: "Bluetooth",
+  usbPort: "USB Port",
+  appleCarPlay: "Apple CarPlay",
+  androidAuto: "Android Auto",
+  gps: "GPS Navigation",
+  keylessEntry: "Keyless Entry",
+  heatedSeats: "Heated Seats",
+  sunroof: "Sunroof",
+  childSeat: "Child Seat",
+  bikeRack: "Bike Rack",
+  roofBox: "Roof Box",
+  petFriendly: "Pet Friendly",
+};
 
-const categorizedFeatures = computed(() => {
-  const categories = {
-    safety: [],
-    convenience: [],
-    connectivity: [],
-    additional: [],
-  };
-  if (!props.vehicle || !props.vehicle.features) {
-    return categories;
+// 2. Computed property to get the list of selected feature names
+const selectedFeaturesList = computed(() => {
+  if (!props.vehicle || !props.vehicle.features || typeof props.vehicle.features !== 'object') {
+    return [];
   }
-  const safetyKeywords = ['seatbelt', 'airbag', 'anti-lock', 'parking assist', 'camera'];
-  const convenienceKeywords = ['air conditioning', 'automatic', 'keyless entry', 'storage', 'cup holder', 'sunroof'];
-  const connectivityKeywords = ['carplay', 'android auto', 'bluetooth', 'offline maps', 'usb port'];
-  props.vehicle.features.forEach((feature) => {
-    const lowerFeature = feature.toLowerCase();
-    if (safetyKeywords.some((keyword) => lowerFeature.includes(keyword))) {
-      categories.safety.push(feature);
-    } else if (convenienceKeywords.some((keyword) => lowerFeature.includes(keyword))) {
-      categories.convenience.push(feature);
-    } else if (connectivityKeywords.some((keyword) => lowerFeature.includes(keyword))) {
-      categories.connectivity.push(feature);
-    } else {
-      categories.additional.push(feature);
-    }
-  });
-  return categories;
+  return Object.keys(props.vehicle.features)
+    // Filter for keys where the value is true
+    .filter(key => props.vehicle.features[key] === true)
+    // Map the key to its display name
+    .map(key => featureNameMap[key] || key); // Fallback to key if name not found
 });
 
-const displayedCategories = computed(() => {
-  if (showAllFeatures.value) {
-    return categorizedFeatures.value;
-  }
-  const nonEmtpy = Object.fromEntries(
-    Object.entries(categorizedFeatures.value).filter(([, features]) => features.length > 0)
-  );
-  return Object.fromEntries(Object.entries(nonEmtpy).slice(0, 2));
-});
+// Removed categorizedFeatures, displayedCategories, totalFeatureCount, toggleFeatures
+// ======================================================
 
 const displayedReviews = computed(() => {
     if (showAllReviews.value) {
@@ -256,15 +234,6 @@ const displayedReviews = computed(() => {
     }
     return reviews.value.slice(0, 2);
 });
-
-const totalFeatureCount = computed(() => {
-  if (!props.vehicle || !props.vehicle.features) return 0;
-  return props.vehicle.features.length;
-});
-
-const toggleFeatures = () => {
-  showAllFeatures.value = !showAllFeatures.value;
-};
 
 const toggleReviews = () => {
     showAllReviews.value = !showAllReviews.value;
@@ -375,7 +344,8 @@ const overallRating = computed(() => {
 });
 
 const formatCategoryName = (name) => {
-  return name.charAt(0).toUpperCase() + name.slice(1).replace('-', ' ');
+  // Simple capitalize for the rating categories
+  return name.charAt(0).toUpperCase() + name.slice(1);
 };
 
 onMounted(() => {
@@ -484,30 +454,28 @@ onMounted(() => {
 }
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, 1fr); // Always 2 columns for features
   gap: 2rem;
   margin-bottom: 1rem;
-  @media (max-width: 768px) {
+  @media (max-width: 576px) { // Single column on small screens
     grid-template-columns: 1fr;
+    gap: 0.5rem;
   }
 }
-.feature-category-title {
-  font-size: 1rem;
-  color: $text-color-dark;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-.feature-category ul {
+// Removed category title styles
+.feature-column { // Style for the new UL columns
   list-style: disc;
   padding-left: 1.5rem;
   margin: 0;
+  li {
+    font-size: 1rem;
+    color: $text-color-dark;
+    margin-bottom: 0.5rem; // Increased spacing
+  }
 }
-.feature-category li {
-  font-size: 1rem;
-  color: $text-color-dark;
-  margin-bottom: 0.25rem;
-}
-.see-all-btn {
+
+// Removed see-all-btn styles related to features specifically
+.see-all-btn { // Generic style for review button
   background-color: transparent;
   color: $primary-color;
   border: none;
@@ -517,10 +485,12 @@ onMounted(() => {
   font-size: 0.9rem;
   transition: color 0.3s ease;
   align-self: flex-start;
+  margin-top: 1rem; // Add margin for review button
   &:hover {
     text-decoration: underline;
   }
 }
+
 .included-in-price-section {
   padding-top: 1.5rem;
 }
@@ -583,6 +553,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  margin-bottom: 2rem; // Add space before reviews
 }
 .rating-item {
   display: grid;
@@ -626,7 +597,7 @@ onMounted(() => {
     margin-bottom: 1rem;
     line-height: 1.6;
   }
-  strong {
+  strong.rule-title { // More specific selector
     display: block;
     font-size: 1.1em;
     color: $primary-color;
@@ -672,5 +643,10 @@ onMounted(() => {
     color: $text-color-dark;
     line-height: 1.6;
 }
-</style>
 
+.loading-state { // Style for the 'no features' text
+  color: $text-color-medium;
+  font-style: italic;
+  margin-top: 1rem;
+}
+</style>

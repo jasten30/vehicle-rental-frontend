@@ -29,25 +29,27 @@
       </div>
     </div>
 
-    <transition name="modal-fade">
+    <!-- Modal for All Photos --><transition name="modal-bounce">
       <div v-if="isModalOpen" class="modal-overlay" @click="closeModal">
         <div class="modal-content" @click.stop>
           <button @click="closeModal" class="modal-close-button">&times;</button>
 
-          <div class="modal-photo-section">
-            <h3 class="modal-section-title">Main Photo</h3>
+          <h3 class="modal-gallery-title">{{ vehicleMake }} {{ vehicleModel }} Photo Gallery</h3>
+          
+          <!-- Section 1: Main Exterior Photo --><div class="modal-photo-section">
+            <h4 class="modal-section-subtitle">Profile Photo</h4>
             <div class="modal-photo-grid single">
               <img
                 :src="mainImage"
-                :alt="`${vehicleMake} ${vehicleModel}`"
-                class="modal-image"
+                :alt="`${vehicleMake} ${vehicleModel} - Main`"
+                class="modal-image profile-image"
                 @click="openFullScreen(mainImage)"
               />
             </div>
           </div>
 
-          <div v-if="interiorPhotos.length > 0" class="modal-photo-section">
-            <h3 class="modal-section-title">Interior Photos</h3>
+          <!-- Section 2: Interior Photos --><div v-if="interiorPhotos.length > 0" class="modal-photo-section">
+            <h4 class="modal-section-subtitle">Interior & Detail Shots ({{ interiorPhotos.length }})</h4>
             <div class="modal-photo-grid">
               <img
                 v-for="(image, index) in interiorPhotos"
@@ -60,8 +62,8 @@
             </div>
           </div>
 
-          <div v-if="otherExteriorPhotos.length > 0" class="modal-photo-section">
-            <h3 class="modal-section-title">Exterior Photos</h3>
+          <!-- Section 3: Other Exterior Photos --><div v-if="otherExteriorPhotos.length > 0" class="modal-photo-section">
+            <h4 class="modal-section-subtitle">Exterior Views ({{ otherExteriorPhotos.length }})</h4>
             <div class="modal-photo-grid">
               <img
                 v-for="(image, index) in otherExteriorPhotos"
@@ -73,11 +75,12 @@
               />
             </div>
           </div>
+          
         </div>
       </div>
     </transition>
 
-    <transition name="fullscreen-fade">
+    <!-- Full-Screen Slider Modal --><transition name="fullscreen-fade">
       <div
         v-if="isFullScreenOpen"
         class="fullscreen-overlay"
@@ -97,6 +100,9 @@
         <button @click.stop="nextImage" class="nav-button next-button">
           &#10095;
         </button>
+        <div class="image-counter">
+          {{ currentImageIndex + 1 }} / {{ allImagesForSlider.length }}
+        </div>
       </div>
     </transition>
   </div>
@@ -106,7 +112,6 @@
 export default {
   name: 'VehicleImageGallery',
   props: {
-    // Props are updated to be more semantic
     exteriorPhotos: {
       type: Array,
       default: () => [],
@@ -138,24 +143,34 @@ export default {
         : 'https://placehold.co/800x600/e2e8f0/666666?text=No+Main+Image';
     },
     otherExteriorPhotos() {
+      // Returns all exterior photos *except* the main/first one
       return this.exteriorPhotos.slice(1);
     },
     displayThumbnails() {
-      const thumbs = [];
       const placeholder =
         'https://placehold.co/400x300/e2e8f0/666666?text=Photo';
-      // First thumbnail is the first interior photo
-      thumbs.push(
-        this.interiorPhotos.length > 0 ? this.interiorPhotos[0] : placeholder
-      );
-      // Second thumbnail is the second exterior photo
-      thumbs.push(
-        this.exteriorPhotos.length > 1 ? this.exteriorPhotos[1] : placeholder
-      );
-      return thumbs;
+      
+      let candidateImages = [
+        // Candidate 1: First Interior Photo
+        this.interiorPhotos[0] || placeholder,
+        // Candidate 2: Second Exterior Photo (or first interior if no other exterior)
+        this.exteriorPhotos[1] || this.interiorPhotos[1] || placeholder,
+      ];
+      
+      // Filter out redundant placeholders, but keep the first image even if it's a placeholder
+      const filteredCandidates = candidateImages.filter((img, index) => img !== placeholder || index === 0);
+      
+      // Ensure we always return exactly 2 items, even if they are placeholders
+      while (filteredCandidates.length < 2) {
+          filteredCandidates.push(placeholder);
+      }
+
+      return filteredCandidates.slice(0, 2);
     },
     allImagesForSlider() {
-      return [...this.exteriorPhotos, ...this.interiorPhotos];
+      // Concatenate all unique images for the slider
+      const uniqueImages = new Set([...this.exteriorPhotos, ...this.interiorPhotos]);
+      return Array.from(uniqueImages).filter(url => url);
     },
   },
   methods: {
@@ -166,6 +181,7 @@ export default {
       this.isModalOpen = false;
     },
     openFullScreen(clickedImageUrl) {
+      this.isModalOpen = false; // Close thumbnail modal when opening fullscreen
       const index = this.allImagesForSlider.findIndex(
         (image) => image === clickedImageUrl
       );
@@ -174,6 +190,7 @@ export default {
     },
     closeFullScreen() {
       this.isFullScreenOpen = false;
+      this.currentImageIndex = 0; // Reset index
     },
     nextImage() {
       this.currentImageIndex =
@@ -191,26 +208,47 @@ export default {
 <style lang="scss" scoped>
 @import '../../assets/styles/variables.scss';
 
-/* On-page grid styles (unchanged) */
+// =================================================================
+// PRIMARY LAYOUT & RESPONSIVENESS
+// =================================================================
 .vehicle-image-gallery {
   display: grid;
-  grid-template-columns: 3fr 1fr;
+  grid-template-columns: 3fr 1fr; 
   grid-template-rows: 1fr;
   gap: 0.5rem;
+  height: 500px;
   align-items: stretch;
   overflow: hidden;
+  border-radius: $border-radius-lg;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 100px;
+    height: 400px;
+    gap: 0.25rem;
+  }
 }
 .main-vehicle-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: cover; /* Ensures the image covers the area, potentially cropping */
   border-radius: $border-radius-md;
   cursor: pointer;
+  transition: transform 0.3s ease;
+  &:hover {
+      transform: scale(1.01);
+  }
 }
 .thumbnail-grid {
   display: grid;
   grid-template-rows: 1fr 1fr;
   gap: 0.5rem;
+  
+  @media (max-width: 768px) {
+     grid-template-columns: 1fr 1fr;
+     grid-template-rows: 1fr;
+     gap: 0.25rem;
+  }
 }
 .thumbnail-container {
   position: relative;
@@ -221,7 +259,11 @@ export default {
 .thumbnail-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: cover; /* Ensures the image covers the area, potentially cropping */
+  transition: opacity 0.3s ease;
+  &:hover {
+      opacity: 0.85;
+  }
 }
 .show-all-button {
   position: absolute;
@@ -231,79 +273,141 @@ export default {
   color: white;
   border: none;
   padding: 0.5rem 1rem;
-  border-radius: 9999px;
+  border-radius: $border-radius-pill;
   cursor: pointer;
-}
-
-/* NEW: Modal Content Styles */
-.modal-photo-section {
-  margin-bottom: 2rem;
-}
-.modal-section-title {
-  font-size: 1.5rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: $text-color-dark;
-  margin-bottom: 1rem;
-}
-.modal-photo-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem;
-  &.single {
-    grid-template-columns: 1fr;
-    img {
-      max-height: 500px;
-    }
+  transition: background-color 0.2s;
+  &:hover {
+    background-color: $primary-color;
   }
 }
-.modal-image {
-  width: 100%;
-  height: 150px;
-  object-fit: cover;
-  border-radius: $border-radius-md;
-  cursor: pointer;
-}
 
-/* Modal Overlay Styles (unchanged) */
+// =================================================================
+// MODAL STYLES (Gallery View)
+// =================================================================
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.9);
+  background-color: rgba(0, 0, 0, 0.85);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
 }
 .modal-content {
-  width: 90%;
+  width: 95%;
   max-width: 1200px;
-  max-height: 90vh;
-  padding: 2rem;
+  max-height: 95vh;
+  padding: 2.5rem;
   background: white;
-  border-radius: $border-radius-lg;
+  border-radius: $border-radius-xl;
   overflow-y: auto;
+  box-shadow: $shadow-medium;
 }
 .modal-close-button {
-  position: absolute;
-  top: 1rem;
-  right: 1.5rem;
-  background: none;
+  position: sticky;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1001;
+  background: $text-color-medium;
+  color: white;
   border: none;
-  font-size: 2rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0;
   cursor: pointer;
+  transition: background-color 0.2s;
+  &:hover {
+    background-color: $admin-color;
+  }
+}
+/* Gallery Title Style */
+.modal-gallery-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: $text-color-dark;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid $border-color;
+  padding-bottom: 0.5rem;
+}
+.modal-photo-section {
+  margin-bottom: 3rem;
+}
+/* Section Subtitle Style */
+.modal-section-subtitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: $primary-color;
+  margin-bottom: 1rem;
+}
+.modal-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+  gap: 1rem;
+}
+.modal-image {
+  width: 100%;
+  height: 250px;
+  object-fit: cover; 
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-medium;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  cursor: zoom-in; /* Indicate clickable for full screen */
+  &:hover {
+      opacity: 0.95;
+      transform: scale(1.01);
+  }
+  &.profile-image { /* Specific style for the main profile image in modal */
+      grid-column: span 1; 
+      max-height: 500px;
+      object-fit: contain; /* Main profile image should fit entirely */
+  }
 }
 
-/* Full-Screen Slider Styles (unchanged) */
+// =================================================================
+// TRANSITIONS
+// =================================================================
+/* Modal Bounce Entrance */
+.modal-bounce-enter-active {
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.modal-bounce-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease-in;
+}
+.modal-bounce-enter-from,
+.modal-bounce-leave-to {
+  opacity: 0;
+  transform: scale(0.9) translateY(20px);
+}
+
+/* Fullscreen Fade */
+.fullscreen-fade-enter-active,
+.fullscreen-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fullscreen-fade-enter-from,
+.fullscreen-fade-leave-to {
+  opacity: 0;
+}
+
+
+// =================================================================
+// FULLSCREEN SLIDER STYLES
+// =================================================================
 .fullscreen-overlay {
-  position: fixed;
+  position: fixed; /* Already fixed, but ensuring */
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.95);
+  background-color: rgba(0, 0, 0, 0.95); /* Darker overlay for focus */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -312,38 +416,69 @@ export default {
 .fullscreen-image {
   max-width: 90vw;
   max-height: 90vh;
-  object-fit: contain;
+  object-fit: contain; /* This is key: ensures the entire image is visible */
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  border-radius: $border-radius-md;
+}
+.image-counter {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 1rem;
+    padding: 0.5rem 1rem;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: $border-radius-pill;
 }
 .fullscreen-close-button {
-  position: absolute;
-  top: 1rem;
-  right: 2rem;
   color: white;
-  font-size: 3rem;
-  background: none;
-  border: none;
-  cursor: pointer;
+  background-color: rgba(0, 0, 0, 0.4);
+  top: 1rem;
+  right: 1rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 2rem;
+  line-height: 1;
+  transition: background-color 0.2s;
+  &:hover {
+    background-color: $admin-color;
+  }
 }
 .nav-button {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.3);
   color: white;
-  border: none;
-  padding: 1rem;
+  width: 40px;
+  height: 40px;
+  font-size: 2rem;
+  line-height: 1;
   border-radius: 50%;
-  cursor: pointer;
-  font-size: 1.5rem;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background-color 0.2s;
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+  }
 }
 .prev-button { left: 1rem; }
 .next-button { right: 1rem; }
-.modal-fade-enter-active, .modal-fade-leave-active,
-.fullscreen-fade-enter-active, .fullscreen-fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-.modal-fade-enter-from, .modal-fade-leave-to,
-.fullscreen-fade-enter-from, .fullscreen-fade-leave-to {
-  opacity: 0;
+
+// Mobile adjustments
+@media (max-width: 576px) {
+  .modal-content {
+    padding: 1rem;
+  }
+  .modal-section-title {
+    font-size: 1.4rem;
+  }
+  .fullscreen-close-button, .nav-button {
+      top: 1.5rem;
+      width: 30px;
+      height: 30px;
+      font-size: 1.5rem;
+  }
 }
 </style>

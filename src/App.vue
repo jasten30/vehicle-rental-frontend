@@ -392,7 +392,6 @@ body {
   cursor: pointer;
   transition: box-shadow 0.2s ease-in-out;
   box-shadow: $shadow-light;
-  font-family: 'Nunito', sans-serif;
   &:hover {
     box-shadow: $shadow-medium;
   }
@@ -412,7 +411,6 @@ body {
   cursor: pointer;
   transition: box-shadow 0.2s ease-in-out;
   box-shadow: $shadow-light;
-  font-family: 'Nunito', sans-serif;
   &:hover {
     box-shadow: $shadow-medium;
     background-color: white;
@@ -446,7 +444,6 @@ body {
   list-style: none;
   padding: 0.5rem 0;
   text-align: left;
-  font-family: 'Nunito', sans-serif;
 }
 .dropdown-fade-enter-active,
 .dropdown-fade-leave-active {
@@ -486,7 +483,6 @@ body {
 }
 .user-name-header,
 .user-email-text {
-  font-family: 'Nunito', sans-serif;
   margin: 0;
 }
 .user-name-header {
@@ -550,7 +546,6 @@ body {
 .logout-button {
   background: none;
   border: none;
-  font-family: 'Nunito', sans-serif;
   font-size: inherit;
   cursor: pointer;
   text-align: left;
@@ -575,7 +570,6 @@ body {
   border-radius: 9999px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   font-size: 0.9rem;
-  font-family: 'Nunito', sans-serif;
 }
 .search-field {
   display: flex;
@@ -588,7 +582,6 @@ body {
     font-weight: 600;
     color: #4b5563;
     white-space: nowrap;
-    font-family: 'Nunito', sans-serif;
   }
   .search-input,
   .date-time-group {
@@ -614,7 +607,6 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: 'Nunito', sans-serif;
   .date-select,
   .time-select {
     cursor: pointer;
@@ -671,7 +663,6 @@ body {
 }
 
 .nav-link {
-  font-family: 'Nunito', sans-serif;
   text-decoration: none;
   font-size: 1rem;
   font-weight: 600;

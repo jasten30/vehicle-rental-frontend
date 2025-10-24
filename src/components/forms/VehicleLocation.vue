@@ -1,69 +1,77 @@
 <template>
-  <div>
-    <h3>Address Details</h3>
-    <p class="step-info-text">Please provide the specific address and pin the exact location on the map below.</p>
-    
-    <div class="form-group">
-      <label for="country">Country</label>
-      <input type="text" id="country" value="Philippines" disabled class="disabled-input">
-    </div>
+  <transition name="form-step-fade" appear>
+    <div class="form-step-container">
+      <h3>Address Details</h3>
+      <p class="step-info-text">Please provide the specific address and pin the exact location on the map below.</p>
+      
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="country">Country</label>
+          <input type="text" id="country" value="Philippines" disabled class="disabled-input">
+        </div>
 
-    <div class="form-group">
-      <label for="region">Region</label>
-      <input type="text" id="region" value="Region VII (Central Visayas)" disabled class="disabled-input">
-    </div>
-    
-    <div class="form-group">
-      <label for="city">City/Municipality</label>
-      <select 
-        id="city" 
-        v-model="location.city" 
-        @change="resetBarangay" 
-        required
-      >
-        <option value="" disabled>Select a City/Municipality</option>
-        <option v-for="cityName in cities" :key="cityName" :value="cityName">{{ cityName }}</option>
-      </select>
-    </div>
-    
-    <div class="form-group">
-      <label for="barangay">Barangay</label>
-      <select 
-        id="barangay" 
-        v-model="location.barangay" 
-        :disabled="!location.city"
-        required
-      >
-        <option value="" disabled>Select a Barangay</option>
-        <option v-for="barangayName in barangays" :key="barangayName" :value="barangayName">{{ barangayName }}</option>
-      </select>
-    </div>
-    
-    <h4 class="map-heading">Pin Location on Map</h4>
-    <p class="help-text">Click on the map to set the exact pick-up point.</p>
-    
-    <div id="map"></div>
-    
-    <p v-if="location.latitude && location.longitude" class="coordinates-display">
-      Latitude: {{ location.latitude.toFixed(6) }} | Longitude: {{ location.longitude.toFixed(6) }}
-    </p>
+        <div class="form-group">
+          <label for="region">Region</label>
+          <input type="text" id="region" value="Region VII (Central Visayas)" disabled class="disabled-input">
+        </div>
+        
+        <div class="form-group">
+          <label for="city">City/Municipality</label>
+          <select 
+            id="city" 
+            v-model="location.city" 
+            @change="resetBarangay" 
+            required
+          >
+            <option value="" disabled>Select a City/Municipality</option>
+            <option v-for="cityName in cities" :key="cityName" :value="cityName">{{ cityName }}</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="barangay">Barangay</label>
+          <select 
+            id="barangay" 
+            v-model="location.barangay" 
+            :disabled="!location.city"
+            required
+            @change="emitUpdate" 
+          >
+            <option value="" disabled>Select a Barangay</option>
+            <option v-for="barangayName in barangays" :key="barangayName" :value="barangayName">{{ barangayName }}</option>
+          </select>
+        </div>
+      </div>
+      
+      <h4 class="map-heading">Pin Location on Map</h4>
+      <p class="help-text">Click on the map to set the exact pick-up point.</p>
+      
+      <div id="map"></div>
+      
+      <p v-if="location.latitude && location.longitude" class="coordinates-display">
+        Pinned at: {{ location.latitude.toFixed(6) }}, {{ location.longitude.toFixed(6) }}
+      </p>
 
-    <div class="button-group-step">
-      <button type="button" @click="$emit('cancel')" class="button secondary-button">Cancel</button>
-      <button 
-        type="button" 
-        @click="nextStep" 
-        class="button primary-button" 
-        :disabled="!isValid"
-      >
-        Next
-      </button>
-    </div>
+      <div class="navigation-buttons">
+        <button type="button" @click="$emit('cancel')" class="nav-button secondary">Cancel</button>
+        <button 
+          type="button" 
+          @click="nextStep" 
+          class="nav-button primary" 
+          :disabled="!isValid"
+        >
+          Next
+        </button>
+      </div>
 
-    <div v-if="showToast" class="toast">
-      Location Pinned Successfully!
+      <transition name="toast-fade">
+        <div v-if="showToast" class="toast">
+          <i class="bi bi-geo-alt-fill"></i>
+          Location Pinned Successfully!
+        </div>
+      </transition>
     </div>
-  </div>
+  </transition>
 </template>
 
 <script>
@@ -77,7 +85,7 @@ export default {
     address: {
       type: Object,
       required: true,
-      default: () => ({}),
+      default: () => ({ city: '', barangay: '', latitude: null, longitude: null }),
     }
   },
   emits: ['update:address', 'next', 'cancel'],
@@ -87,6 +95,7 @@ export default {
       map: null,
       marker: null,
       showToast: false,
+      // Use local computed property for v-model
     };
   },
   computed: {
@@ -117,21 +126,32 @@ export default {
   },
   methods: {
     initializeMap() {
+      // Retry logic in case Leaflet loads slowly
       const tryInitializeMap = () => {
         if (typeof L !== 'undefined' && document.getElementById('map')) {
           const cebuCoordinates = [10.3157, 123.8854]; 
-          const initialZoom = 13;
+          // Use stored coordinates if they exist, otherwise default to Cebu
+          const initialCoords = (this.location.latitude && this.location.longitude)
+              ? [this.location.latitude, this.location.longitude]
+              : cebuCoordinates;
+          
+          const initialZoom = (this.location.latitude && this.location.longitude) ? 16 : 13;
 
-          this.map = L.map('map').setView(cebuCoordinates, initialZoom);
+          this.map = L.map('map').setView(initialCoords, initialZoom);
           
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
               maxZoom: 19,
               attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           }).addTo(this.map);
           
+          // If location was already pinned, add the marker
+          if (this.location.latitude && this.location.longitude) {
+              this.marker = L.marker(initialCoords).addTo(this.map);
+          }
+          
           this.map.on('click', this.pinLocation);
         } else {
-          setTimeout(tryInitializeMap, 50);
+          setTimeout(tryInitializeMap, 100); // Check again in 100ms
         }
       };
 
@@ -139,26 +159,37 @@ export default {
     },
     resetBarangay() {
       this.location.barangay = '';
+      this.emitUpdate(); // Emit change
     },
     pinLocation(event) {
       const { lat, lng } = event.latlng;
       
-      this.location.latitude = lat;
-      this.location.longitude = lng;
+      // Update local data, which triggers the 'set' computed property
+      this.location = {
+          ...this.location,
+          latitude: lat,
+          longitude: lng
+      };
       
       if (this.marker) {
         this.map.removeLayer(this.marker);
       }
       
       this.marker = L.marker([lat, lng]).addTo(this.map);
+      this.map.setView([lat, lng], 16); // Zoom in on pinned location
       
       this.showToast = true;
       setTimeout(() => {
         this.showToast = false;
-      }, 3000);
+      }, 2500); // 2.5 seconds
+    },
+    emitUpdate() {
+        this.$emit('update:address', this.location);
     },
     nextStep() {
-      this.$emit('next');
+      if (this.isValid) {
+          this.$emit('next');
+      }
     }
   },
   beforeUnmount() {
@@ -170,152 +201,187 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-// Define a color palette and spacing for a more consistent design
-:root {
-  --primary-color: #3b82f6;
-  --secondary-color: #6b7280;
-  --text-color-dark: #1f2937;
-  --text-color-medium: #4b5563;
-  --bg-color-light: #f9fafb;
-  --border-color: #d1d5db;
-  --border-radius: 0.25rem;
-  --padding-xs: 0.5rem;
-  --padding-sm: 0.625rem;
-  --padding-md: 1rem;
-  --margin-sm: 0.5rem;
-  --margin-md: 1rem;
+@import '@/assets/styles/variables.scss';
+
+/* --- Entrance Animation --- */
+.form-step-fade-enter-active,
+.form-step-fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.form-step-fade-enter-from,
+.form-step-fade-leave-to {
+  opacity: 0;
+  transform: translateY(15px);
+}
+
+.form-step-container {
+  padding: 1rem 0;
 }
 
 h3 {
-  font-size: 1.5rem;
-  color: #3b82f6;
-  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: $text-color-dark;
+  margin-bottom: 0.5rem;
 }
 
 .step-info-text {
-  font-size: 1rem;
-  color: #4b5563;
-  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+  color: $text-color-medium;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr; // Single column on mobile
+  gap: 1.25rem;
+
+  @media (min-width: 768px) { // Two columns on desktop
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .form-group {
-  margin-bottom: 1.25rem;
-
+  margin-bottom: 0; // Removed margin, using grid-gap
   label {
     display: block;
     font-weight: 600;
     margin-bottom: 0.5rem;
-    color: #1f2937;
+    font-size: 0.9rem;
   }
 
   input[type="text"],
   select {
     width: 100%;
     padding: 0.75rem;
-    border: none;
-    border-bottom: 1px solid #d1d5db;
-    border-radius: 0;
+    border: 1px solid $border-color;
+    border-radius: $border-radius-md; // Use consistent radius
     font-size: 1rem;
-    transition: border-bottom-color 0.2s ease-in-out;
-    background-color: transparent;
-
+    font-family: $font-family-base;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    
     &:focus {
       outline: none;
-      border-bottom-color: #3b82f6;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px lighten($primary-color, 40%);
     }
   }
   
   .disabled-input {
-    background-color: transparent;
+    background-color: $background-light;
     cursor: not-allowed;
-    color: #6b7280;
+    color: $text-color-medium;
+  }
+
+  select:disabled {
+      background-color: $background-light;
+      cursor: not-allowed;
   }
 }
 
 .map-heading {
-  font-size: 1.25rem;
-  color: #1f2937;
-  margin-top: 1.5rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: $text-color-dark;
+  margin-top: 2.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .help-text {
   font-size: 0.9rem;
-  color: #6b7280;
+  color: $text-color-medium;
   margin-bottom: 1rem;
 }
 
 #map {
   width: 100%;
-  height: 400px;
-  border-radius: 0.25rem;
-  margin-bottom: 1.5rem;
+  height: 350px; // Slightly shorter
+  border-radius: $border-radius-lg;
+  border: 1px solid $border-color-light;
+  margin-bottom: 1rem;
+  z-index: 1; // Ensure map is clickable
 }
 
 .coordinates-display {
-  margin-top: 1rem;
-  font-size: 0.9rem;
-  color: #4b5563;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: $text-color-medium;
   text-align: center;
 }
 
-.button-group-step {
+/* Updated Button Styles */
+.navigation-buttons {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  margin-top: 1.5rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid $border-color-light;
 }
-
-.button {
-  padding: 0.85rem 1.5rem;
-  border-radius: 0.25rem;
-  font-size: 1.05rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background-color 0.2s ease-in-out, opacity 0.2s ease-in-out;
+.nav-button {
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
   border: none;
+  border-radius: $border-radius-md;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  min-width: 100px;
+  text-align: center;
 
+  &.primary {
+    background-color: $primary-color;
+    color: white;
+    &:hover:not(:disabled) {
+      background-color: darken($primary-color, 10%);
+      transform: translateY(-2px);
+      box-shadow: $shadow-medium;
+    }
+  }
+  &.secondary {
+    background-color: transparent;
+    color: $text-color-medium;
+    border: 1px solid $border-color;
+    &:hover {
+      background-color: $background-light;
+      color: $text-color-dark;
+    }
+  }
   &:disabled {
-    opacity: 0.7;
+    opacity: 0.6;
     cursor: not-allowed;
   }
 }
 
-.primary-button {
-  background-color: #3b82f6;
-  color: white;
-  &:hover:not(:disabled) {
-    background-color: darken(#3b82f6, 10%);
-  }
-}
-
-.secondary-button {
-  background-color: #6b7280;
-  color: white;
-  &:hover:not(:disabled) {
-    background-color: darken(#6b7280, 10%);
-  }
-}
-
+/* Updated Toast Style */
 .toast {
   position: fixed;
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #333;
+  background-color: $text-color-dark; /* Darker background */
   color: white;
-  padding: 15px 25px;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  opacity: 0;
-  animation: fadeInOut 3s forwards;
+  padding: 0.75rem 1.25rem;
+  border-radius: $border-radius-pill; /* Pill shape */
+  box-shadow: $shadow-medium;
+  z-index: 1001;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-@keyframes fadeInOut {
-  0% { opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { opacity: 0; }
+/* Toast Animation */
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 20px);
 }
 </style>

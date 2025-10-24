@@ -3,7 +3,7 @@ import store from '../store'; // Import the Vuex store
 
 // Public Views
 import HomeView from '../views/HomeView.vue';
-import AboutView from '../views/AboutView.vue'; 
+import AboutView from '../views/AboutView.vue';
 import VehicleListView from '../views/Vehicle/VehicleListView.vue';
 import VehicleDetailView from '../views/Vehicle/VehicleDetailView.vue';
 import LoginView from '../views/Auth/LoginView.vue';
@@ -15,12 +15,14 @@ import BecomeOwnerApplication from '../views/Auth/BecomeOwnerApplication.vue';
 import AdminLayout from '../views/Dashboard/Admin/AdminLayout.vue';
 import DashboardLayout from '../views/Dashboard/DashboardLayout.vue';
 import MyBookingsView from '../views/Dashboard/MyBookings.vue';
-import MyFavoritesView from '../views/Dashboard/MyFavoritesView.vue'; // 👈 IMPORTED
+import MyFavoritesView from '../views/Dashboard/MyFavoritesView.vue';
 import BookingDetailView from '../views/Dashboard/BookingDetailView.vue';
 import ProfileSettingsView from '../views/Dashboard/ProfileSettings.vue';
 import ApplicationSubmittedView from '../views/Auth/ApplicationSubmittedView.vue';
 import OwnerVehiclesView from '../views/Dashboard/Owner/OwnerVehiclesView.vue';
-import VehicleFormSteps from '../components/forms/VehicleFormSteps.vue';
+import VehicleFormSteps from '../components/forms/VehicleFormSteps.vue'; // Used for AddVehicle
+// Import the new Edit Vehicle View
+import EditVehicleView from '../views/Dashboard/Owner/EditVehicleView.vue'; // Correct path
 import BookingPaymentView from '../views/Booking/BookingPaymentView.vue';
 import OwnerBillingView from '../views/Booking/OwnerBillingView.vue';
 import BookingSummaryView from '../views/Booking/BookingSummaryView.vue';
@@ -51,14 +53,13 @@ const dashboardRoutes = [
           authorize: ['renter', 'admin', 'owner'],
         },
       },
-      // 👇 ADDED THIS ROUTE
       {
         path: 'my-favorites',
         name: 'MyFavorites',
         component: MyFavoritesView,
         meta: {
           requiresAuth: true,
-          authorize: ['renter', 'owner', 'admin'], // Only renters can have favorites
+          authorize: ['renter', 'owner', 'admin'],
         },
       },
       {
@@ -86,12 +87,12 @@ const dashboardRoutes = [
         component: ChatView,
         meta: { requiresAuth: true },
       },
-      
+
       {
         path: 'verify-driver',
         name: 'BecomeDriveVerified',
         component: BecomeDriveVerified,
-        meta: { requiresAuth: true, authorize: ['renter'] }, 
+        meta: { requiresAuth: true, authorize: ['renter'] },
       },
       {
         path: 'owner/vehicles',
@@ -114,9 +115,10 @@ const dashboardRoutes = [
       {
         path: 'owner/vehicles/add',
         name: 'AddVehicle',
-        component: VehicleFormSteps,
+        component: VehicleFormSteps, // Still uses the steps component for adding
         props: {
-          initialVehicle: {},
+          initialVehicle: {}, // Pass empty object for add mode
+          isEditMode: false,  // Explicitly set edit mode to false
         },
         meta: {
           requiresAuth: true,
@@ -124,10 +126,12 @@ const dashboardRoutes = [
         },
       },
       {
+        // Path remains the same
         path: 'owner/vehicles/edit/:vehicleId',
         name: 'EditVehicle',
-        component: VehicleFormSteps,
-        props: true,
+        // Component is now the dedicated EditVehicleView
+        component: EditVehicleView, // Use the imported EditVehicleView
+        props: true, // Pass route params (vehicleId) as props
         meta: {
           requiresAuth: true,
           authorize: ['owner', 'admin'],
@@ -145,6 +149,7 @@ const dashboardRoutes = [
       {
         path: 'calendar/:vehicleId',
         name: 'VehicleCalendar',
+        // Corrected import path based on error context
         component: () => import('@/views/Owner/VehicleCalendarView.vue'),
         props: true,
         meta: { requiresAuth: true, authorize: ['owner', 'admin'] }
@@ -240,7 +245,7 @@ const routes = [
     name: 'Register',
     component: RegisterView,
   },
-  
+
   {
     path: '/become-a-host',
     name: 'BecomeOwnerApplication',
@@ -248,7 +253,7 @@ const routes = [
     meta: {
       requiresAuth: true,
       authorize: ['renter'],
-      requiresDriveVerified: true, 
+      requiresDriveVerified: true,
     },
   },
   {
@@ -260,8 +265,9 @@ const routes = [
   {
     path: '/users/:userId',
     name: 'UserProfileView',
-    component: ProfileSettingsView,
+    component: ProfileSettingsView, // Assuming this shows public/other user profiles too
     props: true,
+    // Add meta if needed (e.g., requiresAuth to view profiles)
   },
   {
     path: '/booking/payment/:bookingId',
@@ -276,9 +282,9 @@ const routes = [
   {
     path: '/booking/verify-payment/:bookingId',
     name: 'PaymentVerification',
-    component: OwnerBillingView,
+    component: OwnerBillingView, // Recheck if this is the correct component
     props: true,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true }, // Add authorization if needed
   },
   {
     path: '/booking/summary/:bookingId',
@@ -294,10 +300,10 @@ const routes = [
       path: '/booking-status/:bookingId',
       name: 'BookingStatus',
       component: BookingStatusView,
-      props: true, 
+      props: true,
       meta: { requiresAuth: true },
     },
-  
+
   {
     path: '/chat/:chatId',
     name: 'ChatConversation',
@@ -305,7 +311,6 @@ const routes = [
     props: true,
     meta: { requiresAuth: true },
   },
-  // 👈 REMOVED from here
   ...dashboardRoutes,
   {
     path: '/:catchAll(.*)',
@@ -331,10 +336,10 @@ router.beforeEach(async (to, from, next) => {
   const authorizedRoles = to.meta.authorize;
   const isAuthenticated = store.getters.isAuthenticated;
   const userRole = store.getters.userRole;
-  
-  
+
+
   const isApprovedToDrive = store.state.user?.isApprovedToDrive || false;
-  
+
   const requiresDriveVerified = to.matched.some((record) => record.meta.requiresDriveVerified);
 
   if (isAuthenticated && (to.name === 'Login' || to.name === 'Register')) {
@@ -353,14 +358,21 @@ router.beforeEach(async (to, from, next) => {
     !authorizedRoles.includes(userRole)
   ) {
     console.warn(
-      `[Router Guard] User role '${userRole}' not authorized for route '${to.path}'.`
+      `[Router Guard] User role '${userRole}' not authorized for route '${to.path}'. Redirecting.`
     );
-    next('/dashboard');
-  } 
-  
+    // Redirect non-authorized users to a default dashboard or home
+    if (userRole === 'admin') {
+        next('/dashboard/admin/dashboard');
+    } else if (userRole === 'owner') {
+        next('/dashboard/owner/vehicles');
+    } else {
+        next('/dashboard/my-bookings'); // Default for renters or unknown
+    }
+  }
+
   else if (requiresDriveVerified && !isApprovedToDrive && userRole === 'renter') {
     console.warn(`[Router Guard] User not approved to drive. Redirecting to driver verification.`);
-    next({ name: 'BecomeDriveVerified' }); 
+    next({ name: 'BecomeDriveVerified' });
   }
   else {
     next();

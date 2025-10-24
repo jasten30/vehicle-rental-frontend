@@ -2,40 +2,83 @@
   <div class="form-container">
     <div class="form-card">
       <form
-        @submit.prevent="currentStep === 12 ? submitForm() : null"
+        @submit.prevent="currentStep === 9 ? submitForm() : null"
         class="vehicle-form"
       >
-        <FormStepSlider :currentStep="currentStep" @start-over="startOver" />
+        <FormStepSlider :currentStep="currentStep" :totalSteps="stepComponents.length" @start-over="startOver" />
 
-        <keep-alive>
-          <component
-            :is="currentStepComponent"
-            :key="currentStep"
-            v-if="currentStepComponent"
-            v-model:address="localVehicle.location"
-            v-model:corDetails="localVehicle.cor"
-            v-model:orDetails="localVehicle.or"
-            v-model:userProfileImageUrl="localVehicle.userProfileImageUrl"
-            v-model:driversLicense="localVehicle.driversLicense"
-            v-model:availability="localVehicle.availability"
-            v-model:pricing="localVehicle.pricing"
-            v-model:safety="localVehicle.safety"
-            v-model:vehicleProfilePhotoUrl="localVehicle.profilePhotoUrl"
-            v-model:exteriorPhotos="localVehicle.exteriorPhotos"
-            v-model:interiorPhotos="localVehicle.interiorPhotos"
-            v-model:features="localVehicle.features"
-            :initialVehicle="localVehicle"
-            :vehicleYear="localVehicle.year"
-            :isEditMode="isEditMode"
-            @next="nextStep"
-            @prev="prevStep"
-            @submit="submitForm"
-            @update:vehicle="updateLocalVehicle"
-            @cancel="$emit('cancel')"
-            @error="$emit('error', $event)"
-            @start-over="startOver"
-          />
-        </keep-alive>
+        <VehicleLocation
+          v-if="currentStep === 1"
+          key="step1"
+          v-model:address="localVehicle.location"
+          @next="nextStep"
+          @cancel="$emit('cancel')"
+        />
+        <VehicleCOR
+          v-if="currentStep === 2"
+          key="step2"
+          v-model="localVehicle.cor"
+          @next="nextStep"
+          @prev="prevStep"
+        />
+        <VehicleOR
+          v-if="currentStep === 3"
+          key="step3"
+          v-model="localVehicle.or"
+          @next="nextStep"
+          @prev="prevStep"
+        />
+        
+        <VehicleDetails
+          v-if="currentStep === 4"
+          key="step4"
+          :modelValue="localVehicle"
+          @update:modelValue="updateLocalVehicle"
+          @next="nextStep"
+          @prev="prevStep"
+        />
+        
+        <VehicleFeatures
+          v-if="currentStep === 5"
+          key="step5"
+          v-model="localVehicle.features"
+          @next="nextStep"
+          @prev="prevStep"
+        />
+        <VehiclePricing
+          v-if="currentStep === 6"
+          key="step6"
+          v-model="localVehicle.pricing"
+          :vehicleYear="localVehicle.year"
+          @next="nextStep"
+          @prev="prevStep"
+        />
+        <VehicleSafety
+          v-if="currentStep === 7"
+          key="step7"
+          v-model="localVehicle.safety"
+          @next="nextStep"
+          @prev="prevStep"
+        />
+        <VehiclePhotos
+          v-if="currentStep === 8"
+          key="step8"
+          v-model:profilePhotoUrl="localVehicle.profilePhotoUrl"
+          v-model:exteriorPhotos="localVehicle.exteriorPhotos"
+          v-model:interiorPhotos="localVehicle.interiorPhotos"
+          @next="nextStep"
+          @prev="prevStep"
+        />
+        <SubmitListing
+          v-if="currentStep === 9"
+          key="step9"
+          :vehicle="localVehicle"
+          :is-edit-mode="isEditMode"
+          @submit="submitForm"
+          @prev="prevStep"
+          @start-over="startOver"
+        />
+        
       </form>
     </div>
   </div>
@@ -43,21 +86,20 @@
 
 <script>
 import { mapActions } from 'vuex';
-// 1. Ensure all components are imported
 import VehicleLocation from "@/components/forms/VehicleLocation.vue";
 import VehicleDetails from "@/components/forms/VehicleDetails.vue";
 import VehicleFeatures from "@/components/forms/VehicleFeatures.vue";
 import FormStepSlider from "@/components/forms/FormStepSlider.vue";
 import VehicleCOR from "@/components/forms/VehicleCOR.vue";
 import VehicleOR from "@/components/forms/VehicleOR.vue";
-import UserProfilePhoto from "@/components/forms/UserProfilePhoto.vue";
-import DriversLicense from "@/components/forms/DriversLicense.vue";
-import VehicleAvailability from "@/components/forms/VehicleAvailability.vue";
 import VehiclePricing from "@/components/forms/VehiclePricing.vue";
 import VehicleSafety from "@/components/forms/VehicleSafety.vue";
 import VehiclePhotos from "@/components/forms/VehiclePhotos.vue";
 import SubmitListing from "@/components/forms/SubmitListing.vue";
 
+// ======================================================
+//  UPDATED DEFAULT STATE
+// ======================================================
 const defaultVehicleState = {
   location: {
     country: "Philippines",
@@ -71,20 +113,14 @@ const defaultVehicleState = {
     crNumber: "",
     plateNumber: "",
     dateIssued: "",
-    crImageUrl: "",
+    corImage: "",
   },
   or: {
     orNumber: "",
     dateIssued: "",
     orImageUrl: "",
+    orImage: "", // Added for consistency with SubmitListing
   },
-  userProfileImageUrl: "",
-  driversLicense: {
-    number: "",
-    imageUrl: "",
-  },
-  availability: [],
-  
   make: "",
   model: "",
   year: null,
@@ -92,7 +128,31 @@ const defaultVehicleState = {
   vehicleType: "",
   transmission: "",
   fuelType: "",
-  features: [],
+  
+  // *** THIS IS THE CRITICAL CHANGE ***
+  // 'features' is now an object of booleans
+  features: {
+    seatbeltsAndAirbags: false,
+    abs: false,
+    esc: false,
+    backupCamera: false,
+    bsm: false,
+    tpms: false,
+    fcw: false,
+    bluetooth: false,
+    usbPort: false,
+    appleCarPlay: false,
+    androidAuto: false,
+    gps: false,
+    keylessEntry: false,
+    heatedSeats: false,
+    sunroof: false,
+    childSeat: false,
+    bikeRack: false,
+    roofBox: false,
+    petFriendly: false,
+  },
+
   pricing: {
     marketValue: null,
     condition: "",
@@ -116,7 +176,6 @@ const defaultVehicleState = {
 
 export default {
   name: "VehicleFormSteps",
-  // 2. Ensure all imported components are registered here
   components: {
     VehicleLocation,
     VehicleDetails,
@@ -124,9 +183,6 @@ export default {
     FormStepSlider,
     VehicleCOR,
     VehicleOR,
-    UserProfilePhoto,
-    DriversLicense,
-    VehicleAvailability,
     VehiclePricing,
     VehicleSafety,
     VehiclePhotos,
@@ -142,19 +198,38 @@ export default {
       default: false,
     },
   },
+  
+  // ======================================================
+  //  THIS IS THE CORRECTED DATA FUNCTION
+  // ======================================================
   data() {
+    const initial = this.initialVehicle || {};
+    // Start with defaults, then overwrite with any initial data
+    const local = { ...defaultVehicleState, ...initial };
+
+    // CRITICAL: Safely merge nested objects and arrays
+    // This prevents 'null' from initialVehicle from breaking child components.
+    local.location = { ...defaultVehicleState.location, ...(initial.location || {}) };
+    local.cor = { ...defaultVehicleState.cor, ...(initial.cor || {}) };
+    local.or = { ...defaultVehicleState.or, ...(initial.or || {}) };
+    local.pricing = { ...defaultVehicleState.pricing, ...(initial.pricing || {}) };
+    local.safety = { ...defaultVehicleState.safety, ...(initial.safety || {}) };
+    
+    // This line specifically fixes your features bug by merging objects
+    local.features = { ...defaultVehicleState.features, ...(initial.features || {}) }; 
+
+    local.exteriorPhotos = initial.exteriorPhotos || []; // Guarantees this is an array
+    local.interiorPhotos = initial.interiorPhotos || []; // Guarantees this is an array
+    local.profilePhotoUrl = initial.profilePhotoUrl || "";
+
     return {
       currentStep: 1,
       isSubmitting: false,
-      localVehicle: { ...defaultVehicleState, ...this.initialVehicle },
-      // 3. Ensure all names in this array match the registered component names exactly
+      localVehicle: local, // Use the safely merged 'local' object
       stepComponents: [
         "VehicleLocation",
         "VehicleCOR",
         "VehicleOR",
-        "UserProfilePhoto",
-        "DriversLicense",
-        "VehicleAvailability",
         "VehicleDetails",
         "VehicleFeatures",
         "VehiclePricing",
@@ -164,12 +239,8 @@ export default {
       ],
     };
   },
-  computed: {
-    currentStepComponent() {
-      const index = this.currentStep - 1;
-      return this.stepComponents[index] || null;
-    },
-  },
+  
+  computed: {},
   methods: {
     ...mapActions(['addVehicle']),
     nextStep() {
@@ -190,12 +261,19 @@ export default {
       this.$emit("start-over");
     },
     updateLocalVehicle(updatedData) {
+      // This listener is for VehicleDetails (Step 4)
       this.localVehicle = { ...this.localVehicle, ...updatedData };
     },
     async submitForm() {
       this.isSubmitting = true;
       this.$emit("error", "");
       try {
+        
+        // Minor Fix: Sync orImageUrl to orImage for SubmitListing
+        if (this.localVehicle.or.orImageUrl) {
+            this.localVehicle.or.orImage = this.localVehicle.or.orImageUrl;
+        }
+
         await this.addVehicle(this.localVehicle);
         this.$emit("success", "Your vehicle has been submitted!");
         this.$router.push({ name: 'OwnerVehicles' });

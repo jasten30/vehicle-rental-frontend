@@ -1,261 +1,287 @@
 <template>
-  <div class="form-section">
-    <h2 class="form-title">Vehicle Features</h2>
-    <p class="form-description">
-      Select the features and amenities your vehicle offers to attract more
-      renters.
-    </p>
+  <transition name="form-step-fade" appear>
+    <div class="form-step-container">
+      <h3>Vehicle Features</h3>
+      <p class="step-info-text">
+        Select the features and amenities your vehicle offers to attract more
+        renters.
+      </p>
 
-    <div class="features-grid-container">
-      <div
-        v-for="(features, category) in featuresList"
-        :key="category"
-        class="feature-category-card"
-      >
-        <h3 class="category-title">{{ category }}</h3>
-        <div class="category-features-grid">
-          <div
-            v-for="feature in features"
-            :key="feature.name"
-            class="feature-item"
-            :class="{ selected: selectedFeatures.includes(feature.name) }"
-            @click="toggleFeature(feature)"
-          >
-            <input
-              type="checkbox"
-              class="form-checkbox"
-              :checked="selectedFeatures.includes(feature.name)"
-              :id="feature.name"
-            />
-            <label :for="feature.name" class="feature-label">
-              <span class="feature-name">{{ feature.name }}</span>
+      <div class="features-container">
+        <div
+          v-for="(features, category) in featuresList"
+          :key="category"
+          class="feature-category"
+        >
+          <h4 class="category-title">{{ category }}</h4>
+          
+          <div class="features-checkbox-group">
+            <label 
+              class="checkbox-item" 
+              v-for="feature in features"
+              :key="feature.key"
+            >
+              <input 
+                type="checkbox" 
+                :id="feature.key" 
+                v-model="localFeatures[feature.key]"
+              >
+              <span class="checkmark"></span>
+              <span class="checkbox-label">{{ feature.name }}</span>
             </label>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="form-actions">
-      <button @click.prevent="$emit('prev')" class="btn-secondary">Back</button>
-      <button @click.prevent="handleNext" class="btn-primary">Next</button>
+      <div v-if="showNavigation" class="navigation-buttons">
+        <button type="button" @click="$emit('prev')" class="nav-button secondary">Previous</button>
+        <button type="button" @click="$emit('next')" class="nav-button primary">Next</button>
+      </div>
     </div>
-  </div>
+  </transition>
 </template>
 
 <script>
 export default {
   name: "VehicleFeatures",
   props: {
-    initialFeatures: {
-      type: Array,
-      default: () => [],
+    modelValue: {
+      type: Object,
+      default: () => ({}),
+    },
+    showNavigation: {
+      type: Boolean,
+      default: true,
     },
   },
-  emits: ["update:features", "next", "prev", "error"],
+  emits: ["update:modelValue", "next", "prev"],
   data() {
     return {
-      selectedFeatures: [...this.initialFeatures],
+      localFeatures: { ...this.modelValue },
       featuresList: {
         Safety: [
-          { name: "Seatbelts and Airbags" },
-          { name: "Anti-lock Braking System (ABS)" },
-          { name: "Electronic Stability Control (ESC)" },
-          { name: "Back-up Camera" },
-          { name: "Blind Spot Monitoring (BSM)" },
-          { name: "Tire Pressure Monitoring System (TPMS)" },
-          {
-            name: "Forward Collision Warning (FCW) and Automatic Emergency Braking (AEB)",
-          },
+          { name: "Seatbelts and Airbags", key: "seatbeltsAndAirbags" },
+          { name: "Anti-lock Braking System (ABS)", key: "abs" },
+          { name: "Electronic Stability Control (ESC)", key: "esc" },
+          { name: "Back-up Camera", key: "backupCamera" },
+          { name: "Blind Spot Monitoring (BSM)", key: "bsm" },
+          { name: "Tire Pressure Monitoring System (TPMS)", key: "tpms" },
+          { name: "Forward Collision Warning (FCW)", key: "fcw" },
         ],
         "Device Connectivity": [
-          { name: "Bluetooth" },
-          { name: "USB Port" },
-          { name: "Apple CarPlay" },
-          { name: "Android Auto" },
+          { name: "Bluetooth", key: "bluetooth" },
+          { name: "USB Port", key: "usbPort" },
+          { name: "Apple CarPlay", key: "appleCarPlay" },
+          { name: "Android Auto", key: "androidAuto" },
         ],
         Convenience: [
-          { name: "GPS Navigation" },
-          { name: "Keyless Entry" },
-          { name: "Heated Seats" },
-          { name: "Sunroof" },
+          { name: "GPS Navigation", key: "gps" },
+          { name: "Keyless Entry", key: "keylessEntry" },
+          { name: "Heated Seats", key: "heatedSeats" },
+          { name: "Sunroof", key: "sunroof" },
         ],
         "Additional Features": [
-          { name: "Child Seat" },
-          { name: "Bike Rack" },
-          { name: "Roof Box" },
-          { name: "Pet Friendly" },
+          { name: "Child Seat", key: "childSeat" },
+          { name: "Bike Rack", key: "bikeRack" },
+          { name: "Roof Box", key: "roofBox" },
+          { name: "Pet Friendly", key: "petFriendly" },
         ],
       },
     };
   },
   watch: {
-    selectedFeatures(newVal) {
-      this.$emit("update:features", newVal);
+    // Watch local data and emit changes to parent
+    localFeatures: {
+      handler(newVal) {
+        this.$emit("update:modelValue", newVal);
+      },
+      deep: true,
     },
+    
+    // Watch for parent changes (e.g., form reset)
+    modelValue(newVal) {
+      // THIS CHECK PREVENTS THE INFINITE LOOP
+      if (JSON.stringify(newVal) !== JSON.stringify(this.localFeatures)) {
+        this.localFeatures = { ...newVal };
+      }
+    }
   },
   methods: {
-    toggleFeature(feature) {
-      const index = this.selectedFeatures.indexOf(feature.name);
-      if (index > -1) {
-        this.selectedFeatures.splice(index, 1);
-      } else {
-        this.selectedFeatures.push(feature.name);
-      }
-    },
-    validateStep() {
-      // Clear any previous errors.
-      this.$emit("error", "");
-
-      // CRITICAL FIX: The previous validation required at least one feature from EVERY category.
-      // This updated logic simply checks if at least one feature has been selected in total.
-      if (this.selectedFeatures.length === 0) {
-        this.$emit(
-          "error",
-          "Please select at least one feature for your vehicle."
-        );
-        return false;
-      }
-      return true;
-    },
-    handleNext() {
-      if (this.validateStep()) {
-        this.$emit("next");
-      }
-    },
+    // No other methods needed, v-model handles it all
   },
 };
 </script>
 
 <style lang="scss" scoped>
-// SASS Variables
-$primary-color: #007bff;
-$secondary-color: #28a745;
-$accent-color: #fd7e14;
-$accent-color-dark: #eb5915;
+@import "@/assets/styles/variables.scss";
 
-$text-color-dark: #343a40;
-$text-color-medium: #6c757d;
-$text-color-light: #f8f9fa;
-
-$background-color: #f8f9fa;
-$card-background: #ffffff;
-
-$border-color: #dee2e6;
-$border-radius-lg: 1rem;
-
-$shadow-medium: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
-
-$font-family-base: "Inter", sans-serif;
-$font-size-base: 1rem;
-
-$spacing-sm: 0.5rem;
-$spacing-md: 1rem;
-$spacing-lg: 1.5rem;
-$spacing-xl: 2rem;
-
-.form-section {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xl;
-  font-family: $font-family-base;
+/* --- Entrance Animation --- */
+.form-step-fade-enter-active,
+.form-step-fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.form-step-fade-enter-from,
+.form-step-fade-leave-to {
+  opacity: 0;
+  transform: translateY(15px);
 }
 
-.form-title {
-  color: $text-color-dark;
-  font-weight: bold;
-  font-size: 2rem;
-  margin-bottom: $spacing-sm;
+.form-step-container {
+  padding: 1rem 0;
 }
-.form-description {
-  color: $text-color-medium;
-  font-size: $font-size-base;
-}
-.features-grid-container {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xl;
-}
-.feature-category-card {
-  background-color: $card-background;
-  border-radius: $border-radius-lg;
-  padding: $spacing-xl;
-  border: 1px solid $border-color;
-  box-shadow: $shadow-medium;
-}
-.category-title {
-  color: $text-color-dark;
+
+h3 {
+  font-size: 1.25rem;
   font-weight: 600;
-  font-size: 1.5rem;
-  margin-bottom: $spacing-lg;
+  color: $text-color-dark;
+  margin-bottom: 0.5rem;
 }
-.category-features-grid {
+
+.step-info-text {
+  font-size: 0.95rem;
+  color: $text-color-medium;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.features-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.feature-category {
+  .category-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: $text-color-dark;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid $border-color-light;
+  }
+}
+
+.features-checkbox-group {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: $spacing-md;
+  grid-template-columns: 1fr;
+  gap: 0.25rem;
+  
+  @media (min-width: 576px) {
+    grid-template-columns: 1fr 1fr; // 2 columns on larger screens
+  }
 }
-.feature-item {
+
+/* --- New Checkbox Styles (Copied from VehicleSafety) --- */
+.checkbox-item {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  padding: $spacing-md;
-  border-radius: $border-radius-lg;
-  border: 2px solid $border-color;
+  position: relative;
+  padding: 0.75rem 0.5rem;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  border-radius: $border-radius-md;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background-color: $background-light;
+  }
+
+  .checkbox-label {
+    font-size: 0.9rem;
+    color: $text-color-dark;
+    font-weight: 500;
+  }
+
+  /* Hide default checkbox */
+  input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  /* Custom checkmark */
+  .checkmark {
+    position: relative;
+    height: 1.25em;
+    width: 1.25em;
+    background-color: #fff;
+    border: 2px solid $border-color;
+    border-radius: $border-radius-sm;
+    margin-right: 0.75rem;
+    transition: all 0.2s ease;
+    flex-shrink: 0; // Prevent checkmark from shrinking
+  }
+
+  /* When checked */
+  input:checked ~ .checkmark {
+    background-color: $primary-color;
+    border-color: $primary-color;
+  }
+
+  /* Checkmark symbol (hidden when not checked) */
+  .checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+  }
+
+  /* Show checkmark when checked */
+  input:checked ~ .checkmark:after {
+    display: block;
+  }
+}
+/* --- End New Checkbox Styles --- */
+
+
+.navigation-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid $border-color-light;
+}
+
+.nav-button {
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: $border-radius-md;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
-}
-.feature-item:hover {
-  border-color: $primary-color;
-}
-.feature-item.selected {
-  border-color: $primary-color;
-  background-color: lighten($primary-color, 45%);
-}
-.form-checkbox {
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 0.25rem;
-  border: 1px solid $border-color;
-  accent-color: $primary-color;
-  margin-right: $spacing-md;
-  transform: scale(1.2);
-}
-.feature-label {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-}
-.feature-name {
-  color: $text-color-medium;
-  font-size: $font-size-base;
-  font-weight: 500;
-}
-.form-actions {
-  display: flex;
-  justify-content: space-between;
-  margin-top: $spacing-xl;
-}
-.btn-primary,
-.btn-secondary {
-  border-radius: $border-radius-lg;
-  font-weight: 600;
-  padding: 0.75rem 2rem;
-  transition: background-color 0.2s;
-  font-size: $font-size-base;
-}
-.btn-primary {
-  background-color: $primary-color;
-  color: $text-color-light;
-}
-.btn-primary:hover {
-  background-color: darken($primary-color, 10%);
-}
-.btn-secondary {
-  background-color: lighten($border-color, 5%);
-  color: $text-color-dark;
-}
-.btn-secondary:hover {
-  background-color: $border-color;
+  min-width: 100px;
+  text-align: center;
+  
+  &.primary {
+    background-color: $primary-color;
+    color: white;
+    &:hover:not(:disabled) {
+      background-color: darken($primary-color, 10%);
+      transform: translateY(-2px);
+      box-shadow: $shadow-medium;
+    }
+  }
+  &.secondary {
+    background-color: transparent;
+    color: $text-color-medium;
+    border: 1px solid $border-color;
+    &:hover {
+      color: $text-color-dark;
+      background-color: $background-light;
+    }
+  }
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
 }
 </style>
