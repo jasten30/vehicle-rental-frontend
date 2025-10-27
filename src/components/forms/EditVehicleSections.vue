@@ -1,64 +1,100 @@
 <template>
   <div class="edit-sections-container">
+    
+    <!-- ================================== -->
+    <!-- CONDITIONAL SECTIONS               -->
+    <!-- ================================== -->
 
-    <!-- Section 1: Location -->
+    <!-- SHOW CAR-SPECIFIC FORMS -->
+    <template v-if="!isMotorcycle">
+      <!-- Section: Vehicle Details -->
+      <div class="edit-section card">
+        <h3 class="section-title">Vehicle Details</h3>
+        <!-- You need to import VehicleDetails.vue for this to work -->
+        <VehicleDetails 
+          v-model="localVehicle"
+          :initialVehicle="localVehicle" 
+          :showNavigation="false"
+          @update:modelValue="handleChildUpdate"
+        />
+      </div>
+      <!-- Section: Features -->
+      <div class="edit-section card">
+        <h3 class="section-title">Vehicle Features</h3>
+        <VehicleFeatures 
+          v-model="localVehicle.features" 
+          :showNavigation="false" 
+        />
+      </div>
+    </template>
+
+    <!-- SHOW MOTORCYCLE-SPECIFIC FORMS -->
+    <template v-else>
+      <!-- Section: Motorcycle Details -->
+      <div class="edit-section card">
+        <h3 class="section-title">Motorcycle Details</h3>
+        <MotorcycleDetails
+          v-model="localVehicle"
+          :showNavigation="false"
+          @update:modelValue="handleChildUpdate"
+        />
+      </div>
+      <!-- Note: We do not show the VehicleFeatures component for motorcycles -->
+    </template>
+
+    <!-- ================================== -->
+    <!-- COMMON SECTIONS                    -->
+    <!-- ================================== -->
+
+    <!-- Section: Location -->
     <div class="edit-section card">
       <h3 class="section-title">Pickup & Return Location</h3>
-      <!-- Bind directly to the specific ref -->
-      <VehicleLocation
-        v-model:address="editableLocation"
-        :showNavigation="false"
+      <VehicleLocation 
+        v-model:address="localVehicle.location" 
+        :showNavigation="false" 
       />
     </div>
 
-    <!-- Section 2: Availability -->
+    <!-- Section: Availability -->
     <div class="edit-section card">
       <h3 class="section-title">Vehicle Availability</h3>
-        <!-- Bind directly to the specific ref -->
-      <VehicleAvailability
-        v-model="editableAvailability"
-        :showNavigation="false"
+      <VehicleAvailability 
+        v-model="localVehicle.availability" 
+        :showNavigation="false" 
       />
     </div>
 
-    <!-- Section 3: Features -->
-    <div class="edit-section card">
-      <h3 class="section-title">Vehicle Features</h3>
-        <!-- Bind directly to the specific ref -->
-      <VehicleFeatures
-        v-model="editableFeatures"
-        :showNavigation="false"
-      />
-    </div>
-
-    <!-- Section 4: Photos -->
+    <!-- Section: Photos (Now aware of assetType) -->
     <div class="edit-section card">
       <h3 class="section-title">Vehicle Photos</h3>
-        <!-- Bind directly to the specific refs -->
-      <VehiclePhotos
-        v-model:profilePhotoUrl="editableProfilePhotoUrl"
-        v-model:exteriorPhotos="editableExteriorPhotos"
-        v-model:interiorPhotos="editableInteriorPhotos"
-        :showNavigation="false"
+      <VehiclePhotos 
+        v-model:profilePhotoUrl="localVehicle.profilePhotoUrl"
+        v-model:exteriorPhotos="localVehicle.exteriorPhotos"
+        v-model:interiorPhotos="localVehicle.interiorPhotos"
+        :assetType="localVehicle.assetType" 
+        :showNavigation="false" 
       />
     </div>
 
     <!-- Save Button -->
     <div class="save-actions">
-        <button @click="$emit('cancel')" type="button" class="button secondary-button">Cancel</button>
-        <button @click="saveChanges" type="button" class="button primary-button">Save Changes</button>
+       <button @click="$emit('cancel')" type="button" class="button secondary-button">Cancel</button>
+       <button @click="saveChanges" type="button" class="button primary-button">Save Changes</button>
     </div>
 
   </div>
 </template>
 
 <script>
-// Removed unused 'reactive' import
-import { ref, watch } from 'vue';
+// FIX: Import 'computed'
+import { ref, watch, computed } from 'vue'; 
+// Import ALL possible sub-forms
 import VehicleLocation from './VehicleLocation.vue';
 import VehicleAvailability from './VehicleAvailability.vue';
 import VehicleFeatures from './VehicleFeatures.vue';
 import VehiclePhotos from './VehiclePhotos.vue';
+import VehicleDetails from './VehicleDetails.vue'; // <-- IMPORT THIS
+import MotorcycleDetails from './motorcyle/MotorcycleDetails.vue'; // <-- IMPORT THIS
 
 // Helper for deep cloning
 function deepClone(obj) {
@@ -76,6 +112,8 @@ export default {
     VehicleAvailability,
     VehicleFeatures,
     VehiclePhotos,
+    VehicleDetails, // <-- REGISTER
+    MotorcycleDetails, // <-- REGISTER
   },
   props: {
     vehicle: {
@@ -85,101 +123,92 @@ export default {
   },
   emits: ['save', 'cancel'],
   setup(props, { emit }) {
+    
+    // Initialize with a clone of the prop (or empty object)
+    const localVehicle = ref(deepClone(props.vehicle || {}));
 
-    // --- Create separate refs for each editable section ---
-    const editableLocation = ref({});
-    const editableAvailability = ref([]);
-    const editableFeatures = ref({});
-    const editableProfilePhotoUrl = ref('');
-    const editableExteriorPhotos = ref([]);
-    const editableInteriorPhotos = ref([]);
+    // FIX: 'isMotorcycle' is now a computed property
+    const isMotorcycle = computed(() => {
+        // It depends on localVehicle.value, so it will update when localVehicle updates
+        return localVehicle.value?.assetType === 'motorcycle';
+    });
 
-    // --- Function to initialize/reset the refs from the prop ---
     const initializeData = (sourceData) => {
-        // Deep clone each part to prevent modifying the original prop object directly
-        editableLocation.value = deepClone(sourceData.location || {});
-        // Ensure availability is always an array of objects {start, end}
-        editableAvailability.value = Array.isArray(sourceData.availability)
-            ? deepClone(sourceData.availability.filter(p => p && p.start && p.end)) // Filter valid periods during clone
-            : [];
-        // Ensure features is always an object
-        editableFeatures.value = (typeof sourceData.features === 'object' && sourceData.features !== null)
-            ? deepClone(sourceData.features)
-            : {};
-        editableProfilePhotoUrl.value = sourceData.profilePhotoUrl || '';
-        editableExteriorPhotos.value = Array.isArray(sourceData.exteriorPhotos) ? deepClone(sourceData.exteriorPhotos) : [];
-        editableInteriorPhotos.value = Array.isArray(sourceData.interiorPhotos) ? deepClone(sourceData.interiorPhotos) : [];
+        localVehicle.value = deepClone(sourceData || {}); // Handle null/undefined source
+        
+        // Ensure essential nested structures exist
+        if (!localVehicle.value.location) localVehicle.value.location = {};
+        if (!Array.isArray(localVehicle.value.availability)) localVehicle.value.availability = [];
+        if (typeof localVehicle.value.features !== 'object' || localVehicle.value.features === null) localVehicle.value.features = {};
+        if (typeof localVehicle.value.safety !== 'object' || localVehicle.value.safety === null) localVehicle.value.safety = {};
+        if (typeof localVehicle.value.pricing !== 'object' || localVehicle.value.pricing === null) localVehicle.value.pricing = {};
+        if (typeof localVehicle.value.cor !== 'object' || localVehicle.value.cor === null) localVehicle.value.cor = {};
+        if (typeof localVehicle.value.or !== 'object' || localVehicle.value.or === null) localVehicle.value.or = {};
+        if (!Array.isArray(localVehicle.value.exteriorPhotos)) localVehicle.value.exteriorPhotos = [];
+        if (!Array.isArray(localVehicle.value.interiorPhotos)) localVehicle.value.interiorPhotos = [];
+        if (!localVehicle.value.profilePhotoUrl) localVehicle.value.profilePhotoUrl = '';
+        
+        // Default assetType to 'vehicle' if it's missing (for old data)
+        if (!localVehicle.value.assetType) {
+          localVehicle.value.assetType = 'vehicle';
+        }
     };
 
-    // Initialize the refs when the component is set up
+    // Initialize on setup
     initializeData(props.vehicle);
 
-    // Watch the incoming prop for external changes (e.g., parent fetches new data)
+    // Watch for prop changes (e.g., parent reloads data)
     watch(() => props.vehicle, (newVehicleData) => {
-        // Simple check: Re-initialize if the prop object reference changes
-        initializeData(newVehicleData);
+        if (JSON.stringify(newVehicleData) !== JSON.stringify(localVehicle.value)) {
+            initializeData(newVehicleData);
+        }
+    }, { deep: true });
 
-    }, { deep: true }); // Deep watch is important if the parent might mutate the prop
+    // Handle updates from child "Details" components
+    const handleChildUpdate = (updatedData) => {
+        // This is necessary because VehicleDetails/MotorcycleDetails emit the *whole* object
+        localVehicle.value = { ...localVehicle.value, ...updatedData };
+    };
 
-
-    // --- Save function ---
     const saveChanges = () => {
-      // Construct the payload explicitly from the refs
-      const payload = {
-        // Add the editable sections from our refs
-        location: editableLocation.value,
-        availability: editableAvailability.value,
-        features: editableFeatures.value,
-        profilePhotoUrl: editableProfilePhotoUrl.value,
-        exteriorPhotos: editableExteriorPhotos.value,
-        interiorPhotos: editableInteriorPhotos.value,
+      const payload = { ...localVehicle.value };
+      
+      // Clean up data before saving
+      if (payload.assetType === 'motorcycle') {
+          // Remove car-specific fields if it's a motorcycle
+          delete payload.features;
+          delete payload.seatingCapacity; // or seats
+          delete payload.vehicleType; 
+      } else {
+          // Remove motorcycle-specific fields if it's a car
+          delete payload.engineDisplacement;
+          delete payload.motorcycleType;
+      }
 
-        // Important: Include other fields from the original prop that weren't edited
-        // This ensures we send the full vehicle data expected by the backend update,
-        // not just the sections edited here.
-        make: props.vehicle.make,
-        model: props.vehicle.model,
-        year: props.vehicle.year,
-        seats: props.vehicle.seats, // Or seatingCapacity, match your data model
-        vehicleType: props.vehicle.vehicleType,
-        transmission: props.vehicle.transmission,
-        fuelType: props.vehicle.fuelType,
-        pricing: props.vehicle.pricing,
-        safety: props.vehicle.safety,
-        cor: props.vehicle.cor,
-        or: props.vehicle.or,
-        // Add any other fields...
-      };
-
-      emit('save', payload); // Emit the clean, combined object
+      emit('save', payload);
     };
 
     return {
-      // Return the separate refs for binding
-      editableLocation,
-      editableAvailability,
-      editableFeatures,
-      editableProfilePhotoUrl,
-      editableExteriorPhotos,
-      editableInteriorPhotos,
-      // Return the save method
+      localVehicle,
+      isMotorcycle, // Return the computed property
       saveChanges,
+      handleChildUpdate,
     };
   },
 };
 </script>
 
 <style lang="scss" scoped>
-@import '@/assets/styles/variables.scss'; // Assuming you have this
+@import '@/assets/styles/variables.scss';
 
 .edit-sections-container {
   display: flex;
   flex-direction: column;
-  gap: 2rem; // Space between sections
+  gap: 2rem;
 }
 
 .edit-section {
-  &.card { // Apply card styling
+  &.card {
     background-color: #fff;
     border-radius: $border-radius-lg;
     box-shadow: $shadow-light;
@@ -201,12 +230,11 @@ export default {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  margin-top: 1rem; // Add some space above the buttons
+  margin-top: 1rem;
   padding-top: 1.5rem;
   border-top: 1px solid $border-color-light;
 }
 
-// Basic Button Styles (you might have global styles for these)
 .button {
   padding: 0.75rem 1.5rem;
   border-radius: $border-radius-md;
@@ -233,8 +261,8 @@ export default {
   &:hover {
     background-color: $background-light;
     color: $text-color-dark;
-    // Replaced $border-color-dark with $border-color
     border-color: $border-color;
   }
 }
 </style>
+

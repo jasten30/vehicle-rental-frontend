@@ -23,11 +23,20 @@
       <h3 class="vehicle-name">{{ vehicle.make }} {{ vehicle.model }}</h3>
       <p class="vehicle-year">{{ vehicle.year }}</p>
       <div class="vehicle-details">
-        <span><i class="bi bi-people-fill"></i> {{ vehicle.seats }} seats</span>
+        
+        <!-- === UPDATED: Conditional Seats/CC === -->
+        <span v-if="isMotorcycle">
+          <i class="bi bi-speedometer2"></i> {{ vehicle.engineDisplacement || 'N/A' }} cc
+        </span>
+        <span v-else>
+          <i class="bi bi-people-fill"></i> {{ vehicle.seats || vehicle.seatingCapacity || 'N/A' }} seats
+        </span>
+        <!-- ======================================= -->
+        
         <span><i class="bi bi-gear-fill"></i> {{ vehicle.transmission || 'Auto' }}</span>
       </div>
       <div class="vehicle-price">
-        <span class="price-amount">₱{{ vehicle.rentalPricePerDay.toLocaleString() }}</span>
+        <span class="price-amount">₱{{ vehicle.rentalPricePerDay ? vehicle.rentalPricePerDay.toLocaleString() : 'N/A' }}</span>
         <span class="price-period">/ day</span>
       </div>
     </div>
@@ -51,26 +60,38 @@ export default {
     };
   },
   computed: {
-    // 2. Import getters for auth status and favorites list
+    // 2. Import getters from the ROOT store
+    // Assumes your getters are in the root state
     ...mapGetters(['isAuthenticated', 'userFavorites']),
     
     vehicleLink() {
       return `/vehicles/${this.vehicle.id}`;
     },
     primaryImage() {
-      if (this.vehicle.exteriorPhotos && this.vehicle.exteriorPhotos.length > 0) {
-        return this.vehicle.exteriorPhotos[0];
-      }
-      return 'https://placehold.co/400x300/e2e8f0/666666?text=No+Image';
+       // Use profile photo first, then first exterior, then placeholder
+       // This matches the logic from the previous (overwritten) card
+      return this.vehicle.profilePhotoUrl || 
+             (this.vehicle.exteriorPhotos && this.vehicle.exteriorPhotos.length > 0 ? this.vehicle.exteriorPhotos[0] : 
+             'https://placehold.co/400x300/e2e8f0/666666?text=No+Image');
     },
     // 3. Check if this vehicle is in the user's favorites
     isFavorited() {
-      // userFavorites comes from the Vuex getter we created
+      // userFavorites comes from the Vuex getter
+      // Ensure userFavorites is an array
+      if (!Array.isArray(this.userFavorites)) {
+          return false;
+      }
       return this.userFavorites.includes(this.vehicle.id);
     },
+
+    // --- NEW COMPUTED PROPERTY ---
+    isMotorcycle() {
+      return this.vehicle.assetType === 'motorcycle';
+    }
   },
   methods: {
-    // 4. Import the toggle action from Vuex
+    // 4. Import the toggle action from the ROOT store
+    // Assumes 'toggleFavorite' is in your root actions.
     ...mapActions(['toggleFavorite']),
     
     // 5. Handle the click event
@@ -112,9 +133,10 @@ export default {
   background: $card-background;
   box-shadow: $shadow-small;
   transition: all 0.2s ease-in-out;
-  position: relative; // 👈 Make it a positioning context
+  position: relative; 
   display: flex;
   flex-direction: column;
+  height: 100%; 
 
   &:hover {
     transform: translateY(-5px);
@@ -125,21 +147,21 @@ export default {
 /* --- Favorite Button Styles --- */
 .favorite-button {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 10px; // UPDATED: Smaller spacing
+  right: 10px; // UPDATED: Smaller spacing
   z-index: 10;
   background-color: rgba(255, 255, 255, 0.8);
   border: 1px solid $border-color;
   border-radius: 50%;
-  width: 36px;
-  height: 36px;
+  width: 32px; // UPDATED: Smaller button
+  height: 32px; // UPDATED: Smaller button
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   padding: 0;
   transition: all 0.2s ease;
-  font-size: 1.1rem;
+  font-size: 1rem; // UPDATED: Smaller icon
   color: $text-color-dark;
 
   &:hover {
@@ -147,9 +169,8 @@ export default {
     transform: scale(1.1);
   }
 
-  // This class is applied when isFavorited is true
   &.favorited {
-    color: $admin-color; // Red color when favorited
+    color: $admin-color; 
   }
 
   i.bi-heart-fill {
@@ -166,61 +187,74 @@ export default {
 
 .image-slider {
   width: 100%;
-  height: 200px;
+  height: 180px; // UPDATED: Smaller image height
   background-color: #f4f4f4;
+  overflow: hidden; 
 }
 
 .vehicle-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.4s ease;
+   .vehicle-card:hover & {
+    transform: scale(1.05);
+  }
 }
 
 .vehicle-info {
-  padding: $spacing-md;
+  padding: 1rem; // UPDATED: Reduced padding
   flex-grow: 1;
   display: flex;
   flex-direction: column;
 }
 
 .vehicle-name {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin: 0 0 $spacing-sm 0;
+  font-size: 1.05rem; // UPDATED: Smaller font size
+  font-weight: 700;
+  margin: 0 0 0.25rem 0; // UPDATED: Reduced margin
+  color: $text-color-dark;
+  line-height: 1.3;
 }
 
 .vehicle-year {
-  font-size: 0.9rem;
+  font-size: 0.85rem; // UPDATED: Smaller font size
   color: $text-color-medium;
-  margin-bottom: $spacing-md;
+  margin-bottom: $spacing-sm; // UPDATED: Reduced margin
 }
 
 .vehicle-details {
   display: flex;
   gap: $spacing-md;
-  font-size: 0.9rem;
+  font-size: 0.85rem; // UPDATED: Smaller font size
   color: $text-color-medium;
-  margin-bottom: $spacing-md;
+  margin-bottom: $spacing-sm; // UPDATED: Reduced margin
   
   span {
     display: flex;
     align-items: center;
     gap: $spacing-sm;
+    i {
+        color: $primary-color;
+        font-size: 0.9rem; // UPDATED: Smaller icon
+    }
   }
 }
 
 .vehicle-price {
-  margin-top: auto; // Pushes price to the bottom
-  padding-top: $spacing-sm;
+  margin-top: auto; 
+  padding-top: $spacing-sm; 
   border-top: 1px solid $border-color-light;
   
   .price-amount {
-    font-size: 1.2rem;
-    font-weight: 700;
+    font-size: 1.15rem; // UPDATED: Smaller font size
+    font-weight: 800;
+    color: $primary-color;
   }
   .price-period {
-    font-size: 0.9rem;
+    font-size: 0.85rem; // UPDATED: Smaller font size
     color: $text-color-medium;
+     margin-left: 0.25rem;
   }
 }
 </style>

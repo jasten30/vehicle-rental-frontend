@@ -17,13 +17,16 @@
         <!-- --- NEW: Notification Bell added here --- -->
         <NotificationBell v-if="isAuthenticated" />
 
-        <router-link
+        <!-- --- UPDATED: This is now a button that calls a method --- -->
+        <button
           v-if="$route.name !== 'VehicleList'"
-          :to="hostLinkTarget"
+          @click.prevent="handleHostClick"
           class="become-host-button"
         >
           {{ hostLinkText }}
-        </router-link>
+        </button>
+        <!-- --- END UPDATE --- -->
+
         <div class="user-menu-container">
           <button class="menu-button" @click="toggleMenu" ref="menuButton">
             <i class="bi bi-list menu-icon"></i>
@@ -78,7 +81,6 @@
 
               <div v-if="isAuthenticated" class="dropdown-section">
                 <h6 class="dropdown-header">My RentCycle</h6>
-                <!-- 👇 UPDATED this link -->
                 <router-link
                   :to="{ name: 'MyFavorites' }"
                   class="dropdown-item with-icon"
@@ -86,7 +88,6 @@
                 >
                   <i class="bi bi-heart-fill"></i>Favorites
                 </router-link>
-                <!-- 👇 UPDATED this link -->
                 <router-link
                   :to="{ name: 'MyBookings' }"
                   class="dropdown-item with-icon"
@@ -105,7 +106,7 @@
               </div>
 
               <hr
-                v-if="isAuthenticated && userRole === 'owner'"
+                v-if="isAuthenticated && (userRole === 'owner' || userRole === 'renter')"
                 class="dropdown-divider"
               />
 
@@ -114,7 +115,6 @@
                 class="dropdown-section"
               >
                 <h6 class="dropdown-header">Hosting</h6>
-                <!-- 👇 UPDATED this link -->
                 <router-link
                   :to="{ name: 'OwnerVehicles' }"
                   class="dropdown-item with-icon"
@@ -122,7 +122,6 @@
                 >
                   <i class="bi bi-card-checklist"></i>My Listings
                 </router-link>
-                <!-- 👇 UPDATED this link -->
                 <router-link
                   :to="{ name: 'OwnerBilling' }"
                   class="dropdown-item with-icon"
@@ -130,7 +129,6 @@
                 >
                   <i class="bi bi-cash-stack"></i>Earnings
                 </router-link>
-                <!-- 👇 UPDATED this link (Calendar points to bookings overview) -->
                 <router-link
                   :to="{ name: 'OwnerBookings' }"
                   class="dropdown-item with-icon"
@@ -138,19 +136,35 @@
                 >
                   <i class="bi bi-calendar-check-fill"></i>Calendar
                 </router-link>
-                <router-link
-                  :to="hostLinkTarget"
+                <!-- --- UPDATED: This now calls the same method --- -->
+                <a
+                  href="#"
                   class="dropdown-item with-icon"
-                  @click="closeMenu"
+                  @click.prevent="handleHostClick"
                 >
-                  <i class="bi bi-plus-circle-fill"></i>List a New Car
-                </router-link>
+                  <i class="bi bi-plus-circle-fill"></i>List New Asset
+                </a>
+                <!-- --- END UPDATE --- -->
               </div>
+
+              <!-- --- UPDATED: Show "Become a host" if user is a RENTER --- -->
+              <div
+                v-if="isAuthenticated && userRole === 'renter'"
+                class="dropdown-section"
+              >
+                <a
+                  href="#"
+                  class="dropdown-item with-icon"
+                  @click.prevent="handleHostClick"
+                >
+                  <i class="bi bi-plus-circle-fill"></i>Become a host
+                </a>
+              </div>
+              <!-- --- END UPDATE --- -->
 
               <hr class="dropdown-divider" />
 
               <div class="dropdown-section">
-                <!-- *** MODIFICATION: Updated to="/how-it-works" *** -->
                 <router-link
                   to="/how-it-works"
                   class="dropdown-item with-icon"
@@ -184,40 +198,47 @@
     <main class="app-content">
       <router-view />
     </main>
+
+    <!-- --- NEW: Add the modal component here --- -->
+    <VehicleTypeChoiceModal
+      :show="isChoiceModalVisible"
+      @close="isChoiceModalVisible = false"
+      @navigate="handleTypeChoice"
+    />
+    <!-- --- END NEW --- -->
   </div>
 </template>
 
 <script>
 import { mapGetters, mapActions } from 'vuex';
 import NotificationBadge from './utils/NotificationBadge.vue';
-import NotificationBell from './components/utils/NotificationBell.vue'; // --- NEW: Import NotificationBell ---
+import NotificationBell from './components/utils/NotificationBell.vue';
+// --- NEW: Import the choice modal ---
+import VehicleTypeChoiceModal from './components/modals/VehicleTypeChoiceModal.vue';
 
 export default {
   name: 'App',
   components: {
     NotificationBadge,
-    NotificationBell, // --- NEW: Register NotificationBell ---
+    NotificationBell,
+    VehicleTypeChoiceModal, // --- NEW: Register the modal ---
   },
   data() {
     return {
       isMenuOpen: false,
       initialsDataUrl: null,
+      isChoiceModalVisible: false, // --- NEW: State for modal ---
     };
   },
   computed: {
     ...mapGetters(['isAuthenticated', 'userRole', 'user', 'userChats']),
     hostLinkText() {
       if (this.isAuthenticated && this.userRole === 'owner') {
-        return 'List your car';
+        return 'List your asset'; // Updated text
       }
       return 'Become a host';
     },
-    hostLinkTarget() {
-      if (this.isAuthenticated && this.userRole === 'owner') {
-        return { name: 'AddVehicle' };
-      }
-      return { name: 'BecomeOwnerApplication' };
-    },
+    // hostLinkTarget computed property is no longer needed for the button
     initials() {
       if (!this.user) return '';
       const name = this.user.name || 'User';
@@ -258,6 +279,25 @@ export default {
   },
   methods: {
     ...mapActions(['logout', 'fetchUserChats']),
+    
+    // --- NEW: Method to handle click on "Become a host" / "List..." ---
+    handleHostClick() {
+      this.closeMenu(); // Close dropdown if it's open
+      if (this.isAuthenticated && this.userRole === 'owner') {
+        // If user is already an owner, show the choice modal
+        this.isChoiceModalVisible = true;
+      } else {
+        // If user is not an owner, send them to the application page
+        this.$router.push({ name: 'BecomeOwnerApplication' });
+      }
+    },
+
+    // --- NEW: Method to handle navigation from the modal ---
+    handleTypeChoice(routeName) {
+      this.isChoiceModalVisible = false;
+      this.$router.push({ name: routeName });
+    },
+
     generateInitialsImage(initials) {
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
@@ -309,6 +349,7 @@ export default {
 </script>
 
 <style lang="scss">
+/* All your existing styles */
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Nunito:wght@400;700;900&display=swap');
 @import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css');
 @import './assets/styles/variables.scss';

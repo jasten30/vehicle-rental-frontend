@@ -21,9 +21,9 @@ import ProfileSettingsView from '../views/Dashboard/ProfileSettings.vue';
 import ApplicationSubmittedView from '../views/Auth/ApplicationSubmittedView.vue';
 import OwnerVehiclesView from '../views/Dashboard/Owner/OwnerVehiclesView.vue';
 import VehicleFormSteps from '../components/forms/VehicleFormSteps.vue'; // Used for AddVehicle
-// Import the new Edit Vehicle View
 import EditVehicleView from '../views/Dashboard/Owner/EditVehicleView.vue'; // Correct path
-import BookingPaymentView from '../views/Booking/BookingPaymentView.vue';
+import MotorcycleFormSteps from '../components/forms/motorcyle/MotorcycleFormSteps.vue'; // Correct path
+// import BookingPaymentView from '../views/Booking/BookingPaymentView.vue'; // Commented out as it's causing errors
 import OwnerBillingView from '../views/Booking/OwnerBillingView.vue';
 import BookingSummaryView from '../views/Booking/BookingSummaryView.vue';
 import OwnerBookingsView from '../views/Dashboard/Owner/OwnerBookingsView.vue';
@@ -115,10 +115,10 @@ const dashboardRoutes = [
       {
         path: 'owner/vehicles/add',
         name: 'AddVehicle',
-        component: VehicleFormSteps, // Still uses the steps component for adding
+        component: VehicleFormSteps,
         props: {
-          initialVehicle: {}, // Pass empty object for add mode
-          isEditMode: false,  // Explicitly set edit mode to false
+          initialVehicle: {},
+          isEditMode: false,
         },
         meta: {
           requiresAuth: true,
@@ -126,12 +126,23 @@ const dashboardRoutes = [
         },
       },
       {
-        // Path remains the same
+        path: 'owner/motorcycles/add',
+        name: 'AddMotorcycle',
+        component: MotorcycleFormSteps,
+        props: {
+          initialVehicle: {},
+          isEditMode: false,
+        },
+        meta: {
+          requiresAuth: true,
+          authorize: ['owner', 'admin'],
+        },
+      },
+      {
         path: 'owner/vehicles/edit/:vehicleId',
         name: 'EditVehicle',
-        // Component is now the dedicated EditVehicleView
-        component: EditVehicleView, // Use the imported EditVehicleView
-        props: true, // Pass route params (vehicleId) as props
+        component: EditVehicleView,
+        props: true,
         meta: {
           requiresAuth: true,
           authorize: ['owner', 'admin'],
@@ -146,14 +157,13 @@ const dashboardRoutes = [
           authorize: ['owner', 'admin'],
         },
       },
-      {
-        path: 'calendar/:vehicleId',
-        name: 'VehicleCalendar',
-        // Corrected import path based on error context
-        component: () => import('@/views/Owner/VehicleCalendarView.vue'),
-        props: true,
-        meta: { requiresAuth: true, authorize: ['owner', 'admin'] }
-      },
+      // {
+      //   path: 'calendar/:vehicleId',
+      //   name: 'VehicleCalendar',
+      //   component: () => import('@/views/Dashboard/Owner/VehicleCalendarView.vue'),
+      //   props: true,
+      //   meta: { requiresAuth: true, authorize: ['owner', 'admin'] }
+      // },
       {
         path: 'admin',
         component: AdminLayout,
@@ -265,26 +275,27 @@ const routes = [
   {
     path: '/users/:userId',
     name: 'UserProfileView',
-    component: ProfileSettingsView, // Assuming this shows public/other user profiles too
+    component: ProfileSettingsView,
     props: true,
-    // Add meta if needed (e.g., requiresAuth to view profiles)
   },
-  {
-    path: '/booking/payment/:bookingId',
-    name: 'BookingPayment',
-    component: BookingPaymentView,
-    props: true,
-    meta: {
-      requiresAuth: true,
-      authorize: ['renter', 'owner', 'admin'],
-    },
-  },
+  // --- COMMENTED OUT THE BROKEN ROUTE ---
+  // {
+  //   path: '/booking/payment/:bookingId',
+  //   name: 'BookingPayment',
+  //   component: BookingPaymentView,
+  //   props: true,
+  //   meta: {
+  //     requiresAuth: true,
+  //     authorize: ['renter', 'owner', 'admin'],
+  //   },
+  // },
+  // --- END COMMENT ---
   {
     path: '/booking/verify-payment/:bookingId',
     name: 'PaymentVerification',
-    component: OwnerBillingView, // Recheck if this is the correct component
+    component: OwnerBillingView,
     props: true,
-    meta: { requiresAuth: true }, // Add authorization if needed
+    meta: { requiresAuth: true },
   },
   {
     path: '/booking/summary/:bookingId',
@@ -360,13 +371,12 @@ router.beforeEach(async (to, from, next) => {
     console.warn(
       `[Router Guard] User role '${userRole}' not authorized for route '${to.path}'. Redirecting.`
     );
-    // Redirect non-authorized users to a default dashboard or home
     if (userRole === 'admin') {
         next('/dashboard/admin/dashboard');
     } else if (userRole === 'owner') {
         next('/dashboard/owner/vehicles');
     } else {
-        next('/dashboard/my-bookings'); // Default for renters or unknown
+        next('/dashboard/my-bookings');
     }
   }
 

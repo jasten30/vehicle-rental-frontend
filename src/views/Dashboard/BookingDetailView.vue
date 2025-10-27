@@ -165,6 +165,12 @@
         <div class="info-card participant-card">
           <h3 class="card-section-title">Host</h3>
            <div class="participant-details">
+            <img 
+              :src="booking.ownerDetails?.profilePhotoUrl || 'https://placehold.co/60x60/e2e8f0/666666?text=Host'" 
+              alt="Host Avatar" 
+              class="participant-avatar"
+              @error="onImageError"
+            />
             <div>
               <p class="name">{{ booking.ownerDetails?.name || 'N/A' }}</p>
               <p class="email">{{ booking.ownerDetails?.email || 'No email available' }}</p>
@@ -176,6 +182,12 @@
         <div class="info-card participant-card">
           <h3 class="card-section-title">Renter</h3>
            <div class="participant-details">
+             <img 
+              :src="booking.renterDetails?.profilePhotoUrl || 'https://placehold.co/60x60/e2e8f0/666666?text=Renter'" 
+              alt="Renter Avatar" 
+              class="participant-avatar"
+              @error="onImageError"
+            />
              <div>
               <p class="name">{{ booking.renterDetails?.name || 'N/A' }}</p>
               <p class="email">{{ booking.renterDetails?.email || 'No email available' }}</p>
@@ -225,25 +237,25 @@
                <span v-else><i class="bi bi-check2-circle"></i> Mark as Returned</span>
              </button>
              
-             <!-- Download Contract Button (for Owner/Admin/Renter) -->
+             <!-- Download Contract Button (for Owner/Admin) -->
              <button
-                v-if="showDownloadContractButton"
-                @click="handleDownloadContract"
-                class="button secondary full-width"
-                :disabled="isDownloadingContract"
-              >
-                <span v-if="isDownloadingContract">Downloading...</span>
-                <span v-else><i class="bi bi-file-earmark-arrow-down-fill"></i> Download Contract</span>
-              </button>
+               v-if="showDownloadContractButton"
+               @click="handleDownloadContract"
+               class="button secondary full-width"
+               :disabled="isDownloadingContract"
+             >
+               <span v-if="isDownloadingContract">Downloading...</span>
+               <span v-else><i class="bi bi-file-earmark-arrow-down-fill"></i> Download Contract</span>
+             </button>
 
              <!-- Report Button -->
              <button
-                v-if="showReportButton"
-                @click="isReportModalOpen = true"
-                class="button secondary full-width"
-              >
-                <i class="bi bi-flag-fill"></i> Report Issue
-              </button>
+               v-if="showReportButton"
+               @click="isReportModalOpen = true"
+               class="button secondary full-width"
+             >
+               <i class="bi bi-flag-fill"></i> Report Issue
+             </button>
 
              <!-- Go Back Button -->
              <button @click="goBack" class="button secondary full-width">
@@ -263,15 +275,15 @@
                  <i class="bi bi-star-fill"></i> Write a Review
               </button>
 
-             <!-- Report Button -->
+              <!-- Report Button -->
              <button
-                v-if="showReportButton"
-                @click="isReportModalOpen = true"
-                class="button secondary full-width"
-                style="margin-bottom: 0.5rem;"
-              >
-                <i class="bi bi-flag-fill"></i> Report Issue
-              </button>
+               v-if="showReportButton"
+               @click="isReportModalOpen = true"
+               class="button secondary full-width"
+               style="margin-bottom: 0.5rem;"
+             >
+               <i class="bi bi-flag-fill"></i> Report Issue
+             </button>
 
              <!-- Go Back Button -->
              <button @click="goBack" class="button secondary full-width">
@@ -421,27 +433,22 @@ export default {
         // Show only if renter and booking is confirmed
         return isRenter && this.booking.paymentStatus === 'confirmed';
     },
-    // UPDATED: Finds the latest pending extension from the array
     latestPendingExtension() {
         if (!this.booking || !Array.isArray(this.booking.extensions) || this.booking.extensions.length === 0) {
             return null;
         }
-        // Find the last extension in the array that has the 'pending_payment' status
         return [...this.booking.extensions].reverse().find(ext => ext.status === 'pending_payment');
     },
     showPayExtensionCard() {
       if (!this.booking || !this.user) return false;
       const isRenter = this.user.uid === this.booking.renterId;
-      // Show card if a pending extension exists and status matches
       return isRenter && this.booking.paymentStatus === 'pending_extension_payment' && !!this.latestPendingExtension;
     },
     showDownloadContractButton() {
         if (!this.booking || !this.user) return false;
         const isOwner = this.user.uid === this.booking.ownerId;
-        const isRenter = this.user.uid === this.booking.renterId;
-        // Show if owner/admin/renter and payment is confirmed or later
         const validStatuses = ['confirmed', 'returned', 'completed', 'pending_extension_payment'];
-        return (isOwner || this.userRole === 'admin' || isRenter) && validStatuses.includes(this.booking.paymentStatus);
+        return (isOwner || this.userRole === 'admin') && validStatuses.includes(this.booking.paymentStatus);
     }
   },
   methods: {
@@ -523,8 +530,8 @@ export default {
 
     async handleCancelBooking() {
       if (!this.showCancelAction) {
-          alert(`Booking cannot be cancelled in state: ${this.formatStatus(this.booking.paymentStatus)}.`);
-          return;
+           alert(`Booking cannot be cancelled in state: ${this.formatStatus(this.booking.paymentStatus)}.`);
+           return;
       }
       if (!window.confirm("Cancel this booking? This cannot be undone.")) return;
       this.isCancelling = true;
@@ -623,6 +630,12 @@ export default {
         }
     },
 
+    // --- NEW METHOD for Image Fallback ---
+    onImageError(event) {
+        // Use a generic placeholder
+        event.target.src = 'https://placehold.co/60x60/e2e8f0/666666?text=User';
+    },
+
     // --- Formatting and Utility Methods ---
     getVehicleImageUrl(vehicle) {
       if (vehicle?.exteriorPhotos?.length > 0) return vehicle.exteriorPhotos[0];
@@ -702,15 +715,15 @@ export default {
 }
 
 .sidebar-content {
-   display: flex;
-   flex-direction: column;
-   gap: $spacing-lg;
-   position: sticky;
-   top: $spacing-lg;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+    position: sticky;
+    top: $spacing-lg;
 
-   @media (max-width: 991px) {
-       position: static;
-   }
+    @media (max-width: 991px) {
+        position: static;
+    }
 }
 
 /* --- Header --- */
@@ -884,7 +897,21 @@ export default {
 
 /* --- Participant Cards (Sidebar) --- */
 .participant-card {
-   .participant-details { display: flex; align-items: center; gap: $spacing-md; }
+   .participant-details { 
+     display: flex; 
+     align-items: center; 
+     gap: $spacing-md; 
+   }
+   // --- ADDED ---
+   .participant-avatar {
+     width: 50px;
+     height: 50px;
+     border-radius: 50%;
+     object-fit: cover;
+     flex-shrink: 0;
+     border: 2px solid $border-color-light;
+   }
+   // --- END ADDED ---
    .name { font-size: 1rem; font-weight: 600; margin: 0 0 0.1rem 0; color: $text-color-dark; }
    .email { font-size: 0.85rem; color: $text-color-medium; font-weight: 400; word-break: break-all; }
 }
@@ -921,12 +948,12 @@ export default {
   line-height: 1.5;
 
   &:hover:not(:disabled) {
-     transform: translateY(-2px);
-     box-shadow: $shadow-hover;
+       transform: translateY(-2px);
+       box-shadow: $shadow-hover;
   }
   &:active:not(:disabled) {
-     transform: translateY(0);
-     box-shadow: $shadow-light;
+       transform: translateY(0);
+       box-shadow: $shadow-light;
   }
   &:disabled {
     opacity: 0.6;

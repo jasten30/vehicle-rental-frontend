@@ -29,14 +29,16 @@
       </div>
     </div>
 
-    <!-- Modal for All Photos --><transition name="modal-bounce">
+    <!-- Modal for All Photos -->
+    <transition name="modal-bounce">
       <div v-if="isModalOpen" class="modal-overlay" @click="closeModal">
         <div class="modal-content" @click.stop>
           <button @click="closeModal" class="modal-close-button">&times;</button>
 
           <h3 class="modal-gallery-title">{{ vehicleMake }} {{ vehicleModel }} Photo Gallery</h3>
           
-          <!-- Section 1: Main Exterior Photo --><div class="modal-photo-section">
+          <!-- Section 1: Main Exterior Photo (Common to both) -->
+          <div class="modal-photo-section">
             <h4 class="modal-section-subtitle">Profile Photo</h4>
             <div class="modal-photo-grid single">
               <img
@@ -48,39 +50,66 @@
             </div>
           </div>
 
-          <!-- Section 2: Interior Photos --><div v-if="interiorPhotos.length > 0" class="modal-photo-section">
-            <h4 class="modal-section-subtitle">Interior & Detail Shots ({{ interiorPhotos.length }})</h4>
-            <div class="modal-photo-grid">
-              <img
-                v-for="(image, index) in interiorPhotos"
-                :key="`interior-${index}`"
-                :src="image"
-                alt="Vehicle interior"
-                class="modal-image"
-                @click="openFullScreen(image)"
-              />
+          <!-- ================================== -->
+          <!-- FOR VEHICLES (CARS)                -->
+          <!-- ================================== -->
+          <template v-if="!isMotorcycle">
+            <!-- Section 2: Interior Photos -->
+            <div v-if="interiorPhotos.length > 0" class="modal-photo-section">
+              <h4 class="modal-section-subtitle">Interior & Detail Shots ({{ interiorPhotos.length }})</h4>
+              <div class="modal-photo-grid">
+                <img
+                  v-for="(image, index) in interiorPhotos"
+                  :key="`interior-${index}`"
+                  :src="image"
+                  alt="Vehicle interior"
+                  class="modal-image"
+                  @click="openFullScreen(image)"
+                />
+              </div>
             </div>
-          </div>
 
-          <!-- Section 3: Other Exterior Photos --><div v-if="otherExteriorPhotos.length > 0" class="modal-photo-section">
-            <h4 class="modal-section-subtitle">Exterior Views ({{ otherExteriorPhotos.length }})</h4>
-            <div class="modal-photo-grid">
-              <img
-                v-for="(image, index) in otherExteriorPhotos"
-                :key="`exterior-${index}`"
-                :src="image"
-                alt="Vehicle exterior"
-                class="modal-image"
-                @click="openFullScreen(image)"
-              />
+            <!-- Section 3: Other Exterior Photos -->
+            <div v-if="otherExteriorPhotos.length > 0" class="modal-photo-section">
+              <h4 class="modal-section-subtitle">Exterior Views ({{ otherExteriorPhotos.length }})</h4>
+              <div class="modal-photo-grid">
+                <img
+                  v-for="(image, index) in otherExteriorPhotos"
+                  :key="`exterior-${index}`"
+                  :src="image"
+                  alt="Vehicle exterior"
+                  class="modal-image"
+                  @click="openFullScreen(image)"
+                />
+              </div>
             </div>
-          </div>
+          </template>
+
+          <!-- ================================== -->
+          <!-- FOR MOTORCYCLES                    -->
+          <!-- ================================== -->
+          <template v-else>
+             <div v-if="motorcycleGalleryImages.length > 0" class="modal-photo-section">
+              <h4 class="modal-section-subtitle">Motorcycle Gallery ({{ motorcycleGalleryImages.length }})</h4>
+              <div class="modal-photo-grid">
+                <img
+                  v-for="(image, index) in motorcycleGalleryImages"
+                  :key="`motorcycle-gallery-${index}`"
+                  :src="image"
+                  alt="Motorcycle gallery photo"
+                  class="modal-image"
+                  @click="openFullScreen(image)"
+                />
+              </div>
+            </div>
+          </template>
           
         </div>
       </div>
     </transition>
 
-    <!-- Full-Screen Slider Modal --><transition name="fullscreen-fade">
+    <!-- Full-Screen Slider Modal -->
+    <transition name="fullscreen-fade">
       <div
         v-if="isFullScreenOpen"
         class="fullscreen-overlay"
@@ -128,6 +157,11 @@ export default {
       type: String,
       default: '',
     },
+    // --- NEW PROP ---
+    assetType: {
+      type: String,
+      default: 'vehicle', // 'vehicle' or 'motorcycle'
+    }
   },
   data() {
     return {
@@ -137,30 +171,38 @@ export default {
     };
   },
   computed: {
+    // --- NEW COMPUTED PROP ---
+    isMotorcycle() {
+      return this.assetType === 'motorcycle';
+    },
     mainImage() {
+      // Profile photo is always the first exterior photo
       return this.exteriorPhotos.length > 0
         ? this.exteriorPhotos[0]
         : 'https://placehold.co/800x600/e2e8f0/666666?text=No+Main+Image';
     },
     otherExteriorPhotos() {
-      // Returns all exterior photos *except* the main/first one
+      // All exterior photos *except* the main/first one
       return this.exteriorPhotos.slice(1);
+    },
+    // --- NEW COMPUTED PROP ---
+    motorcycleGalleryImages() {
+      // For motorcycles, gallery = all other exterior photos + all "interior" (detail) photos
+      return [...this.otherExteriorPhotos, ...this.interiorPhotos];
     },
     displayThumbnails() {
       const placeholder =
         'https://placehold.co/400x300/e2e8f0/666666?text=Photo';
       
       let candidateImages = [
-        // Candidate 1: First Interior Photo
+        // Candidate 1: First Interior Photo (or first detail shot)
         this.interiorPhotos[0] || placeholder,
-        // Candidate 2: Second Exterior Photo (or first interior if no other exterior)
+        // Candidate 2: Second Exterior Photo (or second gallery shot)
         this.exteriorPhotos[1] || this.interiorPhotos[1] || placeholder,
       ];
       
-      // Filter out redundant placeholders, but keep the first image even if it's a placeholder
       const filteredCandidates = candidateImages.filter((img, index) => img !== placeholder || index === 0);
       
-      // Ensure we always return exactly 2 items, even if they are placeholders
       while (filteredCandidates.length < 2) {
           filteredCandidates.push(placeholder);
       }
@@ -168,7 +210,7 @@ export default {
       return filteredCandidates.slice(0, 2);
     },
     allImagesForSlider() {
-      // Concatenate all unique images for the slider
+      // This logic works for both, as it combines all unique photos
       const uniqueImages = new Set([...this.exteriorPhotos, ...this.interiorPhotos]);
       return Array.from(uniqueImages).filter(url => url);
     },
@@ -181,7 +223,7 @@ export default {
       this.isModalOpen = false;
     },
     openFullScreen(clickedImageUrl) {
-      this.isModalOpen = false; // Close thumbnail modal when opening fullscreen
+      this.isModalOpen = false; 
       const index = this.allImagesForSlider.findIndex(
         (image) => image === clickedImageUrl
       );
@@ -190,7 +232,7 @@ export default {
     },
     closeFullScreen() {
       this.isFullScreenOpen = false;
-      this.currentImageIndex = 0; // Reset index
+      this.currentImageIndex = 0;
     },
     nextImage() {
       this.currentImageIndex =
@@ -231,7 +273,7 @@ export default {
 .main-vehicle-image {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Ensures the image covers the area, potentially cropping */
+  object-fit: cover;
   border-radius: $border-radius-md;
   cursor: pointer;
   transition: transform 0.3s ease;
@@ -259,7 +301,7 @@ export default {
 .thumbnail-image {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Ensures the image covers the area, potentially cropping */
+  object-fit: cover;
   transition: opacity 0.3s ease;
   &:hover {
       opacity: 0.85;
@@ -426,41 +468,55 @@ export default {
     left: 50%;
     transform: translateX(-50%);
     color: white;
-    font-size: 1rem;
-    padding: 0.5rem 1rem;
-    background: rgba(0, 0, 0, 0.5);
+    font-size: 1.1rem; /* Slightly larger text */
+    font-weight: 600;
+    padding: 0.6rem 1.2rem; /* Larger pill background */
+    background: rgba(0, 0, 0, 0.6); /* Slightly darker, more prominent pill */
     border-radius: $border-radius-pill;
+    z-index: 2001; /* Ensure counter is above images */
 }
 .fullscreen-close-button {
   color: white;
-  background-color: rgba(0, 0, 0, 0.4);
-  top: 1rem;
-  right: 1rem;
-  width: 40px;
-  height: 40px;
+  background-color: rgba(0, 0, 0, 0.5); /* Slightly more prominent background */
+  position: absolute; /* Changed from top/right relative to parent */
+  top: 1.5rem; /* Position from top */
+  right: 1.5rem; /* Position from right */
+  width: 45px; /* Larger close button */
+  height: 45px;
   border-radius: 50%;
-  font-size: 2rem;
+  font-size: 2.5rem; /* Larger symbol */
   line-height: 1;
   transition: background-color 0.2s;
+  z-index: 2001; /* Ensure close button is above images */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.3); /* subtle border */
   &:hover {
-    background-color: $admin-color;
+    background-color: $admin-color; /* Change to admin color on hover */
+    transform: scale(1.05); /* Slight scale on hover */
   }
 }
 .nav-button {
-  background: rgba(0, 0, 0, 0.3);
-  color: white;
-  width: 40px;
-  height: 40px;
-  font-size: 2rem;
+  background: rgba(255, 255, 255, 0.2); /* Semi-transparent white background */
+  color: $text-color-dark; /* Dark arrow for contrast */
+  width: 50px; /* Larger nav button */
+  height: 50px;
+  font-size: 2.5rem;
   line-height: 1;
   border-radius: 50%;
   padding: 0;
   display: flex;
   justify-content: center;
   align-items: center;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, color 0.2s;
+  z-index: 2001; /* Ensure nav buttons are above images */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+
   &:hover {
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(255, 255, 255, 0.5); /* Brighter white on hover */
+    color: $primary-color;
   }
 }
 .prev-button { left: 1rem; }
@@ -474,11 +530,23 @@ export default {
   .modal-section-title {
     font-size: 1.4rem;
   }
-  .fullscreen-close-button, .nav-button {
-      top: 1.5rem;
-      width: 30px;
-      height: 30px;
-      font-size: 1.5rem;
+  .fullscreen-close-button {
+      top: 1rem;
+      right: 1rem;
+      width: 35px; /* Slightly smaller on mobile */
+      height: 35px;
+      font-size: 1.8rem;
   }
+  .nav-button {
+      width: 35px;
+      height: 35px;
+      font-size: 1.8rem;
+  }
+  .image-counter {
+      bottom: 1rem;
+  }
+  .prev-button { left: 0.5rem; }
+  .next-button { right: 0.5rem; }
 }
 </style>
+

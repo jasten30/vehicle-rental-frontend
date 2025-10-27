@@ -1,7 +1,7 @@
 import { createStore } from 'vuex';
-import api from '@/views/services/api';
+import api from '@/views/services/api'; // UPDATED: Corrected import path
 import router from '../router';
-import { DateTime } from 'luxon';
+import { DateTime, Interval } from 'luxon'; // UPDATED: Imported Interval
 import {
   getAuth,
   onAuthStateChanged,
@@ -9,7 +9,7 @@ import {
   signInWithCustomToken,
 } from 'firebase/auth';
 import owner from './modules/owner';
-import { setAuthToken } from '@/views/services/api';
+import { setAuthToken } from '@/views/services/api'; // UPDATED: Corrected import path
 
 export default createStore({
   state: {
@@ -32,6 +32,7 @@ export default createStore({
       availabilityEndDate: null,
       vehicleType: '',
       seats: null,
+      assetType: null, // Make sure this line exists
     },
     vehicleSort: {
       key: 'rentalPricePerDay',
@@ -90,7 +91,12 @@ export default createStore({
       state.authLoading = loading;
     },
     SET_VEHICLE_FILTER(state, { key, value }) {
-      state.vehicleFilters[key] = value;
+      // FIX: Use safe property check for ESLint
+      if (Object.prototype.hasOwnProperty.call(state.vehicleFilters, key)) {
+        state.vehicleFilters[key] = value;
+      } else {
+         console.warn(`[Vuex] Attempted to set unknown filter key: ${key}`);
+      }
     },
     SET_VEHICLE_SORT(state, { key, order }) {
       state.vehicleSort.key = key;
@@ -108,6 +114,7 @@ export default createStore({
         availabilityEndDate: null,
         vehicleType: '',
         seats: null,
+        assetType: null, // Make sure this is reset
       };
     },
     SET_ALL_VEHICLES(state, vehicles) {
@@ -182,20 +189,19 @@ export default createStore({
         throw error;
       }
     },
-    async confirmDownpaymentByUser({ commit }, payload) { // 👈 Accept payload object
-        const { bookingId, referenceNumber } = payload; // 👈 Destructure payload
+    async confirmDownpaymentByUser({ commit }, payload) {
+        const { bookingId, referenceNumber } = payload;
         try {
-          // 👇 Pass referenceNumber to the API call
           await api.confirmDownpaymentByUser(bookingId, { referenceNumber });
           commit('UPDATE_BOOKING_STATUS', { bookingId, newStatus: 'downpayment_pending_verification' });
         } catch (error) {
           console.error('Error confirming downpayment:', error);
-          throw error; // Re-throw to be caught in the component
+          throw error;
         }
     },
     async confirmOwnerPayment({ commit }, bookingId) {
       try {
-        await api.confirmOwnerPayment(bookingId); // Assumes an API endpoint exists
+        await api.confirmOwnerPayment(bookingId);
         commit('UPDATE_BOOKING_STATUS', { bookingId, newStatus: 'downpayment_verified' });
       } catch (error) {
         console.error('[Vuex] Failed to confirm owner payment:', error);
@@ -311,6 +317,11 @@ export default createStore({
               'https://placehold.co/400x300/e2e8f0/666666?text=No+Image',
             ];
           }
+          // --- REMOVED: Faulty normalization logic ---
+          // if (!normalized.assetType) {
+          //   normalized.assetType = 'vehicle';
+          // }
+          // --- END REMOVED ---
           return normalized;
         });
         commit('SET_ALL_VEHICLES', normalizedVehicles);
@@ -355,6 +366,7 @@ export default createStore({
         throw error;
       }
     },
+    // FIX: Removed unused 'ownerId' parameter
     async getVehiclesByOwner({ _commit }) {
       try {
         const response = await api.getVehiclesByOwner();
@@ -373,9 +385,12 @@ export default createStore({
         throw error;
       }
     },
-    async updateVehicle({ _commit }, { id, ...vehicleData }) {
+    // FIX: Changed destructuring to { id, updates }
+    async updateVehicle({ commit }, { id, updates }) {
       try {
-        const response = await api.updateVehicle(id, vehicleData);
+        const response = await api.updateVehicle(id, updates);
+        // Optimistic update to the list
+        commit('UPDATE_VEHICLE_SUCCESS', { id, ...updates });
         return response.data;
       } catch (error) {
         console.error('[Vuex] Failed to update vehicle:', error);
@@ -550,15 +565,14 @@ export default createStore({
       }
     },
     async sendMessage({ _commit }, payload) {
-      // payload from component is { chatId, text, imageBase64 }
       try {
         await api.sendMessage(payload.chatId, { 
-            text: payload.text, 
-            imageBase64: payload.imageBase64 
+          text: payload.text, 
+          imageBase64: payload.imageBase64 
         });
       } catch (error) {
         console.error('[Vuex] Failed to send message:', error);
-        throw error; // Re-throw to be caught in component
+        throw error;
       }
     },
     async markChatAsRead({ dispatch }, chatId) {
@@ -640,7 +654,6 @@ export default createStore({
     async submitBookingReport({ _commit }, reportData) { 
         try {
           await api.submitBookingReport(reportData); 
-          
         } catch (error) {
           console.error('[Vuex] Failed to submit booking report:', error);
           throw error;
@@ -649,13 +662,9 @@ export default createStore({
     async fetchBookingReports({ _commit }) {
         try {
           const response = await api.getBookingReports(); 
-
-          
           if (response && Array.isArray(response.data)) {
-              
               return response.data; 
           } else {
-              
               console.error("[Vuex] Invalid response structure from getBookingReports API:", response);
               return []; 
           }
@@ -675,58 +684,46 @@ export default createStore({
     },
     async findOrCreateAdminUserChat({ _commit }, targetUserId) {
       try {
-        // Call the new API function, passing the target user's ID
         const response = await api.findOrCreateAdminUserChat({ targetUserId });
         if (response && response.data && response.data.chatId) {
-          return response.data.chatId; // Return the chat ID to the component
+          return response.data.chatId;
         } else {
             throw new Error("Invalid response from findOrCreateAdminUserChat API");
         }
       } catch (error) {
         console.error('[Vuex] Failed to find or create admin-user chat:', error);
-        throw error; // Re-throw to be caught in the component
+        throw error;
       }
     },
     async requestBookingExtension({ _commit }, payload) {
       try {
-        
         const response = await api.requestBookingExtension(payload.bookingId, {
             extensionHours: payload.extensionHours
         });
         return response.data;
       } catch (error) {
         console.error('[Vuex] Failed to request booking extension:', error);
-        // Re-throw the error so the component's catch block can handle it
         throw error;
       }
     },
     async confirmExtensionPayment({ commit }, payload) {
       try {
-        // payload = { bookingId, referenceNumber, amount }
-        // We pass the bookingId in the URL and the rest in the body
         await api.confirmExtensionPayment(payload.bookingId, payload);
-        
-        // Optimistically update status to 'confirmed'
         commit('UPDATE_BOOKING_STATUS', { bookingId: payload.bookingId, newStatus: 'confirmed' });
       } catch (error) {
         console.error('[Vuex] Failed to confirm extension payment:', error);
-        throw error; // Re-throw so the modal can catch it and show a message
+        throw error;
       }
     },
     async downloadBookingContract({ _commit }, bookingId) {
       try {
-        // Call new API function, expecting a file blob
         const response = await api.downloadBookingContract(bookingId);
-        
-        // Extract filename from Content-Disposition header
         const contentDisposition = response.headers['content-disposition'];
         let filename = `BookingContract-${bookingId}.txt`; // default
         if (contentDisposition) {
             const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
             if (filenameMatch && filenameMatch.length === 2) filename = filenameMatch[1];
         }
-        
-        // Return blob data and filename
         return { data: response.data, filename: filename }; 
       } catch (error) {
         console.error('[Vuex] Failed to download contract:', error);
@@ -735,10 +732,7 @@ export default createStore({
     },
     async deferExtensionPayment({ commit }, payload) {
       try {
-        // payload = { bookingId, amount, paymentMethod: 'cash_on_return' }
         await api.deferExtensionPayment(payload.bookingId, payload);
-        
-        // Update status to 'confirmed' because the extension is now active
         commit('UPDATE_BOOKING_STATUS', { bookingId: payload.bookingId, newStatus: 'confirmed' });
       } catch (error) {
         console.error('[Vuex] Failed to defer extension payment:', error);
@@ -747,14 +741,12 @@ export default createStore({
     },
     async toggleFavorite({ commit, getters }, vehicleId) {
       if (!getters.isAuthenticated) {
-        // Safeguard, though button shouldn't be clickable
         return;
       }
       
       const currentFavorites = getters.userFavorites;
       let optimisticFavorites;
 
-      // Optimistic Update: Update UI immediately
       if (currentFavorites.includes(vehicleId)) {
         optimisticFavorites = currentFavorites.filter(id => id !== vehicleId);
       } else {
@@ -762,17 +754,12 @@ export default createStore({
       }
       commit('UPDATE_USER_FAVORITES', optimisticFavorites);
 
-      // Call API
       try {
-        // This assumes 'api.toggleFavoriteVehicle' exists in your api.js file
         const response = await api.toggleFavoriteVehicle({ vehicleId });
-        // API call succeeded, confirm state with server response
         commit('UPDATE_USER_FAVORITES', response.data.favorites);
       } catch (error) {
         console.error("Error toggling favorite:", error);
-        // Rollback on error
         commit('UPDATE_USER_FAVORITES', currentFavorites);
-        // Show error to user
         alert("Failed to update favorites. Please try again.");
       }
     },
@@ -806,11 +793,28 @@ export default createStore({
     vehicleSort: (state) => state.vehicleSort,
     userChats: (state) => state.userChats,
     userFavorites: (state) => state.user?.favorites || [],
-    filteredAndSortedVehicles: (state) => {
+    
+    // ================================================
+    //  UPDATED GETTER
+    // ================================================
+    // FIX: Prefixed unused getters with _
+    filteredAndSortedVehicles: (state, _getters) => {
       let vehicles = Array.isArray(state.allVehicles)
         ? [...state.allVehicles]
         : [];
       const filters = state.vehicleFilters;
+
+      // --- (1) APPLY ASSET TYPE FILTER FIRST ---
+      // FIX: This logic is now correct
+      if (filters.assetType === 'motorcycle') {
+        vehicles = vehicles.filter(v => v.assetType === 'motorcycle');
+      } else if (filters.assetType === 'vehicle') {
+        // Treat 'vehicle' OR 'undefined' as a vehicle
+        vehicles = vehicles.filter(v => v.assetType === 'vehicle' || !v.assetType);
+      }
+      // if filters.assetType is null, show all (no filter)
+      // --- END ASSET TYPE FILTER ---
+
       if (filters.vehicleType) {
         vehicles = vehicles.filter(
           (v) =>
@@ -825,7 +829,7 @@ export default createStore({
             return false;
           }
           const vehicleSeats = parseInt(v.seatingCapacity, 10);
-          if (seatsFilterValue === 7) {
+          if (seatsFilterValue === 7) { // Assuming 7 means 7+
             return vehicleSeats >= 7;
           } else {
             return vehicleSeats === seatsFilterValue;
@@ -847,10 +851,11 @@ export default createStore({
         vehicles = vehicles.filter((v) => v.year === parseInt(filters.year));
       }
       if (filters.location) {
-        vehicles = vehicles.filter(
-          (v) =>
-            v.location &&
-            v.location.city.toLowerCase().includes(filters.location.toLowerCase())
+         const locLower = filters.location.toLowerCase();
+         vehicles = vehicles.filter(v =>
+            (v.location?.city?.toLowerCase().includes(locLower)) ||
+            (v.location?.barangay?.toLowerCase().includes(locLower)) ||
+            (v.location?.region?.toLowerCase().includes(locLower))
         );
       }
       if (filters.minPrice !== null && !isNaN(filters.minPrice)) {
@@ -864,26 +869,42 @@ export default createStore({
         );
       }
       if (filters.availabilityStartDate && filters.availabilityEndDate) {
-        const reqStart = DateTime.fromISO(filters.availabilityStartDate);
-        const reqEnd = DateTime.fromISO(filters.availabilityEndDate);
-        if (reqStart.isValid && reqEnd.isValid) {
-          vehicles = vehicles.filter((vehicle) => {
-            if (!vehicle.availability || vehicle.availability.length === 0) {
-              return true;
+        try {
+            const reqStart = DateTime.fromISO(filters.availabilityStartDate).startOf('day');
+            const reqEnd = DateTime.fromISO(filters.availabilityEndDate).endOf('day');
+            if (reqStart.isValid && reqEnd.isValid && reqStart <= reqEnd) {
+                const requestedInterval = Interval.fromDateTimes(reqStart, reqEnd);
+                vehicles = vehicles.filter((vehicle) => {
+                    if (!vehicle.availability || vehicle.availability.length === 0) {
+                        return true;
+                    }
+                    const isOverlappingUnavailable = vehicle.availability.some(
+                        (range) => {
+                           try {
+                                const blockedStart = DateTime.fromISO(range.start).startOf('day');
+                                const blockedEnd = DateTime.fromISO(range.end).endOf('day');
+                                if (!blockedStart.isValid || !blockedEnd.isValid) return false;
+                                const blockedInterval = Interval.fromDateTimes(blockedStart, blockedEnd);
+                                return requestedInterval.overlaps(blockedInterval);
+                           } catch(e) {
+                               console.warn("Error parsing availability range during filter:", range, e);
+                               return false;
+                           }
+                        }
+                    );
+                    return !isOverlappingUnavailable;
+                });
+            } else {
+                 console.warn("[Vuex Getter] Invalid date range provided for availability filter.");
             }
-            const isOverlappingUnavailable = vehicle.availability.some(
-              (range) => {
-                const availStart = DateTime.fromISO(range.start);
-                const availEnd = DateTime.fromISO(range.end);
-                return reqStart <= availEnd && reqEnd >= availStart;
-              }
-            );
-            return !isOverlappingUnavailable;
-          });
+        } catch(e) {
+             console.error("[Vuex Getter] Error during availability filtering:", e);
         }
       }
+      
       const sortKey = state.vehicleSort.key;
-      const sortOrder = state.vehicleSort.order;
+      const sortOrder = state.vehicleSort.order === 'desc' ? -1 : 1;
+      
       if (sortKey) {
         vehicles.sort((a, b) => {
           let valA = a[sortKey];
@@ -892,19 +913,24 @@ export default createStore({
             valA = (valA || '').toLowerCase();
             valB = (valB || '').toLowerCase();
           }
+          if (valA === null || valA === undefined) valA = sortOrder === 1 ? Infinity : -Infinity;
+          if (valB === null || valB === undefined) valB = sortOrder === 1 ? Infinity : -Infinity;
+          
           if (valA < valB) {
-            return sortOrder === 'asc' ? -1 : 1;
+            return -1 * sortOrder;
           }
           if (valA > valB) {
-            return sortOrder === 'asc' ? 1 : -1;
+            return 1 * sortOrder;
           }
           return 0;
         });
       }
       return vehicles;
     },
+    // ================================================
   },
   modules: {
     owner,
   },
 });
+

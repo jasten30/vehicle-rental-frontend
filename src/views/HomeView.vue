@@ -20,8 +20,56 @@
     <!-- Browse By Make Components -->
     <BrowseByMake />
 
-    <!-- Add the BROWSE BY CITIES component here -->
-    <BrowseByCities />
+    <!-- ================================================ -->
+    <!-- NEW: "Browse by City" replaced with dynamic "Top Picks" -->
+    <!-- ================================================ -->
+    <div class="listings-container">
+      <!-- Loading State -->
+      <div v-if="loading" class="loading-state">
+        <p>Loading available vehicles...</p>
+        <!-- You can add a spinner component here -->
+      </div>
+
+      <!-- Empty State -->
+      <div v-else-if="!vehiclesByCity || vehiclesByCity.length === 0" class="empty-state">
+        <h2 class="section-title">No vehicles found.</h2>
+        <p>There are currently no vehicles listed. Check back soon!</p>
+      </div>
+
+      <!-- Vehicle Listings by City -->
+      <div
+        v-else
+        v-for="group in vehiclesByCity"
+        :key="group.city"
+        class="location-group"
+      >
+        <div class="location-header">
+          <h2 class="location-title">Top Picks in {{ group.city }}</h2>
+          <router-link
+            :to="{ name: 'VehicleList', query: { location: group.city } }"
+            class="see-all-link"
+          >
+            See all ({{ group.vehicleCount }})
+            <i class="bi bi-arrow-right-short"></i>
+          </router-link>
+        </div>
+        
+        <!-- Responsive Vehicle Grid -->
+        <div class="vehicle-grid">
+          <!-- We only show a limited number per city (e.g., first 4 or 5) -->
+          <!-- UPDATED: Show 5 cards per row on large screens -->
+          <VehicleCard
+            v-for="vehicle in group.vehicles.slice(0, 5)" 
+            :key="vehicle.id"
+            :vehicle="vehicle"
+          />
+        </div>
+      </div>
+    </div>
+    <!-- ================================================ -->
+    <!-- END NEW SECTION -->
+    <!-- ================================================ -->
+
 
     <!-- Add the BOOK OR BROWSE component here -->
     <BookOrHost />
@@ -32,13 +80,16 @@
 </template>
 
 <script>
+// --- UPDATED IMPORTS ---
+import { mapGetters, mapActions } from 'vuex';
 import HeroSection from '@/components/HomeViewComponents/HeroSection.vue';
 import SkipCounterSection from '@/components/HomeViewComponents/SkipCounterSection.vue';
 import DateRangePicker from '@/components/HomeViewComponents/DateRangePicker.vue';
 import BrowseByMake from '@/components/HomeViewComponents/BrowseByMake.vue';
-import BrowseByCities from '@/components/HomeViewComponents/BrowseByCities.vue';
+// BrowseByCities is removed as we are replacing its functionality
 import BookOrHost from '@/components/HomeViewComponents/BookOrHost.vue';
 import FAQSection from '@/components/HomeViewComponents/FAQSection.vue';
+import VehicleCard from '@/components/VehicleCard.vue'; // --- NEW IMPORT ---
 
 
 export default {
@@ -48,9 +99,10 @@ export default {
     SkipCounterSection,
     DateRangePicker,
     BrowseByMake,
-    BrowseByCities,
+    // BrowseByCities, // Removed
     BookOrHost,
     FAQSection,
+    VehicleCard, // --- NEW COMPONENT ---
   },
   data() {
     return {
@@ -60,9 +112,59 @@ export default {
       untilDate: '',
       untilTime: '',
       isPickerVisible: false,
+      loading: true, // --- NEW ---
     };
   },
   computed: {
+    // --- NEW VUEX GETTERS ---
+    // FIX: Assuming root getters, removed namespace
+    ...mapGetters([ 
+      "allVehicles",
+    ]),
+
+    // --- NEW COMPUTED PROPERTY ---
+    vehiclesByCity() {
+      if (!this.allVehicles || this.allVehicles.length === 0) {
+        return [];
+      }
+
+      // 1. Group vehicles by city and count them
+      const grouped = {};
+      const cityCounts = {};
+
+      for (const vehicle of this.allVehicles) {
+        const city = vehicle.location?.city;
+        if (!city) continue; // Skip vehicles with no city
+
+        if (!grouped[city]) {
+          grouped[city] = [];
+          cityCounts[city] = 0;
+        }
+        
+        grouped[city].push(vehicle);
+        cityCounts[city]++;
+      }
+
+      // 2. Sort the cities by popularity (most vehicles first)
+      const sortedCities = Object.keys(grouped).sort((a, b) => {
+        return cityCounts[b] - cityCounts[a];
+      });
+
+      // 3. Create the final array, sorting vehicles within each city
+      return sortedCities.map(city => {
+        const vehiclesInCity = grouped[city];
+        
+        // Sort vehicles by Year (newest first) as a stand-in for ratings
+        vehiclesInCity.sort((a, b) => (b.year || 0) - (a.year || 0));
+
+        return {
+          city: city,
+          vehicleCount: cityCounts[city],
+          vehicles: vehiclesInCity,
+        };
+      });
+    },
+
     timeOptions() {
       const times = [];
       const now = new Date();
@@ -80,6 +182,12 @@ export default {
     },
   },
   methods: {
+    // --- NEW VUEX ACTION ---
+    // FIX: Assuming root action, removed namespace
+    ...mapActions([ 
+      "fetchAllVehicles",
+    ]),
+
     setInitialDateTime() {
       const now = new Date();
       // Use toLocaleString to get PST date and time
@@ -102,10 +210,12 @@ export default {
       const pstUntilDateTime = untilDateObj.toLocaleString('en-US', options);
       const [untilDatePart, untilTimePart] = pstUntilDateTime.split(', ');
       const [untilMonth, untilDay, untilYear] = untilDatePart.split('/');
+      // FIX: Correctly use untilMinute
       const [untilHour, untilMinute] = untilTimePart.split(':');
 
       this.untilDate = `${untilYear}-${untilMonth}-${untilDay}`;
       // Find the closest 30-minute interval for 'Until' time
+      // FIX: Use parseInt(untilMinute) instead of parseInt(minute)
       const initialUntilTimeIndex = Math.floor((parseInt(untilHour) * 60 + parseInt(untilMinute)) / 30);
       this.untilTime = this.timeOptions[initialUntilTimeIndex] || '12:00 AM';
     },
@@ -124,8 +234,17 @@ export default {
       this.$router.push({ name: 'VehicleList', query });
     },
   },
-  created() {
+  async created() {
     this.setInitialDateTime();
+    // --- NEW: Fetch vehicles on load ---
+    this.loading = true;
+    try {
+      await this.fetchAllVehicles();
+    } catch (error) {
+      console.error("HomeView: Failed to fetch vehicles", error);
+    } finally {
+      this.loading = false;
+    }
   },
 };
 </script>
@@ -320,4 +439,84 @@ export default {
   }
 }
 
+/* --- UPDATED STYLES FOR CITY GROUPING --- */
+
+.listings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  
+  /* --- ADDED --- */
+  max-width: 1400px;  // Set the max-width as requested
+  margin: 0 auto;     // Center the container
+  padding: 0 2rem;    // Add horizontal padding
+  /* --- END ADDED --- */
+}
+
+.loading-state, .empty-state {
+  text-align: center;
+  padding: 4rem 1rem;
+  font-size: 1.2rem;
+  color: $text-color-medium;
+  
+  p {
+     font-size: 1rem;
+  }
+}
+
+.location-group {
+  width: 100%;
+}
+
+.location-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid $border-color-light;
+  padding-bottom: 0.75rem;
+}
+
+.location-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: $text-color-dark;
+  margin: 0;
+}
+
+.see-all-link {
+  font-size: 1rem;
+  font-weight: 600;
+  color: $primary-color;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: darken($primary-color, 10%);
+    text-decoration: underline;
+    i {
+      transform: translateX(3px);
+    }
+  }
+  
+  i {
+    font-size: 1.25rem;
+    transition: transform 0.2s ease;
+  }
+}
+
+.vehicle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.25rem 1rem;
+  
+  @media (min-width: 1200px) {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
 </style>
+

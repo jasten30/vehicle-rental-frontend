@@ -3,14 +3,14 @@
     <div class="form-step-container">
       <h3>Vehicle Photos</h3>
       <p class="step-info-text">
-        Upload clear photos of your vehicle to attract renters. A profile photo and at least one of each other type is required.
+        Upload clear photos to attract renters. A profile photo and at least one gallery photo is required.
       </p>
 
-      <!-- Profile Photo Section -->
+      <!-- Profile Photo Section (Common for both) -->
       <div class="photo-upload-section">
-        <label>Vehicle Profile Photo</label>
+        <label>Profile Photo</label>
         <p class="section-description">
-          This will be the main image for your vehicle listing.
+          This will be the main image for your listing.
         </p>
         <div
           class="profile-upload-area"
@@ -46,81 +46,130 @@
         </div>
       </div>
 
-      <!-- Exterior Photos Section -->
-      <div class="photo-upload-section">
-        <label>Exterior Photos</label>
-        <p class="section-description">
-          Upload at least one photo of your car's exterior.
-        </p>
-        <div class="gallery-grid">
-          <div
-            v-for="(photo, index) in exteriorPhotos"
-            :key="`ext-${index}`"
-            class="photo-card"
-          >
-            <img :src="photo" alt="Exterior Photo" class="photo-preview" />
-            <button
-              @click.stop="removePhoto('exterior', index)"
-              class="remove-btn"
-              type="button"
+      <!-- ================================== -->
+      <!-- FOR VEHICLES (CARS)                -->
+      <!-- ================================== -->
+      <template v-if="assetType === 'vehicle'">
+        <!-- Exterior Photos Section -->
+        <div class="photo-upload-section">
+          <label>Exterior Photos</label>
+          <p class="section-description">
+            Upload at least one photo of your car's exterior.
+          </p>
+          <div class="gallery-grid">
+            <div
+              v-for="(photo, index) in exteriorPhotos"
+              :key="`ext-${index}`"
+              class="photo-card"
             >
-              <i class="bi bi-x-lg"></i>
-            </button>
-          </div>
-          <div class="gallery-upload-box" @click="openFilePicker('exterior')">
-            <input
-              ref="exteriorPhotoInput"
-              type="file"
-              @change="handleFileUpload($event, 'exterior')"
-              accept="image/png, image/jpeg, image/jpg"
-              multiple
-              class="hidden-file-input"
-            />
-            <div class="upload-prompt-small">
-              <i class="bi bi-plus-circle-fill"></i>
-              <span>Add Photos</span>
+              <img :src="photo" alt="Exterior Photo" class="photo-preview" />
+              <button
+                @click.stop="removePhoto('exterior', index)"
+                class="remove-btn"
+                type="button"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div class="gallery-upload-box" @click="openFilePicker('exterior')">
+              <input
+                ref="exteriorPhotoInput"
+                type="file"
+                @change="handleFileUpload($event, 'exterior')"
+                accept="image/png, image/jpeg, image/jpg"
+                multiple
+                class="hidden-file-input"
+              />
+              <div class="upload-prompt-small">
+                <i class="bi bi-plus-circle-fill"></i>
+                <span>Add Photos</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Interior Photos Section -->
-      <div class="photo-upload-section">
-        <label>Interior Photos</label>
-        <p class="section-description">
-          Upload at least one photo of your car's interior.
-        </p>
-        <div class="gallery-grid">
-          <div
-            v-for="(photo, index) in interiorPhotos"
-            :key="`int-${index}`"
-            class="photo-card"
-          >
-            <img :src="photo" alt="Interior Photo" class="photo-preview" />
-            <button
-              @click.stop="removePhoto('interior', index)"
-              class="remove-btn"
-              type="button"
+        <!-- Interior Photos Section -->
+        <div class="photo-upload-section">
+          <label>Interior Photos</label>
+          <p class="section-description">
+            Upload at least one photo of your car's interior.
+          </p>
+          <div class="gallery-grid">
+            <div
+              v-for="(photo, index) in interiorPhotos"
+              :key="`int-${index}`"
+              class="photo-card"
             >
-              <i class="bi bi-x-lg"></i>
-            </button>
-          </div>
-          <div class="gallery-upload-box" @click="openFilePicker('interior')">
-            <input
-              ref="interiorPhotoInput"
-              type="file"
-              @change="handleFileUpload($event, 'interior')"
-              accept="image/png, image/jpeg, image/jpg"
-              multiple
-              class="hidden-file-input"
-            />
-            <div class="upload-prompt-small">
-              <i class="bi bi-plus-circle-fill"></i>
-              <span>Add Photos</span>
+              <img :src="photo" alt="Interior Photo" class="photo-preview" />
+              <button
+                @click.stop="removePhoto('interior', index)"
+                class="remove-btn"
+                type="button"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div class="gallery-upload-box" @click="openFilePicker('interior')">
+              <input
+                ref="interiorPhotoInput"
+                type="file"
+                @change="handleFileUpload($event, 'interior')"
+                accept="image/png, image/jpeg, image/jpg"
+                multiple
+                class="hidden-file-input"
+              />
+              <div class="upload-prompt-small">
+                <i class="bi bi-plus-circle-fill"></i>
+                <span>Add Photos</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </template>
+
+      <!-- ================================== -->
+      <!-- FOR MOTORCYCLES                    -->
+      <!-- ================================== -->
+      <template v-else-if="assetType === 'motorcycle'">
+        <div class="photo-upload-section">
+          <label>Motorcycle Gallery</label>
+          <p class="section-description">
+            Upload at least 5-6 photos showing different angles of your motorcycle.
+          </p>
+          <!-- This grid reuses the 'exteriorPhotos' prop and logic -->
+          <div class="gallery-grid">
+            <div
+              v-for="(photo, index) in exteriorPhotos"
+              :key="`ext-${index}`"
+              class="photo-card"
+            >
+              <img :src="photo" alt="Motorcycle Photo" class="photo-preview" />
+              <button
+                @click.stop="removePhoto('exterior', index)"
+                class="remove-btn"
+                type="button"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div class="gallery-upload-box" @click="openFilePicker('exterior')">
+              <input
+                ref="exteriorPhotoInput"
+                type="file"
+                @change="handleFileUpload($event, 'exterior')"
+                accept="image/png, image/jpeg, image/jpg"
+                multiple
+                class="hidden-file-input"
+              />
+              <div class="upload-prompt-small">
+                <i class="bi bi-plus-circle-fill"></i>
+                <span>Add Photos</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
 
       <div v-if="error" class="error-message">
         {{ error }}
@@ -153,13 +202,16 @@
 export default {
   name: 'VehiclePhotos',
   props: {
-    // UPDATED: Changed to match parent v-model
     profilePhotoUrl: String,
     exteriorPhotos: Array,
     interiorPhotos: Array,
     showNavigation: { type: Boolean, default: true },
+    // NEW PROP to control the layout
+    assetType: {
+      type: String,
+      default: 'vehicle', // 'vehicle' or 'motorcycle'
+    }
   },
-  // UPDATED: Emits to match parent v-model
   emits: ['update:profilePhotoUrl', 'update:exteriorPhotos', 'update:interiorPhotos', 'next', 'prev', 'error'],
   data() {
     return {
@@ -168,11 +220,21 @@ export default {
   },
   computed: {
     isStepComplete() {
-      // Validation now reads from props
+      // Validation logic changes based on assetType
+      if (this.assetType === 'motorcycle') {
+        // Motorcycle validation: profile + at least 5 gallery photos
+        return (
+          this.profilePhotoUrl &&
+          this.exteriorPhotos &&
+          this.exteriorPhotos.length >= 5 
+        );
+      }
+      
+      // Default (vehicle) validation
       return (
         this.profilePhotoUrl &&
-        this.exteriorPhotos.length > 0 &&
-        this.interiorPhotos.length > 0
+        this.exteriorPhotos && this.exteriorPhotos.length > 0 &&
+        this.interiorPhotos && this.interiorPhotos.length > 0
       );
     },
   },
@@ -188,7 +250,6 @@ export default {
       if (!files) return;
       this.error = ''; // Clear old errors
 
-      // Helper function to validate and read a file
       const readFileAsBase64 = (file) => {
         return new Promise((resolve, reject) => {
           if (file.size > 2 * 1024 * 1024) { // 2MB limit
@@ -200,20 +261,17 @@ export default {
           
           const reader = new FileReader();
           reader.onload = (e) => resolve(e.target.result);
-          // 👇 UPDATED: Changed 'e' to '_e' to fix ESLint error
           reader.onerror = (_e) => reject(new Error("Failed to read file."));
           reader.readAsDataURL(file);
         });
       };
       
-      // Process profile photo
       if (type === 'profile') {
         readFileAsBase64(files[0]).then(base64 => {
           this.$emit('update:profilePhotoUrl', base64);
         }).catch(err => { this.error = err.message; });
       } 
       
-      // Process gallery photos
       else {
         Promise.all(Array.from(files).map(readFileAsBase64))
           .then(base64Array => {
@@ -225,7 +283,6 @@ export default {
           }).catch(err => { this.error = err.message; });
       }
 
-      // Clear the file input
       event.target.value = null;
     },
 
@@ -245,7 +302,11 @@ export default {
     
     nextStep() {
       if (!this.isStepComplete) {
-        this.error = 'Please upload at least one profile, exterior, and interior photo to continue.';
+        if (this.assetType === 'motorcycle') {
+           this.error = 'Please upload a profile photo and at least 5 gallery photos to continue.';
+        } else {
+           this.error = 'Please upload at least one profile, exterior, and interior photo to continue.';
+        }
         return;
       }
       this.error = '';
@@ -503,4 +564,3 @@ h3 {
   font-weight: 500;
 }
 </style>
-

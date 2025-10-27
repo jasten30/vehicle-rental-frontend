@@ -1,5 +1,5 @@
 import api from '@/views/services/api';
-import { DateTime, Interval } from 'luxon'; // Added Interval
+import { DateTime, Interval } from 'luxon';
 
 const state = () => ({
   vehicleFilters: {
@@ -11,21 +11,23 @@ const state = () => ({
     maxPrice: null,
     availabilityStartDate: null,
     availabilityEndDate: null,
+    assetType: null, // <-- ADDED
   },
   vehicleSort: {
     key: 'rentalPricePerDay',
     order: 'asc',
   },
   allVehicles: [],
-  vehicleError: null, // Added for potential error state
+  vehicleError: null,
 });
 
 const mutations = {
   SET_VEHICLE_FILTER(state, { key, value }) {
-    if (state.vehicleFilters.hasOwnProperty(key)) {
-      state.vehicleFilters[key] = value;
+    // FIX: Use safe property check
+    if (Object.prototype.hasOwnProperty.call(state.vehicleFilters, key)) {
+         state.vehicleFilters[key] = value;
     } else {
-      // Attempted to set unknown filter key is ignored silently
+        console.warn(`[Vuex Vehicles] Attempted to set unknown filter key: ${key}`);
     }
   },
   SET_VEHICLE_SORT(state, { key, order }) {
@@ -42,23 +44,22 @@ const mutations = {
       maxPrice: null,
       availabilityStartDate: null,
       availabilityEndDate: null,
+      assetType: null, // <-- ADDED
     };
   },
   SET_ALL_VEHICLES(state, vehicles) {
     state.allVehicles = vehicles;
   },
-  // Example mutations for potential use with update/add/error
   UPDATE_VEHICLE_SUCCESS(state, updatedVehicle) {
       const index = state.allVehicles.findIndex(v => v.id === updatedVehicle.id);
       if (index !== -1) {
-          // Replace the old vehicle data with the updated one
           state.allVehicles.splice(index, 1, updatedVehicle);
       }
-      state.vehicleError = null; // Clear error on success
+      state.vehicleError = null;
   },
   ADD_VEHICLE_SUCCESS(state, newVehicle) {
-      state.allVehicles.push(newVehicle); // Add to the list
-      state.vehicleError = null; // Clear error on success
+      state.allVehicles.push(newVehicle);
+      state.vehicleError = null;
   },
   SET_VEHICLE_ERROR(state, error) {
       state.vehicleError = error;
@@ -67,18 +68,20 @@ const mutations = {
 
 const actions = {
   async fetchAllVehicles({ commit }) {
-    commit('SET_VEHICLE_ERROR', null); // Clear previous errors
+    commit('SET_VEHICLE_ERROR', null);
     try {
       const response = await api.getAllVehicles();
       commit("SET_ALL_VEHICLES", response.data);
       return response.data;
     } catch (error) {
       const errorMsg = error.response?.data?.message || error.message;
+      console.error('[Vuex Vehicles] Failed to fetch vehicles:', errorMsg);
       commit('SET_VEHICLE_ERROR', errorMsg);
-      throw error; // Re-throw for component handling
+      throw error;
     }
   },
-  async getVehiclesByOwner({ commit }, ownerId) { // Changed _commit to commit
+  // FIX: Prefixed unused ownerId with _
+  async getVehiclesByOwner({ commit }, _ownerId) {
     commit('SET_VEHICLE_ERROR', null);
     try {
       // Assuming api.getVehiclesByOwner doesn't need ownerId if using auth token
@@ -86,32 +89,33 @@ const actions = {
       return response.data;
     } catch (error) {
       const errorMsg = error.response?.data?.message || error.message;
+      console.error('[Vuex Vehicles] Failed to fetch owner vehicles:', errorMsg);
       commit('SET_VEHICLE_ERROR', errorMsg);
       throw error;
     }
   },
-  async checkVehicleAvailability({ commit }, payload) { // Changed _commit to commit
+  async checkVehicleAvailability({ commit }, payload) {
     const { vehicleId, startDate, endDate } = payload;
     commit('SET_VEHICLE_ERROR', null);
     try {
       const response = await api.checkVehicleAvailability(vehicleId, startDate, endDate);
-      return { ...response.data }; // Return availability status and cost
+      return { ...response.data };
     } catch (error) {
       const errorMsg = error.response?.data?.message || error.message;
-        commit('SET_VEHICLE_ERROR', errorMsg); // Set error state
-      throw error; // Re-throw for component handling
+       commit('SET_VEHICLE_ERROR', errorMsg);
+      throw error;
     }
   },
-  async addVehicle({ commit }, vehicleData) { // Changed _commit to commit
+  async addVehicle({ commit }, vehicleData) {
     commit('SET_VEHICLE_ERROR', null);
     try {
       const response = await api.addVehicle(vehicleData);
-        // Assuming response.data contains the ID and potentially the created vehicle object
-        // You might need to fetch the full vehicle data again if the backend only returns ID
-      // commit('ADD_VEHICLE_SUCCESS', { ...vehicleData, id: response.data.id }); // Optimistic update
-      return response.data; // Return { id: ... }
+      // We might need to dispatch fetchAllVehicles again or just add the new one
+      // For now, just return
+      return response.data;
     } catch (error) {
       const errorMsg = error.response?.data?.message || error.message;
+      console.error('[Vuex Vehicles] Failed to add vehicle:', errorMsg);
       commit('SET_VEHICLE_ERROR', errorMsg);
       throw error;
     }
@@ -120,36 +124,35 @@ const actions = {
   async updateVehicle({ commit }, { id, updates }) {
     commit('SET_VEHICLE_ERROR', null);
     try {
-      // Make sure 'updates' is passed directly as the second argument
-      const response = await api.updateVehicle(id, updates); 
-
-      commit('UPDATE_VEHICLE_SUCCESS', { id, ...updates }); 
+      const response = await api.updateVehicle(id, updates);
+      // We should probably update the vehicle in the local state
+      commit('UPDATE_VEHICLE_SUCCESS', { id, ...updates }); // This might be incomplete
       return response.data;
     } catch (error) {
       const errorMsg = error.response?.data?.message || error.message;
+      console.error('[Vuex Vehicles] Failed to update vehicle:', errorMsg);
       commit('SET_VEHICLE_ERROR', errorMsg);
       throw error;
     }
   },
 
-  async getVehicleById({ commit }, vehicleId) { // Changed _commit to commit
+  async getVehicleById({ commit }, vehicleId) {
     commit('SET_VEHICLE_ERROR', null);
     try {
       const response = await api.getVehicleById(vehicleId);
-      // Process dates here if needed, although usually done in component
       return response.data;
     } catch (error) {
       const errorMsg = error.response?.data?.message || error.message;
+      console.error('[Vuex Vehicles] Failed to fetch vehicle by ID:', errorMsg);
       commit('SET_VEHICLE_ERROR', errorMsg);
       throw error;
     }
   },
 
-  // Mutations called via actions
-  setVehicleFilter({ commit }, payload) { // payload should be { key, value }
+  setVehicleFilter({ commit }, payload) {
     commit('SET_VEHICLE_FILTER', payload);
   },
-  setVehicleSort({ commit }, payload) { // payload should be { key, order }
+  setVehicleSort({ commit }, payload) {
     commit('SET_VEHICLE_SORT', payload);
   },
   resetVehicleFilters({ commit }) {
@@ -161,14 +164,20 @@ const getters = {
   currentVehicleFilters: (state) => state.vehicleFilters,
   allVehicles: (state) => state.allVehicles,
   vehicleSort: (state) => state.vehicleSort,
-  vehicleError: (state) => state.vehicleError, // Getter for error state
+  vehicleError: (state) => state.vehicleError,
 
-  filteredAndSortedVehicles: (state, getters) => { // Added getters argument
-    // Ensure allVehicles is always an array before filtering/sorting
+  // FIX: Prefixed unused getters with _
+  filteredAndSortedVehicles: (state, _getters) => {
     let vehicles = Array.isArray(state.allVehicles) ? [...state.allVehicles] : [];
     const filters = state.vehicleFilters;
 
-    // --- Filtering ---
+    // --- (1) APPLY ASSET TYPE FILTER FIRST ---
+    if (filters.assetType) {
+      vehicles = vehicles.filter(v => v.assetType === filters.assetType);
+    }
+    // --- END ASSET TYPE FILTER ---
+
+    // --- (2) Other Filters ---
     if (filters.make) {
         vehicles = vehicles.filter(v => v.make && v.make.toLowerCase().includes(filters.make.toLowerCase()));
     }
@@ -179,7 +188,6 @@ const getters = {
         vehicles = vehicles.filter(v => v.year === parseInt(filters.year));
     }
     if (filters.location) {
-        // More robust location filtering (checking multiple fields)
         const locLower = filters.location.toLowerCase();
         vehicles = vehicles.filter(v =>
             (v.location?.city?.toLowerCase().includes(locLower)) ||
@@ -193,63 +201,73 @@ const getters = {
     if (filters.maxPrice !== null && !isNaN(filters.maxPrice)) {
         vehicles = vehicles.filter(v => typeof v.rentalPricePerDay === 'number' && v.rentalPricePerDay <= parseFloat(filters.maxPrice));
     }
+    // --- (3) Filter by vehicle-specific types (only if assetType is not motorcycle) ---
+    if (filters.assetType !== 'motorcycle') {
+        if (filters.vehicleType) {
+            vehicles = vehicles.filter(v => v.vehicleType === filters.vehicleType);
+        }
+        if (filters.seats !== null && !isNaN(filters.seats)) {
+            // Assuming 8 means 8+
+            if (filters.seats === 8) {
+                 vehicles = vehicles.filter(v => typeof v.seatingCapacity === 'number' && v.seatingCapacity >= 8);
+            } else {
+                 vehicles = vehicles.filter(v => typeof v.seatingCapacity === 'number' && v.seatingCapacity === parseInt(filters.seats));
+            }
+        }
+    }
 
-    // --- Availability Filtering ---
+
+    // --- (4) Availability Filtering ---
     if (filters.availabilityStartDate && filters.availabilityEndDate) {
       try {
-        // Ensure dates are parsed correctly
         const reqStart = DateTime.fromISO(filters.availabilityStartDate).startOf('day');
-        const reqEnd = DateTime.fromISO(filters.availabilityEndDate).endOf('day'); // Use end of day
+        const reqEnd = DateTime.fromISO(filters.availabilityEndDate).endOf('day');
 
         if (reqStart.isValid && reqEnd.isValid && reqStart <= reqEnd) {
           const requestedInterval = Interval.fromDateTimes(reqStart, reqEnd);
 
           vehicles = vehicles.filter(vehicle => {
-            // If vehicle has no availability array or it's empty, assume available
             if (!Array.isArray(vehicle.availability) || vehicle.availability.length === 0) {
               return true;
             }
 
-            // Check if ANY blocked period overlaps with the requested interval
             const isOverlappingUnavailable = vehicle.availability.some(range => {
-                try {
-                    // Parse backend ISO strings, assuming they represent full days in UTC
-                    const blockedStart = DateTime.fromISO(range.start).startOf('day');
-                    const blockedEnd = DateTime.fromISO(range.end).endOf('day'); // Use end of day
+               try {
+                   const blockedStart = DateTime.fromISO(range.start).startOf('day');
+                   const blockedEnd = DateTime.fromISO(range.end).endOf('day');
 
-                    if (!blockedStart.isValid || !blockedEnd.isValid) return false; // Skip invalid range
+                   if (!blockedStart.isValid || !blockedEnd.isValid) return false;
 
-                    const blockedInterval = Interval.fromDateTimes(blockedStart, blockedEnd);
-                    return requestedInterval.overlaps(blockedInterval);
-                } catch(e) {
-                    return false; // Treat parse errors as non-blocking? Or blocking? Decide policy.
-                }
+                   const blockedInterval = Interval.fromDateTimes(blockedStart, blockedEnd);
+                   return requestedInterval.overlaps(blockedInterval);
+               } catch(e) {
+                   console.warn("Error parsing availability range during filter:", range, e);
+                   return false;
+               }
 
             });
-            // Keep the vehicle ONLY if it DOES NOT overlap with any unavailable period
             return !isOverlappingUnavailable;
           });
         } else {
-            // Invalid date range provided for availability filter is ignored silently
+             console.warn("[Vuex Getter] Invalid date range provided for availability filter.");
         }
       } catch(e) {
-          // Error during availability filtering is ignored silently
+          console.error("[Vuex Getter] Error during availability filtering:", e);
       }
     }
 
-    // --- Sorting ---
+    // --- (5) Sorting ---
     const sortKey = state.vehicleSort.key;
-    const sortOrder = state.vehicleSort.order === 'desc' ? -1 : 1; // Factor for direction
+    const sortOrder = state.vehicleSort.order === 'desc' ? -1 : 1;
 
     if (sortKey) {
       vehicles.sort((a, b) => {
         let valA = a[sortKey];
         let valB = b[sortKey];
 
-        // Basic type handling
         if (typeof valA === 'string') valA = valA.toLowerCase();
         if (typeof valB === 'string') valB = valB.toLowerCase();
-        if (valA === null || valA === undefined) valA = sortOrder === 1 ? Infinity : -Infinity; // Handle nulls
+        if (valA === null || valA === undefined) valA = sortOrder === 1 ? Infinity : -Infinity;
         if (valB === null || valB === undefined) valB = sortOrder === 1 ? Infinity : -Infinity;
 
         if (valA < valB) return -1 * sortOrder;
@@ -268,3 +286,4 @@ export default {
   actions,
   getters,
 };
+

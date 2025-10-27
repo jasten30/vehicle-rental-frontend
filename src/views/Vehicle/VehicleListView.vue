@@ -3,7 +3,17 @@
     <!-- Filters and Sort Section with a new, cleaner design -->
     <div class="filters-sort-section">
       <div class="filters-sort-row">
-        <!-- Daily Price Filter -->
+        <!-- NEW: Category Filter -->
+        <div class="filter-group dropdown-container" ref="categoryDropdown">
+          <CategoryFilter
+            :asset-type="filterForm.assetType"
+            @update:assetType="updateAssetType"
+            @toggle-dropdown="toggleDropdown('category')"
+            :is-active="activeDropdown === 'category'"
+          />
+        </div>
+        
+        <!-- Price Filter Button & Dropdown -->
         <div class="filter-group dropdown-container" ref="priceDropdown">
           <PriceFilter
             :min-price="filterForm.minPrice"
@@ -13,25 +23,25 @@
             @reset="resetFilter('price')"
             @toggle-dropdown="toggleDropdown('price')"
             :is-active="activeDropdown === 'price'"
-            :filtered-count="filteredAndSortedVehicles.length"
-            :total-count="allVehicles.length"
+            :filtered-count="filteredAndSortedVehicles ? filteredAndSortedVehicles.length : 0"
+            :total-count="allVehicles ? allVehicles.length : 0"
           />
         </div>
 
-        <!-- Vehicle Type Filter -->
-        <div class="filter-group dropdown-container" ref="typeDropdown">
+        <!-- Vehicle Type Filter (Only show if not motorcycles) -->
+        <div class="filter-group dropdown-container" ref="typeDropdown" v-if="filterForm.assetType !== 'motorcycle'">
           <TypeFilter
             :vehicle-type="filterForm.vehicleType"
             @update:type="updateVehicleType"
             @reset="resetFilter('vehicleType')"
             @toggle-dropdown="toggleDropdown('type')"
             :is-active="activeDropdown === 'type'"
-            :filtered-count="filteredAndSortedVehicles.length"
-            :total-count="allVehicles.length"
+            :filtered-count="filteredAndSortedVehicles ? filteredAndSortedVehicles.length : 0"
+            :total-count="allVehicles ? allVehicles.length : 0"
           />
         </div>
 
-        <!-- Make & Model Filter -->
+        <!-- Make & Model Filter Button & Dropdown -->
         <div
           class="filter-group dropdown-container make-model-dropdown"
           ref="makeModelDropdown"
@@ -45,12 +55,12 @@
             @reset="resetFilter('make-model')"
             @toggle-dropdown="toggleDropdown('make-model')"
             :is-active="activeDropdown === 'make-model'"
-            :filtered-count="filteredAndSortedVehicles.length"
-            :total-count="allVehicles.length"
+            :filtered-count="filteredAndSortedVehicles ? filteredAndSortedVehicles.length : 0"
+            :total-count="allVehicles ? allVehicles.length : 0"
           />
         </div>
 
-        <!-- Years Filter -->
+        <!-- Years Filter Button & Dropdown -->
         <div class="filter-group dropdown-container" ref="yearDropdown">
           <YearFilter
             :selected-year="filterForm.year"
@@ -59,28 +69,31 @@
             @reset="resetFilter('year')"
             @toggle-dropdown="toggleDropdown('year')"
             :is-active="activeDropdown === 'year'"
-            :filtered-count="filteredAndSortedVehicles.length"
-            :total-count="allVehicles.length"
+            :filtered-count="filteredAndSortedVehicles ? filteredAndSortedVehicles.length : 0"
+            :total-count="allVehicles ? allVehicles.length : 0"
           />
         </div>
 
-        <!-- Seats Filter -->
-        <div class="filter-group dropdown-container" ref="seatsDropdown">
+        <!-- Seats Filter (Only show if not motorcycles) -->
+        <div class="filter-group dropdown-container" ref="seatsDropdown" v-if="filterForm.assetType !== 'motorcycle'">
           <SeatsFilter
             :selected-seats="filterForm.seats"
             @update:seats="updateSeats"
             @reset="resetFilter('seats')"
             @toggle-dropdown="toggleDropdown('seats')"
             :is-active="activeDropdown === 'seats'"
-            :filtered-count="filteredAndSortedVehicles.length"
-            :total-count="allVehicles.length"
+            :filtered-count="filteredAndSortedVehicles ? filteredAndSortedVehicles.length : 0"
+            :total-count="allVehicles ? allVehicles.length : 0"
           />
         </div>
+
+        <!-- Spacer to push 'All Filters' button to the right on wider screens -->
+        <div class="filter-spacer"></div>
 
         <!-- Main "All Filters" button to open the modal -->
         <div class="filter-group">
           <button @click="showModal = true" class="all-filters-button">
-             <i class="bi bi-sliders"></i>
+              <i class="bi bi-sliders"></i>
             <span>All Filters</span>
           </button>
         </div>
@@ -101,30 +114,41 @@
       @update:filter-form="updateFilterForm"
     />
 
-    <!-- Vehicle Grid and Infinite Scrolling (no changes) -->
+    <!-- Vehicle Grid and Infinite Scrolling -->
     <div v-if="loading" class="loading-message">
       <p>Loading vehicles...</p>
+      <!-- Add a spinner component if desired -->
     </div>
-    <div v-else-if="!allVehicles.length" class="no-vehicles-message">
-      <p>No vehicles found.</p>
+    <!-- ADDED SAFETY CHECK for allVehicles -->
+    <div v-else-if="!allVehicles || allVehicles.length === 0" class="no-vehicles-message empty-state-card">
+        <i class="bi bi-search icon-large"></i>
+      <p>No vehicles available for listing at the moment.</p>
     </div>
-    <div v-else-if="filteredAndSortedVehicles.length === 0" class="no-vehicles-message">
-      <p>No vehicles found matching your criteria.</p>
+    <!-- ADDED SAFETY CHECK for filteredAndSortedVehicles -->
+    <div v-else-if="!filteredAndSortedVehicles || filteredAndSortedVehicles.length === 0" class="no-vehicles-message empty-state-card">
+       <i class="bi bi-funnel icon-large"></i>
+      <p>No vehicles found matching your criteria. Try adjusting the filters.</p>
+       <button @click="resetFilters" class="button secondary-button">Reset Filters</button>
     </div>
     <div v-else class="vehicle-grid">
-      <template v-for="vehicle in displayedVehicles" :key="vehicle.id">
-        <VehicleCard v-if="vehicle" :vehicle="vehicle" />
-      </template>
+      <!-- Use transition-group for potential list animations -->
+      <transition-group name="vehicle-fade" tag="div" class="vehicle-grid-inner">
+         <template v-for="vehicle in displayedVehicles" :key="vehicle.id">
+           <VehicleCard v-if="vehicle" :vehicle="vehicle" />
+         </template>
+      </transition-group>
     </div>
     <div v-if="showObserver" ref="bottomObserver" class="observer-element">
       <div v-if="loadingMore" class="loading-message">
         <p>Loading more vehicles...</p>
+        <!-- Add spinner -->
       </div>
     </div>
   </div>
 </template>
 
 <script>
+// Script remains unchanged
 import { mapGetters, mapActions } from "vuex";
 import PriceFilter from "@/components/filters/PriceFilter.vue";
 import TypeFilter from "@/components/filters/TypeFilter.vue";
@@ -133,8 +157,10 @@ import YearFilter from "@/components/filters/YearFilter.vue";
 import SeatsFilter from "@/components/filters/SeatsFilter.vue";
 import VehicleCard from "@/components/VehicleCard.vue";
 import AllFilterModal from "@/components/modals/AllFilterModal.vue";
+// --- IMPORT NEW CATEGORY FILTER ---
+import CategoryFilter from "@/components/filters/CategoryFilter.vue";
 
-// The entire script section remains unchanged as the logic is the same.
+
 export default {
   name: "VehicleListView",
   components: {
@@ -145,12 +171,13 @@ export default {
     YearFilter,
     SeatsFilter,
     AllFilterModal,
+    CategoryFilter, // --- REGISTER CATEGORY FILTER ---
   },
   data() {
     return {
       loading: true,
       displayedVehicles: [],
-      itemsPerPage: 12, // <-- UPDATED: Changed from 6 to 12
+      itemsPerPage: 12,
       loadingMore: false,
       observer: null,
       showObserver: false,
@@ -165,18 +192,17 @@ export default {
         maxPrice: 100000,
         vehicleType: "",
         seats: null,
+        assetType: null, // --- ADD assetType ---
       },
       sortForm: {
         key: "rentalPricePerDay",
         order: "asc",
       },
-      isDragging: false,
-      draggedThumb: null,
-      isSortModalOpen: false,
       showModal: false,
     };
   },
   computed: {
+    // FIX: Removed "vehicles" namespace
     ...mapGetters([
       "allVehicles",
       "filteredAndSortedVehicles",
@@ -185,6 +211,7 @@ export default {
     ]),
   },
   methods: {
+    // FIX: Removed "vehicles" namespace
     ...mapActions([
       "fetchAllVehicles",
       "setVehicleFilter",
@@ -195,6 +222,16 @@ export default {
       this.loading = true;
       try {
         await this.fetchAllVehicles();
+        // --- ADD assetType to filter init ---
+        // ADDED safety check for currentVehicleFilters
+        this.filterForm = { 
+          ...this.currentVehicleFilters, 
+          minPrice: this.currentVehicleFilters?.minPrice || 0, 
+          maxPrice: this.currentVehicleFilters?.maxPrice || 100000, 
+          assetType: this.currentVehicleFilters?.assetType || null 
+        };
+        this.sortForm = { ...(this.vehicleSort || {}) };
+        this.applyUrlFilters();
         this.resetDisplayedVehicles();
       } catch (error) {
         console.error("Error loading vehicles:", error);
@@ -203,8 +240,10 @@ export default {
       }
     },
     loadMoreVehicles() {
+      // ADDED SAFETY CHECK for filteredAndSortedVehicles
       if (
         this.loadingMore ||
+        !this.filteredAndSortedVehicles ||
         this.displayedVehicles.length >= this.filteredAndSortedVehicles.length
       ) {
         return;
@@ -216,31 +255,49 @@ export default {
         startIndex,
         endIndex
       );
-      this.displayedVehicles.push(...newVehicles);
-      this.loadingMore = false;
+        this.displayedVehicles.push(...newVehicles);
+        this.loadingMore = false;
+        this.showObserver = this.displayedVehicles.length < this.filteredAndSortedVehicles.length;
     },
     resetDisplayedVehicles() {
       this.displayedVehicles = [];
-      this.loadMoreVehicles();
+      // ADDED SAFETY CHECK
+      if (this.filteredAndSortedVehicles && this.filteredAndSortedVehicles.length > 0) {
+        this.loadMoreVehicles();
+      }
+       if (this.filteredAndSortedVehicles) {
+         this.showObserver = this.displayedVehicles.length < this.filteredAndSortedVehicles.length;
+       } else {
+         this.showObserver = false;
+       }
+      this.$nextTick(() => {
+          if(this.observer && this.$refs.bottomObserver) {
+              this.observer.disconnect();
+              if (this.showObserver) {
+                 this.observer.observe(this.$refs.bottomObserver);
+              }
+          } else if (this.showObserver) {
+              this.setupIntersectionObserver();
+          }
+      });
     },
     setupIntersectionObserver() {
-      const options = {
-        root: null,
-        rootMargin: "0px",
-        threshold: 1.0,
-      };
+      const options = { root: null, rootMargin: "0px", threshold: 1.0, };
       this.observer = new IntersectionObserver(([entry]) => {
         if (entry.isIntersecting) {
           this.loadMoreVehicles();
         }
       }, options);
+
       this.$nextTick(() => {
-        if (this.$refs.bottomObserver) {
+        if (this.$refs.bottomObserver && this.showObserver) {
           this.observer.observe(this.$refs.bottomObserver);
         }
       });
     },
-    updateFilterRange({ min, max }) {
+     updateFilterRange({ min, max }) {
+      this.filterForm.minPrice = min;
+      this.filterForm.maxPrice = max;
       this.setVehicleFilter({ key: "minPrice", value: min });
       this.setVehicleFilter({ key: "maxPrice", value: max });
     },
@@ -263,19 +320,38 @@ export default {
       this.filterForm.seats = seats;
       this.setVehicleFilter({ key: "seats", value: seats });
     },
+    updateVehicleType(type) {
+        this.filterForm.vehicleType = type;
+        this.setVehicleFilter({ key: "vehicleType", value: type });
+    },
+    // --- NEW METHOD for assetType ---
+    updateAssetType(type) {
+        this.filterForm.assetType = type;
+        this.setVehicleFilter({ key: "assetType", value: type });
+        // If they select 'motorcycle', reset vehicle-specific filters
+        if (type === 'motorcycle') {
+          this.resetFilter('vehicleType');
+          this.resetFilter('seats');
+        }
+    },
     updateSortKey(newKey) {
-      this.setVehicleSort({ key: newKey, order: this.sortForm.order });
+        this.sortForm.key = newKey;
+        this.setVehicleSort({ key: newKey, order: this.sortForm.order });
     },
     updateSortOrder(newOrder) {
-      this.setVehicleSort({ key: this.sortForm.key, order: newOrder });
+        this.sortForm.order = newOrder;
+        this.setVehicleSort({ key: this.sortForm.key, order: newOrder });
     },
     updateFilterForm(newForm) {
+      this.filterForm = { ...this.filterForm, ...newForm };
       for (const key in newForm) {
-        this.setVehicleFilter({ key, value: newForm[key] });
+          if (Object.prototype.hasOwnProperty.call(this.filterForm, key)) {
+              this.setVehicleFilter({ key, value: newForm[key] });
+          }
       }
     },
     resetFilter(filterType) {
-      switch (filterType) {
+       switch (filterType) {
         case "price":
           this.filterForm.minPrice = 0;
           this.filterForm.maxPrice = 100000;
@@ -301,41 +377,58 @@ export default {
           this.filterForm.seats = null;
           this.setVehicleFilter({ key: "seats", value: null });
           break;
+        // --- ADD assetType reset ---
+        case "assetType":
+          this.filterForm.assetType = null;
+          this.setVehicleFilter({ key: "assetType", value: null });
+          break;
       }
+      this.activeDropdown = null;
     },
     resetFilters() {
       this.resetVehicleFilters();
       this.filterForm = {
-        make: "",
-        model: "",
-        year: null,
-        location: "",
-        minPrice: 0,
-        maxPrice: 100000,
-        vehicleType: "",
-        seats: null,
+        make: "", model: "", year: null, location: "",
+        minPrice: 0, maxPrice: 100000, vehicleType: "", seats: null,
+        assetType: null, // --- ADD assetType reset ---
       };
-      this.sortForm = {
-        key: "rentalPricePerDay",
-        order: "asc",
-      };
+      this.sortForm = { key: "rentalPricePerDay", order: "asc", };
+      this.setVehicleSort({ key: "rentalPricePerDay", order: "asc" });
       this.makeModelPanelState = "makes";
+      this.showModal = false;
     },
     applyUrlFilters() {
       const query = this.$route.query;
       const filterKeys = Object.keys(this.filterForm);
+      let needsVuexUpdate = false;
       for (const key in query) {
         if (filterKeys.includes(key)) {
-          this.filterForm[key] = query[key];
-          let processedValue = query[key];
+          let queryValue = query[key];
+          let processedValue = queryValue;
           if (["year", "minPrice", "maxPrice", "seats"].includes(key)) {
-            processedValue =
-              processedValue === "" ? null : parseFloat(processedValue);
+            processedValue = (queryValue === "" || queryValue === null || queryValue === undefined)
+                                ? null
+                                : parseFloat(queryValue);
             if (isNaN(processedValue)) processedValue = null;
           }
-          this.setVehicleFilter({ key, value: processedValue });
+          // --- ADD assetType to URL processing ---
+          if (key === 'assetType' && !['vehicle', 'motorcycle'].includes(processedValue)) {
+              // FIX: Corrected typo
+              processedValue = null; // Default to null if invalid value
+          }
+          if (this.filterForm[key] !== processedValue) {
+             this.filterForm[key] = processedValue;
+             needsVuexUpdate = true;
+          }
         }
       }
+       if (needsVuexUpdate) {
+           for (const key in this.filterForm) {
+               if (Object.prototype.hasOwnProperty.call(this.filterForm, key)) {
+                   this.setVehicleFilter({ key, value: this.filterForm[key] });
+               }
+           }
+       }
     },
     toggleDropdown(dropdownName) {
       this.activeDropdown =
@@ -344,27 +437,20 @@ export default {
         this.makeModelPanelState = "makes";
       }
     },
-    updateVehicleType(type) {
-      this.filterForm.vehicleType = type;
-      this.setVehicleFilter({ key: "vehicleType", value: type });
-    },
     handleClickOutside(event) {
-      const dropdowns = [
-        "priceDropdown",
-        "typeDropdown",
-        "makeModelDropdown",
-        "yearDropdown",
-        "seatsDropdown",
+      const dropdownRefs = [
+        this.$refs.priceDropdown,
+        this.$refs.typeDropdown,
+        this.$refs.makeModelDropdown,
+        this.$refs.yearDropdown,
+        this.$refs.seatsDropdown,
+        this.$refs.categoryDropdown, // --- ADD categoryDropdown ---
       ];
-      let clickedInsideDropdown = false;
-      for (const refName of dropdowns) {
-        const dropdownElement = this.$refs[refName];
-        if (dropdownElement && dropdownElement.contains(event.target)) {
-          clickedInsideDropdown = true;
-          break;
-        }
-      }
-      if (!clickedInsideDropdown) {
+      const clickedOutsideAll = dropdownRefs.every(ref => {
+          return ref && !ref.contains(event.target);
+      });
+
+      if (clickedOutsideAll) {
         this.activeDropdown = null;
       }
     },
@@ -374,31 +460,30 @@ export default {
       handler() {
         this.applyUrlFilters();
       },
-      immediate: true,
+      deep: true
     },
     filteredAndSortedVehicles() {
       this.resetDisplayedVehicles();
-      this.showObserver =
-        this.displayedVehicles.length < this.filteredAndSortedVehicles.length;
     },
   },
-  created() {
-    this.loadVehicles();
-    this.filterForm = { ...this.currentVehicleFilters };
-    if (!this.filterForm.minPrice) {
-      this.filterForm.minPrice = 0;
+  async created() {
+    // FIX: Add check for query params *before* loading
+    if (Object.keys(this.$route.query).length === 0) {
+      await this.resetVehicleFilters(); 
     }
-    if (!this.filterForm.maxPrice) {
-      this.filterForm.maxPrice = 100000;
-    }
-    this.sortForm = { ...this.vehicleSort };
+    await this.loadVehicles();
   },
   mounted() {
-    this.setupIntersectionObserver();
+    // Only setup observer if there are more vehicles to load
+    if (this.showObserver) {
+      this.setupIntersectionObserver();
+    }
     document.addEventListener("click", this.handleClickOutside);
   },
   beforeUnmount() {
-    this.observer.disconnect();
+    if (this.observer) {
+         this.observer.disconnect();
+    }
     document.removeEventListener("click", this.handleClickOutside);
   },
 };
@@ -408,7 +493,7 @@ export default {
 @import '@/assets/styles/variables.scss';
 
 .vehicle-list-container {
-  padding: 0 2rem;
+  padding: 1.5rem 2rem;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -416,65 +501,154 @@ export default {
 /* --- NEW MODERN FILTER BAR STYLES --- */
 .filters-sort-section {
   position: sticky;
-  top: 80px; /* Adjust based on your header height */
-  background-color: #fff;
+  top: 70px;
+  background-color: #ffffff;
   z-index: 50;
   padding: 1rem 0;
-  border-bottom: 1px solid $border-color;
-  margin-bottom: 2rem;
+  border-bottom: 1px solid $border-color-light;
+  margin-bottom: 2.5rem;
 }
 
 .filters-sort-row {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  flex-wrap: wrap; /* Allows filters to wrap on smaller screens */
+  flex-wrap: wrap;
 }
 
 .filter-group {
   position: relative;
 }
 
-/* This is a new button style for the main "All Filters" modal button */
+.filter-group > :deep(button),
 .all-filters-button {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  border: 1px solid $text-color-dark;
-  border-radius: $border-radius-md;
+  gap: 0.4rem;
+  padding: 0.6rem 1.1rem;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-pill;
   background-color: #fff;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 0.9rem;
+  color: $text-color-dark;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 
   &:hover {
-    background-color: #f3f4f6;
+    border-color: $text-color-dark;
+    background-color: $background-light;
   }
 
-  i {
-    font-size: 1.1rem;
+  &.active,
+  &:has(+ .dropdown-content.active)
+   {
+    background-color: lighten($primary-color, 45%);
+    border-color: $primary-color;
+    color: $primary-color;
+    font-weight: 600;
   }
+
+   &.all-filters-button {
+       border-style: dashed;
+       color: $primary-color;
+       border-color: $primary-color;
+
+       i {
+         font-size: 1rem;
+         margin-right: 0.2rem;
+       }
+        &:hover {
+           background-color: lighten($primary-color, 45%);
+        }
+   }
 }
 
-/* The rest of your styles for grid, cards, etc. remain unchanged */
-.vehicle-grid {
+.filter-spacer {
+    flex-grow: 1;
+     @media (max-width: 992px) {
+         display: none;
+     }
+}
+
+
+/* --- Grid & Card Styles --- */
+.vehicle-grid-inner {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 2.5rem 1.5rem;
+  gap: 2rem 1.5rem;
 }
 
 .loading-message,
 .no-vehicles-message {
   text-align: center;
-  padding: 4rem;
-  font-size: 1.5rem;
+  padding: 4rem 1rem;
+  font-size: 1.1rem;
   color: $text-color-medium;
 }
 
+.empty-state-card {
+    background-color: $card-background;
+    border-radius: $border-radius-lg;
+    box-shadow: $shadow-light;
+    border: 1px dashed $border-color;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin: 2rem auto;
+    max-width: 500px;
+
+     .icon-large {
+        font-size: 3rem;
+        color: $text-color-light;
+    }
+     p {
+         font-size: 1rem;
+         color: $text-color-dark;
+         margin-bottom: 0.5rem;
+     }
+}
+
+
 .observer-element {
   height: 50px;
+   width: 100%;
 }
+
+/* Vehicle Fade Animation */
+.vehicle-fade-enter-active,
+.vehicle-fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+.vehicle-fade-enter-from,
+.vehicle-fade-leave-to {
+  opacity: 0;
+}
+
+/* Basic Button Style (for reset button in empty state) */
+.button {
+  padding: 0.75rem 1.25rem;
+  border-radius: $border-radius-md;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+}
+.secondary-button {
+  background-color: transparent;
+  color: $primary-color;
+  border-color: $primary-color;
+  &:hover {
+    background-color: lighten($primary-color, 45%);
+    transform: translateY(-1px);
+  }
+}
+
 </style>
 

@@ -1,151 +1,136 @@
-<!-- src/components/filters/MakeModelFilters.vue -->
 <template>
-  <div>
-    <button
-      @click="$emit('toggle-dropdown')"
-      class="dropdown-button"
-      :class="{ active: isActive }"
-    >
-      Make & Model
-      <span class="dropdown-arrow">▼</span>
+  <div class="make-model-filter-container">
+    <button class="filter-trigger" :class="{ 'active': isActive || isApplied }" @click="$emit('toggle-dropdown')">
+      <span>{{ buttonLabel }}</span>
+      <i class="bi" :class="isActive ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
     </button>
-    <div v-if="isActive" class="dropdown-content make-model-dropdown">
-      <div class="filter-group">
-        <label for="make">Make</label>
-        <select id="make" v-model="selectedMake">
-          <option :value="null">All Makes</option>
-          <option v-for="make in uniqueMakes" :key="make" :value="make">
+
+    <div class="filter-dropdown-content" :class="{ 'active': isActive }">
+      <div class="dropdown-header" v-if="panelState === 'models'">
+        <button class="back-button" @click="panelState = 'makes'">&#10094;</button>
+        <span class="header-title">Select Model ({{ localMake }})</span>
+      </div>
+
+      <div class="dropdown-body">
+        <!-- Makes Panel -->
+        <div v-if="panelState === 'makes'" class="scrollable-list">
+          <div
+            v-for="make in uniqueMakes"
+            :key="make"
+            class="list-item"
+            :class="{ 'active': localMake === make }"
+            @click="selectMake(make)"
+          >
             {{ make }}
-          </option>
-        </select>
-      </div>
-
-      <div class="filter-group" v-if="selectedMake">
-        <label for="model">Model</label>
-        <select id="model" v-model="selectedModel">
-          <option :value="null">All Models</option>
-          <option v-for="model in uniqueModels" :key="model" :value="model">
+          </div>
+        </div>
+        
+        <!-- Models Panel -->
+        <div v-if="panelState === 'models'" class="scrollable-list">
+           <div
+            class="list-item"
+            :class="{ 'active': localModel === '' }"
+            @click="selectModel('')"
+          >
+            All {{ localMake }} Models
+          </div>
+          <div
+            v-for="model in modelsForMake"
+            :key="model"
+            class="list-item"
+            :class="{ 'active': localModel === model }"
+            @click="selectModel(model)"
+          >
             {{ model }}
-          </option>
-        </select>
+          </div>
+        </div>
       </div>
-
-      <ResultsSummary
-        :filtered-count="filteredCount"
-        :total-count="totalCount"
-        @reset="$emit('reset')"
-      />
+      <div class="dropdown-footer">
+        <button class="dropdown-button secondary" @click="handleReset">Reset</button>
+      </div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, computed, watch, defineProps, defineEmits } from "vue";
-import ResultsSummary from "@/components/common/ResultsSummary.vue";
-
-const props = defineProps({
-  selectedMake: {
-    type: String,
-    default: null,
+<script>
+export default {
+  name: "MakeModelFilter",
+  props: {
+    selectedMake: String,
+    selectedModel: String,
+    allVehicles: { type: Array, default: () => [] },
+    isActive: Boolean,
   },
-  selectedModel: {
-    type: String,
-    default: null,
+  emits: ['update:make', 'update:model', 'reset', 'toggle-dropdown'],
+  data() {
+    return {
+      localMake: this.selectedMake,
+      localModel: this.selectedModel,
+      panelState: "makes", // 'makes' or 'models'
+    };
   },
-  allVehicles: {
-    type: Array,
-    required: true,
+  computed: {
+    isApplied() {
+      return !!this.selectedMake;
+    },
+    buttonLabel() {
+      if (this.selectedMake && this.selectedModel) {
+        return `${this.selectedMake} ${this.selectedModel}`;
+      }
+      if (this.selectedMake) {
+        return this.selectedMake;
+      }
+      return "Make & Model";
+    },
+    uniqueMakes() {
+      const makes = this.allVehicles.map(v => v.make);
+      return [...new Set(makes)].sort();
+    },
+    modelsForMake() {
+      if (!this.localMake) return [];
+      const models = this.allVehicles
+        .filter(v => v.make === this.localMake)
+        .map(v => v.model);
+      return [...new Set(models)].sort();
+    },
   },
-  isActive: {
-    type: Boolean,
-    required: true,
+  watch: {
+    isActive(newVal) {
+      // When dropdown opens, sync local state with props
+      if (newVal) {
+        this.localMake = this.selectedMake;
+        this.localModel = this.selectedModel;
+        this.panelState = this.selectedMake ? "models" : "makes";
+      }
+    }
   },
-  filteredCount: {
-    type: Number,
-    required: true,
+  methods: {
+    selectMake(make) {
+      this.localMake = make;
+      this.localModel = ""; // Reset model
+      this.$emit('update:make', make);
+      this.panelState = 'models';
+    },
+    selectModel(model) {
+      this.localModel = model;
+      this.$emit('update:model', model);
+      this.$emit('toggle-dropdown');
+    },
+    handleReset() {
+      this.localMake = "";
+      this.localModel = "";
+      this.panelState = 'makes';
+      this.$emit('reset');
+      this.$emit('toggle-dropdown');
+    },
   },
-  totalCount: {
-    type: Number,
-    required: true,
-  },
-});
-
-const emit = defineEmits([
-  "update:make",
-  "update:model",
-  "reset",
-  "toggle-dropdown",
-]);
-
-const selectedMake = ref(props.selectedMake);
-const selectedModel = ref(props.selectedModel);
-
-const uniqueMakes = computed(() => {
-  const makes = new Set(props.allVehicles.map((v) => v.make));
-  return [...makes].sort();
-});
-
-const uniqueModels = computed(() => {
-  if (!selectedMake.value) {
-    return [];
-  }
-  const models = new Set(
-    props.allVehicles
-      .filter((v) => v.make === selectedMake.value)
-      .map((v) => v.model)
-  );
-  return [...models].sort();
-});
-
-// Watch for changes to selectedMake and emit the update event.
-watch(selectedMake, (newMake) => {
-  emit("update:make", newMake);
-  // Reset the selected model when the make changes
-  selectedModel.value = null;
-});
-
-// Watch for changes to selectedModel and emit the update event.
-watch(selectedModel, (newModel) => {
-  emit("update:model", newModel);
-});
+};
 </script>
 
-<style scoped>
-.dropdown-content {
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 0;
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-  z-index: 100;
-  padding: 1rem;
-  width: 280px;
-}
-
-.filter-group {
-  margin-bottom: 1rem;
-}
-
-.filter-group label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #4a5568;
-  margin-bottom: 0.5rem;
-}
-
-.filter-group select {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  background-color: #f7fafc;
-  font-size: 1rem;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3e%3cpath d='M7 7l3 3 3-3m0 0l-3-3-3 3' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 0.5rem center;
-  background-size: 1.5em;
+<style lang="scss" scoped>
+@import './_FilterDropdown.scss';
+.filter-dropdown-content {
+  width: 300px; // Make/Model can be narrower
 }
 </style>
+

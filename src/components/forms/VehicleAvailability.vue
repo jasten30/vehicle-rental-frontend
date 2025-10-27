@@ -267,7 +267,6 @@ h4 { // Style for sub-section titles
   }
 }
 
-// Removed .calendar-section
 .date-inputs {
     display: flex;
     gap: 1.5rem; // Space between date inputs
