@@ -199,6 +199,10 @@
       <router-view />
     </main>
 
+    <!-- --- NEW: Added FooterSection here --- -->
+    <FooterSection v-if="userRole !== 'admin'" />
+    <!-- --- END NEW --- -->
+
     <!-- --- NEW: Add the modal component here --- -->
     <VehicleTypeChoiceModal
       :show="isChoiceModalVisible"
@@ -213,21 +217,24 @@
 import { mapGetters, mapActions } from 'vuex';
 import NotificationBadge from './utils/NotificationBadge.vue';
 import NotificationBell from './components/utils/NotificationBell.vue';
-// --- NEW: Import the choice modal ---
 import VehicleTypeChoiceModal from './components/modals/VehicleTypeChoiceModal.vue';
+// --- NEW: Import the Footer ---
+import FooterSection from './components/HomeViewComponents/FooterSection.vue';
+
 
 export default {
   name: 'App',
   components: {
     NotificationBadge,
     NotificationBell,
-    VehicleTypeChoiceModal, // --- NEW: Register the modal ---
+    VehicleTypeChoiceModal,
+    FooterSection, // --- NEW: Register Footer ---
   },
   data() {
     return {
       isMenuOpen: false,
       initialsDataUrl: null,
-      isChoiceModalVisible: false, // --- NEW: State for modal ---
+      isChoiceModalVisible: false,
     };
   },
   computed: {
@@ -280,19 +287,15 @@ export default {
   methods: {
     ...mapActions(['logout', 'fetchUserChats']),
     
-    // --- NEW: Method to handle click on "Become a host" / "List..." ---
     handleHostClick() {
-      this.closeMenu(); // Close dropdown if it's open
+      this.closeMenu();
       if (this.isAuthenticated && this.userRole === 'owner') {
-        // If user is already an owner, show the choice modal
         this.isChoiceModalVisible = true;
       } else {
-        // If user is not an owner, send them to the application page
         this.$router.push({ name: 'BecomeOwnerApplication' });
       }
     },
 
-    // --- NEW: Method to handle navigation from the modal ---
     handleTypeChoice(routeName) {
       this.isChoiceModalVisible = false;
       this.$router.push({ name: routeName });
@@ -349,7 +352,7 @@ export default {
 </script>
 
 <style lang="scss">
-/* All your existing styles */
+/* All your existing global styles */
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Nunito:wght@400;700;900&display=swap');
 @import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css');
 @import './assets/styles/variables.scss';
@@ -368,6 +371,9 @@ body {
   box-shadow: none;
   background-color: white;
   margin: 0;
+  display: flex; // --- NEW: Flex layout ---
+  flex-direction: column; // --- NEW: Stack header/main/footer ---
+  min-height: 100vh; // --- NEW: Ensure it takes at least full screen height ---
 }
 .app-header {
   display: flex;
@@ -600,6 +606,7 @@ body {
 .app-content {
   padding-top: 0;
   min-height: 300px;
+  flex-grow: 1; // --- NEW: Makes the main content grow to fill space ---
 }
 .search-bar.header-search-bar {
   display: flex;
@@ -721,3 +728,4 @@ body {
   align-items: center;
 }
 </style>
+

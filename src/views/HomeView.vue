@@ -2,10 +2,10 @@
 <template>
   <div class="home-container">
     <!-- Hero Section Component -->
-    <HeroSection />
+    <HeroSection class="scroll-animate" />
 
     <!-- Skip Counter Section Component -->
-    <SkipCounterSection />
+    <SkipCounterSection class="scroll-animate" />
 
     <!-- Date Picker Component -->
     <DateRangePicker
@@ -17,13 +17,7 @@
       @close="isPickerVisible = false"
     />
 
-    <!-- Browse By Make Components -->
-    <BrowseByMake />
-
-    <!-- ================================================ -->
-    <!-- NEW: "Browse by City" replaced with dynamic "Top Picks" -->
-    <!-- ================================================ -->
-    <div class="listings-container">
+    <div class="listings-container scroll-animate">
       <!-- Loading State -->
       <div v-if="loading" class="loading-state">
         <p>Loading available vehicles...</p>
@@ -72,10 +66,13 @@
 
 
     <!-- Add the BOOK OR BROWSE component here -->
-    <BookOrHost />
+    <BookOrHost class="scroll-animate" />
 
     <!-- Add the FAQ SECTION component here -->
-    <FAQSection />
+    <FAQSection class="scroll-animate" />
+
+    <!-- REMOVED: FooterSection component moved to App.vue -->
+    <!-- <FooterSection class="scroll-animate" /> -->
   </div>
 </template>
 
@@ -85,11 +82,12 @@ import { mapGetters, mapActions } from 'vuex';
 import HeroSection from '@/components/HomeViewComponents/HeroSection.vue';
 import SkipCounterSection from '@/components/HomeViewComponents/SkipCounterSection.vue';
 import DateRangePicker from '@/components/HomeViewComponents/DateRangePicker.vue';
-import BrowseByMake from '@/components/HomeViewComponents/BrowseByMake.vue';
-// BrowseByCities is removed as we are replacing its functionality
+// BrowseByMake import removed
 import BookOrHost from '@/components/HomeViewComponents/BookOrHost.vue';
 import FAQSection from '@/components/HomeViewComponents/FAQSection.vue';
 import VehicleCard from '@/components/VehicleCard.vue'; // --- NEW IMPORT ---
+// --- REMOVED: FooterSection import ---
+// import FooterSection from '@/components/HomeViewComponents/FooterSection.vue';
 
 
 export default {
@@ -98,11 +96,11 @@ export default {
     HeroSection,
     SkipCounterSection,
     DateRangePicker,
-    BrowseByMake,
-    // BrowseByCities, // Removed
+    // BrowseByMake, // Removed
     BookOrHost,
     FAQSection,
     VehicleCard, // --- NEW COMPONENT ---
+    // FooterSection, // --- REMOVED ---
   },
   data() {
     return {
@@ -113,6 +111,7 @@ export default {
       untilTime: '',
       isPickerVisible: false,
       loading: true, // --- NEW ---
+      observer: null, // --- NEW for scroll animation ---
     };
   },
   computed: {
@@ -244,6 +243,42 @@ export default {
       console.error("HomeView: Failed to fetch vehicles", error);
     } finally {
       this.loading = false;
+    }
+  },
+  // --- NEW: mounted() hook for scroll animation ---
+  mounted() {
+    const options = {
+      root: null, // relative to the viewport
+      threshold: 0.2, // 20% of the item must be visible
+      rootMargin: "0px 0px -50px 0px" // trigger 50px before it's fully in view
+    };
+
+    this.observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          this.observer.unobserve(entry.target); // Animate only once
+        }
+      });
+    }, options);
+
+    // Observe all elements with the .scroll-animate class
+    this.$nextTick(() => {
+      // Check if $el exists before querying
+      if (this.$el) {
+        const sections = this.$el.querySelectorAll('.scroll-animate');
+        sections.forEach(section => {
+          if (section) { // Check if section is not null
+            this.observer.observe(section);
+          }
+        });
+      }
+    });
+  },
+  // --- NEW: beforeUnmount() hook to clean up ---
+  beforeUnmount() {
+    if (this.observer) {
+      this.observer.disconnect();
     }
   },
 };
@@ -448,7 +483,7 @@ export default {
   
   /* --- ADDED --- */
   max-width: 1400px;  // Set the max-width as requested
-  margin: 0 auto;     // Center the container
+  margin: 0 auto 3rem auto; // Center the container and add bottom margin
   padding: 0 2rem;    // Add horizontal padding
   /* --- END ADDED --- */
 }
@@ -508,15 +543,30 @@ export default {
   }
 }
 
+/* --- UPDATED VEHICLE GRID STYLES --- */
 .vehicle-grid {
   display: grid;
+  /* UPDATED: Smaller minmax and reduced gap */
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 1.25rem 1rem;
+  gap: 1.25rem 1rem; // UPDATED: Reduced gap
   
+  /* UPDATED: Fit 5 cards on large screens */
   @media (min-width: 1200px) {
     grid-template-columns: repeat(5, 1fr);
   }
 }
 
+.scroll-animate {
+  // Start hidden
+  opacity: 0;
+  transform: translateY(40px); // Start slightly lower
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+
+  // Animate when 'is-visible' class is added
+  &.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 </style>
 

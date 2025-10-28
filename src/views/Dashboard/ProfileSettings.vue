@@ -141,6 +141,69 @@
                 </div>
                  <p v-if="emailVerificationMessage" :class="emailVerificationStatusIsError ? 'error-message small' : 'success-message small'">{{ emailVerificationMessage }}</p>
             </li>
+
+            <!-- ================================== -->
+            <!-- NEW QR Code Section -->
+            <!-- ================================== -->
+             <li class="verification-item">
+              <div class="item-label">
+                <span v-if="payoutQRCodeUrl" class="check-icon">✓</span>
+                <span v-else class="cross-icon">×</span>
+                Payment QR Code
+              </div>
+               <div class="value-and-action">
+                 <img v-if="payoutQRCodeUrl" :src="payoutQRCodeUrl" alt="QR Code" class="qr-code-thumb" />
+                 <span v-else class="item-value">Not set</span>
+                 <button
+                  v-if="isOwnProfile"
+                  @click="startQRCodeUpdateVerification"
+                  class="change-button"
+                >
+                  {{ payoutQRCodeUrl ? 'Update' : 'Add' }}
+                </button>
+              </div>
+            </li>
+            
+            <!-- QR Code Verification UI -->
+            <li v-if="isVerifyingQRCode" class="email-verification-ui">
+              
+              <!-- Step 1: Send & Verify Code -->
+              <template v-if="!isQRCodeUpdateUnlocked">
+                <p class="verification-instructions">For your security, we need to verify your identity. A verification code will be sent to your email.</p>
+                <button @click="sendVerificationCode('qr')" :disabled="verificationLoading" class="button primary full-width">
+                  <span v-if="verificationLoading">Sending...</span>
+                  <span v-else>Send Code to {{ profileData.email }}</span>
+                </button>
+
+                <div v-if="qrCodeVerificationMessage && !qrCodeVerificationError" class="form-group" style="margin-top: 1rem;">
+                    <input type="text" v-model="qrCodeVerificationCode" placeholder="123456" maxlength="6" />
+                    <button @click="submitQRCodeVerificationCode" :disabled="verificationLoading" class="submit-otp-button">
+                        <span v-if="verificationLoading">Verifying...</span>
+                        <span v-else>Submit</span>
+                    </button>
+                </div>
+              </template>
+
+              <!-- Step 2: Upload Image -->
+              <template v-else>
+                <p class="verification-instructions">Verification successful! You can now upload your new QR code image.</p>
+                <input type="file" ref="qrCodeInput" @change="handleQRCodeUpload" accept="image/png, image/jpeg" class="hidden-file-input" />
+                <button @click="triggerQRCodeUpload" :disabled="qrCodeUploadLoading" class="button primary full-width">
+                  <span v-if="qrCodeUploadLoading">Uploading...</span>
+                  <span v-else>
+                    <i class="bi bi-upload"></i> Upload New QR Code
+                  </span>
+                </button>
+              </template>
+
+              <!-- Messages -->
+              <p v-if="qrCodeVerificationMessage" :class="qrCodeVerificationError ? 'error-message small' : 'success-message small'">
+                {{ qrCodeVerificationMessage }}
+              </p>
+            </li>
+            <!-- ================================== -->
+            <!-- END QR Code Section -->
+            <!-- ================================== -->
           </ul>
         </div>
 
@@ -199,16 +262,25 @@ export default {
       isEditModalOpen: false,
       isChangePhoneModalOpen: false,
       initialsDataUrl: null,
+      // Email Verification
       isVerifyingEmail: false,
       emailCodeSent: false,
       emailOtpCode: '',
       emailVerificationMessage: '',
       emailVerificationStatusIsError: false,
+      // Phone Verification
       isVerifyingPhone: false,
       verificationCode: '',
       verificationMessage: '',
       verificationStatusIsError: false,
-      verificationLoading: false,
+      verificationLoading: false, // Shared loading state for OTPs
+      // QR Code Verification
+      isVerifyingQRCode: false,
+      isQRCodeUpdateUnlocked: false,
+      qrCodeVerificationCode: '',
+      qrCodeVerificationMessage: '',
+      qrCodeVerificationError: false,
+      qrCodeUploadLoading: false,
     };
   },
   computed: {
@@ -228,6 +300,10 @@ export default {
     },
     isEmailVerified() {
       return this.profileData?.emailVerified === true;
+    },
+    // --- NEW: Payout QR Code URL ---
+    payoutQRCodeUrl() {
+      return this.profileData?.payoutQRCodeUrl || null;
     },
      initials() {
       if (!this.profileData) return '';
@@ -305,8 +381,12 @@ export default {
       this.isChangePhoneModalOpen = true;
     },
     handleProfileUpdate() {
+      // This is the success callback
       this.isEditModalOpen = false;
       this.isChangePhoneModalOpen = false;
+      this.isVerifyingQRCode = false;
+      this.isQRCodeUpdateUnlocked = false;
+      this.qrCodeUploadLoading = false;
       this.fetchUserProfile();
     },
     async fetchOtherUserProfile(id) {
@@ -397,9 +477,119 @@ export default {
             this.verificationLoading = false;
         }
     },
-    // UPDATED: This now navigates to the dedicated application page
     goToApplicationPage() {
         this.$router.push({ name: 'BecomeDriveVerified' });
+    },
+
+    // --- NEW METHODS FOR QR CODE ---
+    startQRCodeUpdateVerification() {
+      // First, check if email is verified. If not, they can't get the code.
+      if (!this.isEmailVerified) {
+        alert("Please verify your email address before updating payment information.");
+        this.startEmailVerification();
+        return;
+      }
+      // Reset states
+      this.isVerifyingQRCode = true;
+      this.isQRCodeUpdateUnlocked = false;
+      this.qrCodeVerificationCode = '';
+      this.qrCodeVerificationMessage = '';
+      this.qrCodeVerificationError = false;
+    },
+
+    async sendVerificationCode(type) {
+      // This method is now generic
+      this.verificationLoading = true;
+      // FIX: Prefix unused variable with _
+      let _msgSubject = type === 'qr' ? 'qrCode' : 'phone';
+      let msgStateVar = type === 'qr' ? 'qrCodeVerificationMessage' : 'verificationMessage';
+      let errStateVar = type === 'qr' ? 'qrCodeVerificationError' : 'verificationStatusIsError';
+
+      this[msgStateVar] = 'Sending code...';
+      this[errStateVar] = false;
+      try {
+        await this.sendEmailVerificationCode();
+        this[msgStateVar] = 'Code sent! Please check your email.';
+      } catch (error) {
+        this[msgStateVar] = 'Failed to send code. Please try again.';
+        this[errStateVar] = true;
+      } finally {
+        this.verificationLoading = false;
+      }
+    },
+
+    async submitQRCodeVerificationCode() {
+      if (!this.qrCodeVerificationCode || this.qrCodeVerificationCode.length < 6) {
+        this.qrCodeVerificationMessage = "Please enter the 6-digit code.";
+        this.qrCodeVerificationError = true;
+        return;
+      }
+      this.verificationLoading = true;
+      this.qrCodeVerificationError = false;
+      try {
+        await this.verifyEmailCode(this.qrCodeVerificationCode);
+        this.qrCodeVerificationMessage = 'Success! You can now upload your QR code.';
+        this.isQRCodeUpdateUnlocked = true; // <-- Unlock the upload!
+      } catch (error) {
+        this.qrCodeVerificationMessage = error.response?.data?.message || 'Verification failed. The code may be incorrect.';
+        this.qrCodeVerificationError = true;
+      } finally {
+        this.verificationLoading = false;
+      }
+    },
+    
+    triggerQRCodeUpload() {
+      this.$refs.qrCodeInput.click();
+    },
+
+    handleQRCodeUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      this.qrCodeUploadLoading = true;
+      this.qrCodeVerificationMessage = "Reading file...";
+      this.qrCodeVerificationError = false;
+
+      // Validate file
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        this.qrCodeVerificationMessage = "File is too large (Max 2MB).";
+        this.qrCodeVerificationError = true;
+        this.qrCodeUploadLoading = false;
+        return;
+      }
+      if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+        this.qrCodeVerificationMessage = "Invalid file type. Please use PNG or JPG.";
+        this.qrCodeVerificationError = true;
+        this.qrCodeUploadLoading = false;
+        return;
+      }
+
+      // Read file as Base64
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64String = e.target.result;
+        this.qrCodeVerificationMessage = "Uploading QR Code...";
+        try {
+          // Send the Base64 string to be updated
+          await this.updateUserProfile({ payoutQRCode: base64String });
+          // The handleProfileUpdate method (called on success from store)
+          // will reset the state and fetch the new profile info.
+          // We don't need to do it here.
+          this.qrCodeVerificationMessage = "QR Code updated successfully!";
+          // handleProfileUpdate will be triggered by the action,
+          // which will reset all states.
+        } catch (error) {
+          this.qrCodeVerificationMessage = "Upload failed. Please try again.";
+          this.qrCodeVerificationError = true;
+          this.qrCodeUploadLoading = false;
+        }
+      };
+      reader.onerror = () => {
+        this.qrCodeVerificationMessage = "Failed to read file.";
+        this.qrCodeVerificationError = true;
+        this.qrCodeUploadLoading = false;
+      };
+      reader.readAsDataURL(file);
     }
   },
 };
@@ -593,6 +783,35 @@ export default {
 }
 .success-message.small {
     color: $secondary-color;
+}
+.error-message.small {
+    color: $admin-color;
+}
+.button.primary.full-width {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background-color: $primary-color;
+    color: white;
+    border: none;
+    border-radius: $border-radius-md;
+    cursor: pointer;
+    font-weight: 600;
+     &:disabled {
+        opacity: 0.7;
+     }
+     i {
+       margin-right: 0.5rem;
+     }
+}
+.hidden-file-input {
+    display: none;
+}
+.qr-code-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: $border-radius-sm;
+  border: 1px solid $border-color;
 }
 </style>
 

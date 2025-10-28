@@ -1,103 +1,113 @@
 <template>
-  <div v-if="isOpen" class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal-card">
-      <h3 class="modal-title">{{ modalTitle }}</h3>
+  <transition name="modal-fade">
+    <div v-if="isOpen" class="modal-overlay" @click.self="$emit('close')">
+      <div class="modal-card">
+        <h3 class="modal-title">{{ modalTitle }}</h3>
 
-      <!-- 1. Show payment options only for extensions -->
-      <div v-if="paymentType === 'extension'" class="payment-options">
-        <label class="radio-option">
-          <input type="radio" v-model="paymentMethod" value="qr" />
-          <span class="radio-label">Pay Now (QR)</span>
-        </label>
-        <label class="radio-option">
-          <input type="radio" v-model="paymentMethod" value="cash" />
-          <span class="radio-label">Pay Cash on Return</span>
-        </label>
-      </div>
+        <!-- 1. Show payment options only for extensions (COMMENTED OUT) -->
+        <!-- 
+        <div v-if="paymentType === 'extension'" class="payment-options">
+          <label class="radio-option">
+            <input type="radio" v-model="paymentMethod" value="qr" />
+            <span class="radio-label">Pay Now (QR)</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" v-model="paymentMethod" value="cash" />
+            <span class="radio-label">Pay Cash on Return</span>
+          </label>
+        </div>
+        -->
 
-      <!-- 2. Show QR/Reference flow if downpayment OR if 'qr' is selected for extension -->
-      <div v-if="showQrFlow" class="payment-content">
-        <p v-if="booking" class="modal-subtitle">
-          Scan the QR code to pay <strong>₱{{ amountToPay }}</strong>.
-        </p>
-        
-        <!-- UPDATED: Dynamic QR Code Image -->
-        <img 
-          :src="qrCodeUrl" 
-          alt="QR Code" 
-          class="qr-code-image"
-          @error="onQrError"
-        />
-        <!-- Show message if QR is not available -->
-        <p v-if="!hasQrCode" class="qr-instructions error">
-          The host has not provided a QR code. Please contact them to arrange payment.
-        </p>
-        
-        <p class="qr-instructions">
-          After paying, please enter the transaction reference number below, check the box, and confirm.
-        </p>
-        <div class="input-group">
-          <label for="referenceNumber">Reference Number:</label>
-          <input
-            type="text"
-            id="referenceNumber"
-            v-model="referenceNumber"
-            placeholder="Enter transaction reference"
+        <!-- 2. Show QR/Reference flow -->
+        <div class="payment-content">
+          <p v-if="booking" class="modal-subtitle">
+            Scan the QR code to pay <strong>₱{{ amountToPay }}</strong>.
+          </p>
+          
+          <!-- UPDATED: Dynamic QR Code Image -->
+          <img 
+            :src="qrCodeUrl" 
+            alt="QR Code" 
+            class="qr-code-image"
+            @error="onQrError"
           />
+          <!-- Show message if QR is not available -->
+          <p v-if="!hasQrCode" class="qr-instructions error">
+            The host has not provided a QR code. Please contact them to arrange payment.
+          </p>
+          
+          <p class="qr-instructions">
+            After paying, please enter the transaction reference number below, check the box, and confirm.
+          </p>
+          <div class="input-group">
+            <label for="referenceNumber">Reference Number:</label>
+            <input
+              type="text"
+              id="referenceNumber"
+              v-model="referenceNumber"
+              placeholder="Enter transaction reference"
+            />
+          </div>
+        </div>
+
+        <!-- 3. Show "Pay Later" message (COMMENTED OUT) -->
+        <!--
+        <div v-if="paymentType === 'extension' && paymentMethod === 'cash'" class="payment-content">
+           <p class="modal-subtitle">
+             You have chosen to pay the extension fee of <strong>₱{{ amountToPay }}</strong> in cash upon returning the vehicle.
+           </p>
+           <p class="qr-instructions">
+             The owner will be notified. This amount will be added to your remaining balance. Please check the box and confirm.
+           </p>
+        </div>
+        -->
+
+        <div class="terms-section">
+          <label class="checkbox-container">
+            <input type="checkbox" v-model="termsAccepted" />
+            <span class="checkmark"></span>
+            <!-- 4. Dynamic terms text -->
+            <span>
+              I agree to the <a href="/terms" target="_blank">terms and conditions</a> and confirm that I have completed the payment.
+            </span>
+          </label>
+        </div>
+
+        <!-- 5. New Extension Announcement -->
+        <div class="extension-note">
+           <i class="bi bi-info-circle-fill"></i>
+           <p>Need to extend your trip? Please contact the host directly through our chat system to arrange an extension.</p>
+        </div>
+
+        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+
+        <div class="modal-actions">
+          <button @click="$emit('close')" class="button secondary-button">Cancel</button>
+          
+          <!-- 6. Show "I Have Paid" button -->
+          <button
+            @click="handleConfirmPayment"
+            :disabled="!isReadyToConfirmQr || isSubmitting"
+            class="button primary-button">
+            <span v-if="isSubmitting">Confirming...</span>
+            <span v-else>I Have Paid</span>
+          </button>
+
+          <!-- 7. Show "Confirm & Pay Later" button (COMMENTED OUT) -->
+          <!--
+          <button
+            v-if="paymentType === 'extension' && paymentMethod === 'cash'"
+            @click="handlePayLater"
+            :disabled="!isReadyToConfirmCash || isSubmitting"
+            class="button primary-button">
+            <span v-if="isSubmitting">Confirming...</span>
+            <span v-else>Confirm & Pay Later</span>
+          </button>
+          -->
         </div>
       </div>
-
-      <!-- 3. Show "Pay Later" message if 'cash' is selected for extension -->
-      <div v-if="paymentType === 'extension' && paymentMethod === 'cash'" class="payment-content">
-         <p class="modal-subtitle">
-           You have chosen to pay the extension fee of <strong>₱{{ amountToPay }}</strong> in cash upon returning the vehicle.
-         </p>
-         <p class="qr-instructions">
-           The owner will be notified. This amount will be added to your remaining balance. Please check the box and confirm.
-         </p>
-      </div>
-
-      <div class="terms-section">
-        <label class="checkbox-container">
-          <input type="checkbox" v-model="termsAccepted" />
-          <span class="checkmark"></span>
-          <!-- 4. Dynamic terms text -->
-          <span v-if="paymentType === 'extension' && paymentMethod === 'cash'">
-            I agree to the <a href="/terms" target="_blank">terms and conditions</a> and will pay the extension fee upon return.
-          </span>
-          <span v-else>
-            I agree to the <a href="/terms" target="_blank">terms and conditions</a> and confirm that I have completed the payment.
-          </span>
-        </label>
-      </div>
-
-       <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-
-      <div class="modal-actions">
-        <button @click="$emit('close')" class="button secondary-button">Cancel</button>
-        
-        <!-- 5. Show "I Have Paid" button for QR flow -->
-        <button
-          v-if="showQrFlow"
-          @click="handleConfirmPayment"
-          :disabled="!isReadyToConfirmQr || isSubmitting"
-          class="button primary-button">
-          <span v-if="isSubmitting">Confirming...</span>
-          <span v-else>I Have Paid</span>
-        </button>
-
-        <!-- 6. Show "Confirm & Pay Later" button for cash flow -->
-        <button
-          v-if="paymentType === 'extension' && paymentMethod === 'cash'"
-          @click="handlePayLater"
-          :disabled="!isReadyToConfirmCash || isSubmitting"
-          class="button primary-button">
-          <span v-if="isSubmitting">Confirming...</span>
-          <span v-else>Confirm & Pay Later</span>
-        </button>
-      </div>
     </div>
-  </div>
+  </transition>
 </template>
 
 <script>
@@ -110,14 +120,13 @@ export default {
     booking: Object,
     paymentType: {
       type: String,
-      default: 'downpayment', // 'downpayment' or 'extension'
+      default: 'downpayment',
     },
     amountDue: {
       type: Number,
       required: true,
       default: 0,
     },
-    // 👇 ADDED: Prop to receive owner's details
     ownerDetails: {
         type: Object,
         default: () => ({})
@@ -130,7 +139,7 @@ export default {
       referenceNumber: '',
       isSubmitting: false,
       errorMessage: '',
-      paymentMethod: 'qr',
+      paymentMethod: 'qr', // Default to QR
     };
   },
   computed: {
@@ -138,84 +147,80 @@ export default {
       // Must accept terms, have reference, AND have a QR code to pay to
       return this.termsAccepted && this.referenceNumber.trim() !== '' && this.hasQrCode;
     },
-    isReadyToConfirmCash() {
-        return this.termsAccepted;
-    },
+    // isReadyToConfirmCash() {
+    //   return this.termsAccepted;
+    // },
     modalTitle() {
-      return this.paymentType === 'extension'
-        ? 'Confirm Extension Payment'
-        : 'Confirm Downpayment';
+      // Logic simplified to only show downpayment
+      return 'Confirm Downpayment';
     },
     amountToPay() {
       return this.amountDue ? this.amountDue.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00';
     },
-    showQrFlow() {
-        return this.paymentType === 'downpayment' || this.paymentMethod === 'qr';
-    },
-    // 👇 ADDED: Computed prop to find the correct QR code URL
-    payoutDetails() {
-        // Find the payout details from the owner's profile
-        // This assumes the backend is providing the full ownerDetails object
-        // And that payoutDetails is an object, not the old array structure
-        return this.ownerDetails?.payoutDetails || {};
-    },
+    // showQrFlow() {
+    //   // Logic simplified to always show QR flow
+    //   return true;
+    // },
+    
+    // ================================================
+    //  UPDATED QR CODE LOGIC
+    // ================================================
     qrCodeUrl() {
-        // Use the QR URL that matches the *renter's* selected method (gcash or maya)
-        if (this.paymentMethod === 'gcash') {
-            return this.payoutDetails.payoutType === 'gcash' ? this.payoutDetails.qrCodeUrl : null;
-        }
-        if (this.paymentMethod === 'maya') {
-             return this.payoutDetails.payoutType === 'maya' ? this.payoutDetails.qrCodeUrl : null;
-        }
-        // Default for downpayment (which is always GCash for now)
-        return this.payoutDetails.payoutType === 'gcash' ? this.payoutDetails.qrCodeUrl : 'https://placehold.co/250x250/e2e8f0/666666?text=No+QR+Found';
+      // This now correctly points to the root property on ownerDetails
+      // which is saved by your userController.
+      return this.ownerDetails?.payoutQRCodeUrl || 'https://placehold.co/250x250/e2e8f0/666666?text=No+QR+Found';
     },
     hasQrCode() {
-        return !!this.qrCodeUrl && !this.qrCodeUrl.includes('placehold.co');
+       return !!this.qrCodeUrl && !this.qrCodeUrl.includes('placehold.co');
     }
   },
   watch: {
     isOpen(newVal) {
       if (newVal) {
+        // Reset state when modal opens
         this.termsAccepted = false;
         this.referenceNumber = '';
         this.isSubmitting = false;
         this.errorMessage = '';
-        // Set payment method based on owner's available QR code first
-        if (this.paymentType === 'extension') {
-            this.paymentMethod = this.payoutDetails.payoutType === 'maya' ? 'maya' : 'qr'; // 'qr' is our 'gcash' default
-        } else {
-             this.paymentMethod = 'qr'; // Downpayment is always 'qr'
-        }
+        this.paymentMethod = 'qr'; // Always default to 'qr'
       }
     }
   },
   methods: {
-    ...mapActions(['confirmDownpaymentByUser', 'confirmExtensionPayment', 'deferExtensionPayment']),
+    // Only need the downpayment action
+    ...mapActions(['confirmDownpaymentByUser'/*, 'confirmExtensionPayment', 'deferExtensionPayment'*/]),
 
     async handleConfirmPayment() { // For QR / "I Have Paid"
-      if (!this.termsAccepted) { /* ... */ }
-      if (this.showQrFlow && !this.referenceNumber.trim()) { /* ... */ }
-      if (!this.hasQrCode) {
-           this.errorMessage = "Cannot proceed without a valid QR code from the host.";
+      if (!this.isReadyToConfirmQr) {
+           if (!this.hasQrCode) {
+               this.errorMessage = "Cannot proceed without a valid QR code from the host.";
+           } else if (!this.referenceNumber.trim()) {
+               this.errorMessage = "Please enter your payment reference number.";
+           } else if (!this.termsAccepted) {
+               this.errorMessage = "You must agree to the terms and conditions.";
+           }
            return;
       }
 
       this.isSubmitting = true;
       this.errorMessage = '';
       try {
+        // Payload is now only for downpayment
         const payload = {
             bookingId: this.booking.id,
             referenceNumber: this.referenceNumber.trim(),
             amount: this.amountDue,
-            paymentMethod: this.paymentType === 'extension' ? this.paymentMethod : 'qr' // 'qr' or 'maya'
+            paymentMethod: 'qr' // Hardcoded as 'qr'
         };
 
-        if (this.paymentType === 'extension') {
-          await this.confirmExtensionPayment(payload);
-        } else {
-          await this.confirmDownpaymentByUser(payload);
-        }
+        // All logic for extensions is commented out
+        // if (this.paymentType === 'extension') {
+        //   await this.confirmExtensionPayment(payload);
+        // } else {
+        //   await this.confirmDownpaymentByUser(payload);
+        // }
+        
+        await this.confirmDownpaymentByUser(payload);
         
         this.$emit('payment-confirmed');
       } catch (error) {
@@ -224,28 +229,8 @@ export default {
         this.isSubmitting = false;
       }
     },
-
-    async handlePayLater() { // For "Pay Cash"
-       if (!this.termsAccepted) { /* ... */ }
-
-        this.isSubmitting = true;
-        this.errorMessage = '';
-        try {
-            const payload = {
-                bookingId: this.booking.id,
-                amount: this.amountDue,
-                paymentMethod: 'cash_on_return' // Explicitly 'cash'
-            };
-            
-            await this.deferExtensionPayment(payload);
-            
-            this.$emit('payment-confirmed'); // Emit same event to refresh
-        } catch (error) {
-             this.errorMessage = error.response?.data?.message || "Failed to confirm payment. Please try again.";
-        } finally {
-            this.isSubmitting = false;
-        }
-    },
+    
+    // handlePayLater() { ... } // This method is no longer needed
     
     onQrError(event) {
         // If the owner's URL is broken, show a placeholder
@@ -258,7 +243,7 @@ export default {
 <style lang="scss" scoped>
 @import '@/assets/styles/variables.scss';
 
-/* ... (radio button styles) ... */
+/* Removed .payment-options and .radio-option styles */
 .payment-options {
   display: flex;
   gap: 1rem;
@@ -309,7 +294,7 @@ export default {
     font-weight: 500;
   }
 }
-/* ... (existing modal styles) ... */
+
 .input-group {
     margin-top: 1rem;
     text-align: left;
@@ -325,6 +310,7 @@ export default {
         border: 1px solid $border-color;
         border-radius: $border-radius-md;
         font-size: 1rem;
+        box-sizing: border-box; // Added for consistent padding
     }
 }
 .modal-overlay {
@@ -342,6 +328,10 @@ export default {
 }
 .modal-subtitle {
   margin: 0 0 1.5rem; color: $text-color-medium;
+  strong {
+      color: $text-color-dark;
+      font-weight: 700;
+  }
 }
 .payment-content {
   margin-bottom: 1.5rem;
@@ -429,6 +419,7 @@ export default {
   color: $admin-color;
   margin-top: 1rem;
   font-size: 0.9rem;
+  font-weight: 500; // Make error stand out
 }
 .modal-actions {
   display: flex;
@@ -454,6 +445,33 @@ export default {
 .secondary-button {
   background-color: #e2e8f0;
   color: #1f2937;
+  &:hover {
+      background-color: darken(#e2e8f0, 5%);
+  }
+}
+
+// NEW STYLE FOR EXTENSION NOTE
+.extension-note {
+    background-color: $background-light;
+    border: 1px solid $border-color-light;
+    border-radius: $border-radius-md;
+    padding: 1rem;
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    i {
+        font-size: 1.25rem;
+        color: $primary-color;
+    }
+    p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: $text-color-medium;
+        text-align: left;
+        line-height: 1.5;
+    }
 }
 </style>
 

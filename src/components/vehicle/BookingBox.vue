@@ -16,8 +16,10 @@
       <div class="datetime-input-group">
         <label for="end-date">RETURN</label>
           <div class="inputs-row">
+          <!-- UPDATED: min is now minEndDate -->
           <input type="date" id="end-date" v-model="endDate" :min="minEndDate" />
-          <input type="time" id="end-time" v-model="endTime" :min="minReturnTime" />
+          <!-- UPDATED: value is bound to startTime and is readonly -->
+          <input type="time" id="end-time" :value="startTime" readonly />
         </div>
       </div>
     </div>
@@ -42,6 +44,7 @@
 
     <!-- Only show availability status if driver is verified or not a renter -->
     <div v-if="availabilityMessage && (isDriverVerified || userRole !== 'renter')" class="availability-message" :class="availabilityStatus">
+      <!-- FIX: Corrected the broken class binding -->
       <i class="bi" :class="availabilityIcon"></i>
       <span>{{ availabilityMessage }}</span>
     </div>
@@ -93,7 +96,7 @@ export default {
       startDate: null,
       startTime: '09:00',
       endDate: null,
-      endTime: '09:00',
+      // endTime: '09:00', // <-- REMOVED. Will now be derived from startTime.
       totalCost: 0,
       rentalDurationDescription: '',
       isLoadingAvailability: false,
@@ -102,34 +105,32 @@ export default {
     };
   },
   computed: {
-    // ================================================
-    //  UPDATED VUEX MAPPING
-    // ================================================
-    // Assumes 'user' object is in the ROOT state
     ...mapState({
-        currentUser: state => state.user // Adjusted path
+        currentUser: state => state.user 
     }),
-    // Assumes 'userRole' is a ROOT getter
     ...mapGetters(['userRole']),
-    // ================================================
 
     isDriverVerified() {
-        // Now uses currentUser directly from mapState
         return !!this.currentUser && this.currentUser.isApprovedToDrive === true;
     },
 
     today() {
       return DateTime.now().toISODate();
     },
+    // UPDATED: minEndDate is now 1 day after startDate
     minEndDate() {
-      return this.startDate ? this.startDate : this.today;
+      const today = this.today;
+      if (!this.startDate) return today;
+      
+      const start = DateTime.fromISO(this.startDate);
+      // Set minimum end date to be 1 day after the start date
+      const nextDay = start.plus({ days: 1 }).toISODate(); 
+      
+      // Ensure minEndDate is not in the past
+      return nextDay > today ? nextDay : today;
     },
-    minReturnTime() {
-      if (this.startDate && this.endDate && this.startDate === this.endDate && this.startTime) {
-        return this.startTime;
-      }
-      return undefined;
-    },
+    // minReturnTime is no longer needed
+    
     pickupDateTimeISO() {
       if (this.startDate && this.startTime) {
         try {
@@ -139,10 +140,12 @@ export default {
       }
       return null;
     },
+    // UPDATED: returnDateTimeISO now uses startTime
     returnDateTimeISO() {
-      if (this.endDate && this.endTime) {
+      // Uses endDate and startTime
+      if (this.endDate && this.startTime) { 
         try {
-          const dt = DateTime.fromISO(`${this.endDate}T${this.endTime}`, { zone: 'local' });
+          const dt = DateTime.fromISO(`${this.endDate}T${this.startTime}`, { zone: 'local' });
           return dt.isValid ? dt.toISO({ includeOffset: true, suppressMilliseconds: false }) : null;
         } catch (e) { console.error("Error creating returnDateTimeISO:", e); return null; }
       }
@@ -150,6 +153,7 @@ export default {
     },
     canProceed() {
         if (!this.isDriverVerified && this.userRole === 'renter') {
+            // Allow clicking "Get Verified" as long as dates are filled
             return !!(this.pickupDateTimeISO && this.returnDateTimeISO);
         }
         return this.availabilityStatus === 'available' && !this.isLoadingAvailability;
@@ -163,10 +167,19 @@ export default {
   },
   watch: {
     currentUser: 'checkAvailabilityAndCalculateCost',
-    startDate() { this.checkAvailabilityAndCalculateCost(); },
-    startTime() { this.checkAvailabilityAndCalculateCost(); },
+    // UPDATED: Add logic to clear endDate if startDate makes it invalid
+    startDate(newStartDate) {
+      if (this.endDate && newStartDate >= this.endDate) {
+          this.endDate = null; // Reset end date
+      }
+      this.checkAvailabilityAndCalculateCost(); 
+    },
+    startTime() { 
+      // This will now trigger all computed props and re-check availability
+      this.checkAvailabilityAndCalculateCost(); 
+    },
     endDate() { this.checkAvailabilityAndCalculateCost(); },
-    endTime() { this.checkAvailabilityAndCalculateCost(); },
+    // endTime watcher removed
     unavailableDates() { this.checkAvailabilityAndCalculateCost(); },
   },
   methods: {
@@ -179,9 +192,14 @@ export default {
         if (!start.isValid || !end.isValid || start >= end) return '';
 
         const diff = end.diff(start, ['days', 'hours']);
-        const totalHours = diff.as('hours');
-        const calculatedDays = Math.ceil(totalHours / 24);
+        
+        // Since times are locked, we can be more precise
+        const totalDays = diff.as('days'); 
+        
+        // Use Math.round to handle any minor daylight saving shifts
+        const calculatedDays = Math.round(totalDays); 
 
+        if (calculatedDays <= 0) return ''; // Should be caught by validation, but good safety
         return `Rental Period: ${calculatedDays} day${calculatedDays > 1 ? 's' : ''}`;
     },
 
@@ -215,10 +233,11 @@ export default {
           return;
       }
 
+      // UPDATED: Now checks for strictly less than (e.g., 10:00AM must be before 10:00AM on the same day)
       if (start >= end) {
         this.totalCost = 0;
         this.rentalDurationDescription = '';
-        this.availabilityMessage = 'Return date/time must be after pickup date/time.';
+        this.availabilityMessage = 'Return date must be at least 1 day after pickup.';
         this.availabilityStatus = 'unavailable';
         return;
       }
@@ -275,7 +294,7 @@ export default {
       } catch (error) {
         console.error("[BookingBox] Failed to check backend availability:", error);
         if (error.response && error.response.status === 403) {
-            this.availabilityMessage = 'You are not authorized to book this vehicle. Please ensure you are logged in as a verified renter.';
+            this.availabilityMessage = 'You are not authorized to reserve this vehicle. Please ensure you are logged in as a verified renter to proceed with the booking.';
         } else {
             this.availabilityMessage = 'Could not check booking schedule. Please try again.';
         }
@@ -404,6 +423,14 @@ export default {
             outline: none;
             border-color: $primary-color;
             box-shadow: 0 0 0 3px lighten($primary-color, 40%);
+        }
+        
+        // --- Style for readonly time input ---
+        &[readonly] {
+            background-color: $background-light;
+            color: $text-color-medium;
+            cursor: not-allowed;
+            border-style: dashed;
         }
     }
      input[type="date"] {
