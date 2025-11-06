@@ -215,7 +215,7 @@ export default createStore({
           if (user) {
             try {
               const authToken = await user.getIdToken();
-              setAuthToken(authToken);
+              setAuthToken(authToken); // This is your API token
               const response = await api.getUserProfile();
               const userRole = response.data.role || 'renter';
               commit('SET_AUTH_STATE', {
@@ -237,22 +237,37 @@ export default createStore({
         });
       });
     },
-    async login({ commit }, credentials) {
+
+    // --- UPDATED LOGIN ACTION ---
+    async login({ commit }, { idToken }) { // Now expects idToken
       try {
         const auth = getAuth();
-        const backendResponse = await api.login(credentials);
+        
+        // 1. Send the ID Token to the backend to get a *custom* token
+        // This verifies the user and checks for 'isBlocked'
+        const backendResponse = await api.login({ idToken }); // Pass idToken
         const customToken = backendResponse.data.token;
+
+        // 2. Sign in with the new custom token
+        // This is necessary to get the custom claims (like 'role')
         const userCredential = await signInWithCustomToken(auth, customToken);
         const user = userCredential.user;
-        const authToken = await user.getIdToken();
-        setAuthToken(authToken);
+        
+        // 3. Get the *final* auth token (now with custom claims)
+        const finalAuthToken = await user.getIdToken();
+        setAuthToken(finalAuthToken);
+
+        // 4. Fetch the full user profile
         const profileResponse = await api.getUserProfile();
         const userRole = profileResponse.data.role || 'renter';
+        
         commit('SET_AUTH_STATE', {
           user: profileResponse.data,
           userRole,
-          authToken,
+          authToken: finalAuthToken,
         });
+
+        // 5. Redirect
         if (userRole === 'admin') {
           router.push('/dashboard/admin/dashboard');
         } else if (userRole === 'owner') {
@@ -266,6 +281,8 @@ export default createStore({
         throw error;
       }
     },
+    // --- END UPDATED LOGIN ACTION ---
+
     async fetchAllBookings({ commit }, params = {}) {
       try {
         const response = await api.getAllBookings(params);
@@ -318,10 +335,6 @@ export default createStore({
             ];
           }
           // --- REMOVED: Faulty normalization logic ---
-          // if (!normalized.assetType) {
-          //   normalized.assetType = 'vehicle';
-          // }
-          // --- END REMOVED ---
           return normalized;
         });
         commit('SET_ALL_VEHICLES', normalizedVehicles);
@@ -772,6 +785,49 @@ export default createStore({
     resetVehicleFilters({ commit }) {
       commit('RESET_VEHICLE_FILTERS');
     },
+
+    // --- NEW ACTION ---
+    async forgotPassword({ _commit }, email) {
+      try {
+        await api.forgotPassword(email); 
+      } catch (error) {
+        console.error('[Vuex] Forgot Password failed:', error);
+        throw error;
+      }
+    },
+    // --- END NEW ACTION ---
+
+    // ================================================
+    //  NEW ACTIONS FOR PROFILE PAGE
+    // ================================================
+    async getPublicVehiclesByOwner({ _commit }, userId) {
+      try {
+        const response = await api.getPublicVehiclesByOwner(userId);
+        return response.data; // Component will handle this data
+      } catch (error) {
+        console.error('[Vuex] Failed to fetch public vehicles:', error);
+        throw error;
+      }
+    },
+    async getReviewsForHost({ _commit }, hostId) {
+      try {
+        const response = await api.getReviewsForHost(hostId);
+        return response.data; // Component will handle this data
+      } catch (error) {
+        console.error('[Vuex] Failed to fetch host reviews:', error);
+        throw error;
+      }
+    },
+    async submitReviewReply({ _commit }, { reviewId, text }) {
+      try {
+        await api.submitReviewReply(reviewId, { text });
+      } catch (error) {
+        console.error('[Vuex] Failed to submit review reply:', error);
+        throw error; // Let the component handle the error message
+      }
+    },
+    // ================================================
+
   },
   getters: {
     notifications: (state) => state.notifications,
@@ -933,4 +989,3 @@ export default createStore({
     owner,
   },
 });
-

@@ -164,7 +164,7 @@
 import { ref, computed, onMounted } from 'vue';
 import {
   getFirestore,
-  doc,
+  doc, // <-- This is the IMPORTED function
   getDoc,
   collection,
   query,
@@ -188,9 +188,8 @@ const host = ref({
 const showAllReviews = ref(false);
 
 // ======================================================
-//  NEW FEATURE LOGIC
+//  FEATURE LOGIC
 // ======================================================
-// 1. Define the map from keys to display names
 const featureNameMap = {
   seatbeltsAndAirbags: "Seatbelts and Airbags",
   abs: "Anti-lock Braking System (ABS)",
@@ -213,19 +212,14 @@ const featureNameMap = {
   petFriendly: "Pet Friendly",
 };
 
-// 2. Computed property to get the list of selected feature names
 const selectedFeaturesList = computed(() => {
   if (!props.vehicle || !props.vehicle.features || typeof props.vehicle.features !== 'object') {
     return [];
   }
   return Object.keys(props.vehicle.features)
-    // Filter for keys where the value is true
     .filter(key => props.vehicle.features[key] === true)
-    // Map the key to its display name
-    .map(key => featureNameMap[key] || key); // Fallback to key if name not found
+    .map(key => featureNameMap[key] || key); 
 });
-
-// Removed categorizedFeatures, displayedCategories, totalFeatureCount, toggleFeatures
 // ======================================================
 
 const displayedReviews = computed(() => {
@@ -262,7 +256,7 @@ const fetchHostData = async (ownerId) => {
     if (!ownerId) {
       return;
     }
-    const hostDocRef = doc(db, 'users', ownerId);
+    const hostDocRef = doc(db, 'users', ownerId); // <-- Uses imported 'doc'
     const hostDocSnap = await getDoc(hostDocRef);
     if (hostDocSnap.exists()) {
       const hostData = hostDocSnap.data();
@@ -285,14 +279,17 @@ const fetchReviews = (vehicleId) => {
   const reviewsRef = collection(db, 'reviews');
   const q = query(reviewsRef, where('vehicleId', '==', vehicleId));
   
+  // --- UPDATED THIS FUNCTION ---
   onSnapshot(q, async (snapshot) => {
-    const reviewPromises = snapshot.docs.map(async (doc) => {
-        const reviewData = doc.data();
+    // FIX: Renamed 'doc' to 'reviewDoc' to avoid conflict
+    const reviewPromises = snapshot.docs.map(async (reviewDoc) => { 
+        const reviewData = reviewDoc.data();
         let reviewerName = 'Anonymous';
         let reviewerPhoto = 'https://placehold.co/100x100/A0A0A0/FFFFFF?text=User';
         if(reviewData.renterId) {
             try {
-                const userDoc = await getDoc(doc(db, 'users', reviewData.renterId));
+                // Now the imported 'doc' function is used correctly
+                const userDoc = await getDoc(doc(db, 'users', reviewData.renterId)); 
                 if(userDoc.exists()) {
                     const userData = userDoc.data();
                     reviewerName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'User';
@@ -302,8 +299,9 @@ const fetchReviews = (vehicleId) => {
                 console.error(`Failed to fetch user data for renterId: ${reviewData.renterId}`, e);
             }
         }
-        return { id: doc.id, ...reviewData, reviewerName, reviewerPhoto };
+        return { id: reviewDoc.id, ...reviewData, reviewerName, reviewerPhoto };
     });
+    // --- END UPDATE ---
     
     reviews.value = await Promise.all(reviewPromises);
   });

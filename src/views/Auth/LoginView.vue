@@ -4,43 +4,80 @@
 
     <div class="form-column">
       <div class="login-container">
-        <h2 class="login-title">Welcome Back</h2>
-        <p class="login-subtitle">Sign in to continue to RentCycle</p>
+        
+        <!-- Login View -->
+        <template v-if="view === 'login'">
+          <h2 class="login-title">Welcome Back</h2>
+          <p class="login-subtitle">Sign in to continue to RentCycle</p>
 
-        <!-- Phone login functionality and tabs have been removed for a cleaner interface -->
+          <form @submit.prevent="handleLogin" class="login-form">
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input
+                type="email"
+                id="email"
+                v-model="email"
+                required
+                placeholder="you@example.com"
+              />
+            </div>
+            <div class="form-group">
+              <div class="label-row">
+                <label for="password">Password</label>
+                <!-- NEW: Forgot Password Link -->
+                <a href="#" @click.prevent="view = 'forgot'" class="forgot-password-link">Forgot password?</a>
+              </div>
+              <input
+                type="password"
+                id="password"
+                v-model="password"
+                required
+                placeholder="••••••••"
+              />
+            </div>
+            <button type="submit" :disabled="loading" class="login-button">
+              <span v-if="loading" class="spinner"></span>
+              <span v-else>Sign In</span>
+            </button>
+          </form>
 
-        <form @submit.prevent="handleLogin" class="login-form">
-          <div class="form-group">
-            <label for="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              v-model="email"
-              required
-              placeholder="you@example.com"
-            />
-          </div>
-          <div class="form-group">
-            <label for="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              v-model="password"
-              required
-              placeholder="••••••••"
-            />
-          </div>
-          <button type="submit" :disabled="loading" class="login-button">
-            <span v-if="loading" class="spinner"></span>
-            <span v-else>Sign In</span>
-          </button>
-        </form>
+          <p v-if="error" class="error-message">{{ error }}</p>
+          <p class="register-link">
+            Don't have an account?
+            <router-link to="/register">Sign up</router-link>
+          </p>
+        </template>
 
-        <p v-if="error" class="error-message">{{ error }}</p>
-        <p class="register-link">
-          Don't have an account?
-          <router-link to="/register">Sign up</router-link>
-        </p>
+        <!-- Forgot Password View -->
+        <template v-else-if="view === 'forgot'">
+           <h2 class="login-title">Reset Password</h2>
+           <p class="login-subtitle">Enter your email to receive a password reset link.</p>
+
+           <form @submit.prevent="handleForgotPassword" class="login-form">
+            <div class="form-group">
+              <label for="reset-email">Email</label>
+              <input
+                type="email"
+                id="reset-email"
+                v-model="resetEmail"
+                required
+                placeholder="you@example.com"
+              />
+            </div>
+            <button type="submit" :disabled="loading" class="login-button">
+              <span v-if="loading" class="spinner"></span>
+              <span v-else>Send Reset Link</span>
+            </button>
+          </form>
+
+          <p v-if="error" class="error-message">{{ error }}</p>
+          <p v-if="successMessage" class="success-message">{{ successMessage }}</p>
+          <p class="register-link">
+            Remembered your password?
+            <a href="#" @click.prevent="view = 'login'">Back to login</a>
+          </p>
+        </template>
+
       </div>
     </div>
   </div>
@@ -48,36 +85,69 @@
 
 <script>
 import { mapActions } from 'vuex';
-
-// Firebase phone auth imports are no longer needed here
-// import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+// --- NEW: Import Firebase Auth methods ---
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 
 export default {
   name: 'LoginView',
   data() {
     return {
-      // All data properties related to phone login have been removed
+      view: 'login', // 'login' or 'forgot'
       email: '',
       password: '',
+      resetEmail: '', // For the forgot password form
       loading: false,
       error: null,
+      successMessage: null, // For success feedback
     };
   },
-  // Computed property for phone number is no longer needed
   methods: {
-    ...mapActions(['login']), // 'tokenLogin' action is no longer needed
+    ...mapActions(['login', 'forgotPassword']), 
+    
     async handleLogin() {
       this.loading = true;
       this.error = null;
+      this.successMessage = null;
       try {
-        await this.login({ email: this.email, password: this.password });
+        // --- THIS IS THE NEW LOGIC ---
+        // 1. Sign in with Firebase on the FRONTEND first
+        const auth = getAuth();
+        const userCredential = await signInWithEmailAndPassword(auth, this.email, this.password);
+        
+        // 2. Get the ID Token from the successful login
+        const idToken = await userCredential.user.getIdToken();
+
+        // 3. Send THIS TOKEN to your Vuex action (and to your backend)
+        // Your backend will now verify this token instead of a password
+        await this.login({ idToken }); 
+        // Vuex action will handle redirect
+
       } catch (err) {
-        this.error = err.response?.data?.message || 'Failed to log in.';
+        // Handle Firebase auth errors
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+            this.error = 'Invalid credentials.';
+        } else {
+            this.error = err.response?.data?.message || 'Failed to log in.';
+        }
       } finally {
         this.loading = false;
       }
     },
-    // The sendSmsOtp and handlePhoneLogin methods have been removed
+    
+    async handleForgotPassword() {
+      this.loading = true;
+      this.error = null;
+      this.successMessage = null;
+      try {
+        await this.forgotPassword(this.resetEmail); 
+        this.successMessage = 'Password reset link sent! Please check your email.';
+        this.resetEmail = ''; 
+      } catch (err) {
+        this.error = err.response?.data?.message || 'Failed to send reset link.';
+      } finally {
+        this.loading = false;
+      }
+    },
   },
 };
 </script>
@@ -138,35 +208,20 @@ export default {
   margin-bottom: 2rem;
 }
 
-/* Login tabs are no longer displayed, so these styles could be removed if not used elsewhere */
-.login-tabs {
+/* Styles for the row containing label and forgot link */
+.label-row {
   display: flex;
-  margin-bottom: 1.5rem;
-  background-color: lighten($background-color, 2%);
-  border-radius: $border-radius-pill;
-  padding: 0.25rem;
+  justify-content: space-between;
+  align-items: baseline;
+}
 
-  button {
-    flex: 1;
-    padding: 0.75rem;
-    border: none;
-    background: none;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: $text-color-medium;
-    border-radius: $border-radius-pill;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-
-    &.active {
-      color: $primary-color;
-      background-color: $card-background;
-      box-shadow: $shadow-light;
-    }
+.forgot-password-link {
+  font-size: 0.85rem;
+  color: $primary-color;
+  text-decoration: none;
+  font-weight: 600;
+  &:hover {
+    text-decoration: underline;
   }
 }
 
@@ -235,6 +290,17 @@ export default {
   border-radius: $border-radius-md;
   text-align: center;
   margin-top: 1rem;
+  font-size: 0.9rem; // Added for consistency
+}
+
+.success-message {
+  color: $secondary-color; // Or your success color
+  background-color: lighten($secondary-color, 40%);
+  padding: 0.75rem;
+  border-radius: $border-radius-md;
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 0.9rem;
 }
 
 .register-link {
@@ -252,4 +318,3 @@ export default {
   }
 }
 </style>
-

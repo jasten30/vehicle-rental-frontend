@@ -9,8 +9,12 @@
       @approve-to-drive="goToApplicationPage"
     />
 
-    <div v-if="!profileData" class="loading-state">
+    <div v-if="!profileData && loadingProfile" class="loading-state">
       <p>Loading profile...</p>
+    </div>
+
+    <div v-else-if="!profileData" class="error-state">
+       <p class="error-message">Could not load user profile.</p>
     </div>
 
     <div v-else class="profile-content">
@@ -142,68 +146,60 @@
                  <p v-if="emailVerificationMessage" :class="emailVerificationStatusIsError ? 'error-message small' : 'success-message small'">{{ emailVerificationMessage }}</p>
             </li>
 
-            <!-- ================================== -->
-            <!-- NEW QR Code Section -->
-            <!-- ================================== -->
-             <li class="verification-item">
-              <div class="item-label">
-                <span v-if="payoutQRCodeUrl" class="check-icon">✓</span>
-                <span v-else class="cross-icon">×</span>
-                Payment QR Code
-              </div>
-               <div class="value-and-action">
-                 <img v-if="payoutQRCodeUrl" :src="payoutQRCodeUrl" alt="QR Code" class="qr-code-thumb" />
-                 <span v-else class="item-value">Not set</span>
-                 <button
-                  v-if="isOwnProfile"
-                  @click="startQRCodeUpdateVerification"
-                  class="change-button"
-                >
-                  {{ payoutQRCodeUrl ? 'Update' : 'Add' }}
-                </button>
-              </div>
-            </li>
-            
-            <!-- QR Code Verification UI -->
-            <li v-if="isVerifyingQRCode" class="email-verification-ui">
-              
-              <!-- Step 1: Send & Verify Code -->
-              <template v-if="!isQRCodeUpdateUnlocked">
-                <p class="verification-instructions">For your security, we need to verify your identity. A verification code will be sent to your email.</p>
-                <button @click="sendVerificationCode('qr')" :disabled="verificationLoading" class="button primary full-width">
-                  <span v-if="verificationLoading">Sending...</span>
-                  <span v-else>Send Code to {{ profileData.email }}</span>
-                </button>
-
-                <div v-if="qrCodeVerificationMessage && !qrCodeVerificationError" class="form-group" style="margin-top: 1rem;">
-                    <input type="text" v-model="qrCodeVerificationCode" placeholder="123456" maxlength="6" />
-                    <button @click="submitQRCodeVerificationCode" :disabled="verificationLoading" class="submit-otp-button">
-                        <span v-if="verificationLoading">Verifying...</span>
-                        <span v-else>Submit</span>
-                    </button>
+             <template v-if="isOwnProfile && profileData.role === 'owner'">
+               <li class="verification-item">
+                <div class="item-label">
+                  <span v-if="payoutQRCodeUrl" class="check-icon">✓</span>
+                  <span v-else class="cross-icon">×</span>
+                  Payment QR Code
                 </div>
-              </template>
+                 <div class="value-and-action">
+                   <img v-if="payoutQRCodeUrl" :src="payoutQRCodeUrl" alt="QR Code" class="qr-code-thumb" />
+                   <span v-else class="item-value">Not set</span>
+                   <button
+                    v-if="isOwnProfile"
+                    @click="startQRCodeUpdateVerification"
+                    class="change-button"
+                  >
+                    {{ payoutQRCodeUrl ? 'Update' : 'Add' }}
+                  </button>
+                </div>
+              </li>
+              
+              <li v-if="isVerifyingQRCode" class="email-verification-ui">
+                
+                <template v-if="!isQRCodeUpdateUnlocked">
+                  <p class="verification-instructions">For your security, we need to verify your identity. A verification code will be sent to your email.</p>
+                  <button @click="sendVerificationCode('qr')" :disabled="verificationLoading" class="button primary full-width">
+                    <span v-if="verificationLoading">Sending...</span>
+                    <span v-else>Send Code to {{ profileData.email }}</span>
+                  </button>
 
-              <!-- Step 2: Upload Image -->
-              <template v-else>
-                <p class="verification-instructions">Verification successful! You can now upload your new QR code image.</p>
-                <input type="file" ref="qrCodeInput" @change="handleQRCodeUpload" accept="image/png, image/jpeg" class="hidden-file-input" />
-                <button @click="triggerQRCodeUpload" :disabled="qrCodeUploadLoading" class="button primary full-width">
-                  <span v-if="qrCodeUploadLoading">Uploading...</span>
-                  <span v-else>
-                    <i class="bi bi-upload"></i> Upload New QR Code
-                  </span>
-                </button>
-              </template>
+                  <div v-if="qrCodeVerificationMessage && !qrCodeVerificationError" class="form-group" style="margin-top: 1rem;">
+                      <input type="text" v-model="qrCodeVerificationCode" placeholder="123456" maxlength="6" />
+                      <button @click="submitQRCodeVerificationCode" :disabled="verificationLoading" class="submit-otp-button">
+                          <span v-if="verificationLoading">Verifying...</span>
+                          <span v-else>Submit</span>
+                      </button>
+                  </div>
+                </template>
 
-              <!-- Messages -->
-              <p v-if="qrCodeVerificationMessage" :class="qrCodeVerificationError ? 'error-message small' : 'success-message small'">
-                {{ qrCodeVerificationMessage }}
-              </p>
-            </li>
-            <!-- ================================== -->
-            <!-- END QR Code Section -->
-            <!-- ================================== -->
+                <template v-else>
+                  <p class="verification-instructions">Verification successful! You can now upload your new QR code image.</p>
+                  <input type="file" ref="qrCodeInput" @change="handleQRCodeUpload" accept="image/png, image/jpeg" class="hidden-file-input" />
+                  <button @click="triggerQRCodeUpload" :disabled="qrCodeUploadLoading" class="button primary full-width">
+                    <span v-if="qrCodeUploadLoading">Uploading...</span>
+                    <span v-else>
+                      <i class="bi bi-upload"></i> Upload New QR Code
+                    </span>
+                  </button>
+                </template>
+
+                <p v-if="qrCodeVerificationMessage" :class="qrCodeVerificationError ? 'error-message small' : 'success-message small'">
+                  {{ qrCodeVerificationMessage }}
+                </p>
+              </li>
+             </template>
           </ul>
         </div>
 
@@ -216,12 +212,47 @@
       </div>
 
       <div class="profile-right-section">
-          <h4>{{ isOwnProfile ? 'My' : `${profileData.firstName}'s` }} Vehicles</h4>
-          <p>Your listed vehicles will appear here.</p>
+        <!-- User's Vehicles -->
+        <div class="profile-section">
+          <h4>{{ isOwnProfile ? 'My' : `${profileData.firstName}'s` }} Listings</h4>
+          <div v-if="isLoadingVehicles" class="loading-state small">
+            <p>Loading listings...</p>
+          </div>
+          <div v-else-if="ownerVehicles.length > 0" class="vehicle-list">
+            <ProfileVehicleCard
+              v-for="vehicle in ownerVehicles"
+              :key="vehicle.id"
+              :vehicle="vehicle"
+            />
+          </div>
+          <div v-else class="empty-state small">
+            <p>{{ isOwnProfile ? 'You have' : 'This user has' }} no listings yet.</p>
+          </div>
+        </div>
+
+        <!-- Reviews for this user -->
+        <div class="profile-section">
+          <h4>Reviews for {{ isOwnProfile ? 'Me' : profileData.firstName }} as Host</h4>
+           <div v-if="isLoadingReviews" class="loading-state small">
+            <p>Loading reviews...</p>
+          </div>
+          <div v-else-if="ownerReviews.length > 0" class="review-list">
+            <ProfileReviewCard
+              v-for="review in ownerReviews"
+              :key="review.id"
+              :review="review"
+              :is-owner="isOwnProfile && profileData.role === 'owner'"
+              @submit-reply="handleSubmitReply"
+            />
+          </div>
+          <div v-else class="empty-state small">
+            <p>This host has no reviews yet.</p>
+          </div>
+          <p v-if="replyError" class="error-message small">{{ replyError }}</p>
+        </div>
       </div>
     </div>
 
-    <!-- The modal no longer needs the start-step prop -->
     <EditProfileModal
       v-if="profileData"
       :is-open="isEditModalOpen"
@@ -245,6 +276,8 @@ import { doc, getDoc } from 'firebase/firestore';
 import EditProfileModal from '@/components/modals/EditProfileModal.vue';
 import VerificationReminder from '@/components/utils/VerificationReminder.vue';
 import UpdatePhoneNumberModal from '@/components/modals/UpdatePhoneNumberModal.vue';
+import ProfileVehicleCard from '@/components/ProfileVehicleCard.vue';
+import ProfileReviewCard from '@/components/ProfileReviewCard.vue';
 
 export default {
   name: 'ProfileSettingsView',
@@ -252,6 +285,8 @@ export default {
     EditProfileModal,
     VerificationReminder,
     UpdatePhoneNumberModal,
+    ProfileVehicleCard,
+    ProfileReviewCard,
   },
   props: {
     userId: String,
@@ -262,25 +297,28 @@ export default {
       isEditModalOpen: false,
       isChangePhoneModalOpen: false,
       initialsDataUrl: null,
-      // Email Verification
       isVerifyingEmail: false,
       emailCodeSent: false,
       emailOtpCode: '',
       emailVerificationMessage: '',
       emailVerificationStatusIsError: false,
-      // Phone Verification
       isVerifyingPhone: false,
       verificationCode: '',
       verificationMessage: '',
       verificationStatusIsError: false,
-      verificationLoading: false, // Shared loading state for OTPs
-      // QR Code Verification
+      verificationLoading: false, 
       isVerifyingQRCode: false,
       isQRCodeUpdateUnlocked: false,
       qrCodeVerificationCode: '',
       qrCodeVerificationMessage: '',
       qrCodeVerificationError: false,
       qrCodeUploadLoading: false,
+      loadingProfile: true, 
+      isLoadingVehicles: true,
+      isLoadingReviews: true,
+      ownerVehicles: [],
+      ownerReviews: [],
+      replyError: '',
     };
   },
   computed: {
@@ -301,7 +339,6 @@ export default {
     isEmailVerified() {
       return this.profileData?.emailVerified === true;
     },
-    // --- NEW: Payout QR Code URL ---
     payoutQRCodeUrl() {
       return this.profileData?.payoutQRCodeUrl || null;
     },
@@ -351,14 +388,60 @@ export default {
     userId: {
       immediate: true,
       handler(newId) {
-        if (newId && !this.isOwnProfile) {
-          this.fetchOtherUserProfile(newId);
-        }
+        this.loadProfileData(newId);
       },
     },
+    user(newUser) {
+        if (this.isOwnProfile && newUser) {
+            this.loadProfileData(newUser.uid);
+        }
+    }
   },
   methods: {
-    ...mapActions(['fetchUserProfile', 'sendEmailVerificationCode', 'verifyEmailCode', 'updateUserProfile']),
+    ...mapActions([
+      'fetchUserProfile', 
+      'sendEmailVerificationCode', 
+      'verifyEmailCode', 
+      'updateUserProfile',
+      'getPublicVehiclesByOwner', 
+      'getReviewsForHost',
+      'submitReviewReply',
+    ]),
+    
+    async loadProfileData(profileId) {
+      this.loadingProfile = true;
+      this.isLoadingVehicles = true;
+      this.isLoadingReviews = true;
+      
+      const idToFetch = this.isOwnProfile ? this.user?.uid : (profileId || this.userId);
+      if (!idToFetch) {
+           this.loadingProfile = false;
+           this.isLoadingVehicles = false;
+           this.isLoadingReviews = false;
+           return;
+      }
+
+      if (!this.isOwnProfile) {
+        await this.fetchOtherUserProfile(idToFetch);
+      }
+      this.loadingProfile = false; 
+
+      try {
+        const vehiclesPromise = this.getPublicVehiclesByOwner(idToFetch);
+        const reviewsPromise = this.getReviewsForHost(idToFetch);
+        
+        const [vehicles, reviews] = await Promise.all([vehiclesPromise, reviewsPromise]);
+        
+        this.ownerVehicles = vehicles || [];
+        this.ownerReviews = reviews || [];
+      } catch (err) {
+        console.error("Error fetching profile content:", err);
+      } finally {
+        this.isLoadingVehicles = false;
+        this.isLoadingReviews = false;
+      }
+    },
+
      generateInitialsImage(initials) {
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
@@ -381,21 +464,23 @@ export default {
       this.isChangePhoneModalOpen = true;
     },
     handleProfileUpdate() {
-      // This is the success callback
       this.isEditModalOpen = false;
       this.isChangePhoneModalOpen = false;
       this.isVerifyingQRCode = false;
       this.isQRCodeUpdateUnlocked = false;
       this.qrCodeUploadLoading = false;
-      this.fetchUserProfile();
+      this.fetchUserProfile(); 
     },
     async fetchOtherUserProfile(id) {
+      this.loadingProfile = true;
       const userRef = doc(db, 'users', id);
       try {
         const docSnap = await getDoc(userRef);
         this.profileUser = docSnap.exists() ? docSnap.data() : null;
       } catch (error) {
         console.error('Error fetching user profile:', error);
+      } finally {
+        this.loadingProfile = false;
       }
     },
     async startEmailVerification() {
@@ -480,27 +565,20 @@ export default {
     goToApplicationPage() {
         this.$router.push({ name: 'BecomeDriveVerified' });
     },
-
-    // --- NEW METHODS FOR QR CODE ---
     startQRCodeUpdateVerification() {
-      // First, check if email is verified. If not, they can't get the code.
       if (!this.isEmailVerified) {
         alert("Please verify your email address before updating payment information.");
         this.startEmailVerification();
         return;
       }
-      // Reset states
       this.isVerifyingQRCode = true;
       this.isQRCodeUpdateUnlocked = false;
       this.qrCodeVerificationCode = '';
       this.qrCodeVerificationMessage = '';
       this.qrCodeVerificationError = false;
     },
-
     async sendVerificationCode(type) {
-      // This method is now generic
       this.verificationLoading = true;
-      // FIX: Prefix unused variable with _
       let _msgSubject = type === 'qr' ? 'qrCode' : 'phone';
       let msgStateVar = type === 'qr' ? 'qrCodeVerificationMessage' : 'verificationMessage';
       let errStateVar = type === 'qr' ? 'qrCodeVerificationError' : 'verificationStatusIsError';
@@ -517,7 +595,6 @@ export default {
         this.verificationLoading = false;
       }
     },
-
     async submitQRCodeVerificationCode() {
       if (!this.qrCodeVerificationCode || this.qrCodeVerificationCode.length < 6) {
         this.qrCodeVerificationMessage = "Please enter the 6-digit code.";
@@ -529,7 +606,7 @@ export default {
       try {
         await this.verifyEmailCode(this.qrCodeVerificationCode);
         this.qrCodeVerificationMessage = 'Success! You can now upload your QR code.';
-        this.isQRCodeUpdateUnlocked = true; // <-- Unlock the upload!
+        this.isQRCodeUpdateUnlocked = true;
       } catch (error) {
         this.qrCodeVerificationMessage = error.response?.data?.message || 'Verification failed. The code may be incorrect.';
         this.qrCodeVerificationError = true;
@@ -537,11 +614,9 @@ export default {
         this.verificationLoading = false;
       }
     },
-    
     triggerQRCodeUpload() {
       this.$refs.qrCodeInput.click();
     },
-
     handleQRCodeUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -550,8 +625,7 @@ export default {
       this.qrCodeVerificationMessage = "Reading file...";
       this.qrCodeVerificationError = false;
 
-      // Validate file
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+      if (file.size > 2 * 1024 * 1024) {
         this.qrCodeVerificationMessage = "File is too large (Max 2MB).";
         this.qrCodeVerificationError = true;
         this.qrCodeUploadLoading = false;
@@ -564,20 +638,14 @@ export default {
         return;
       }
 
-      // Read file as Base64
       const reader = new FileReader();
       reader.onload = async (e) => {
         const base64String = e.target.result;
         this.qrCodeVerificationMessage = "Uploading QR Code...";
         try {
-          // Send the Base64 string to be updated
           await this.updateUserProfile({ payoutQRCode: base64String });
-          // The handleProfileUpdate method (called on success from store)
-          // will reset the state and fetch the new profile info.
-          // We don't need to do it here.
           this.qrCodeVerificationMessage = "QR Code updated successfully!";
-          // handleProfileUpdate will be triggered by the action,
-          // which will reset all states.
+          this.handleProfileUpdate();
         } catch (error) {
           this.qrCodeVerificationMessage = "Upload failed. Please try again.";
           this.qrCodeVerificationError = true;
@@ -590,6 +658,24 @@ export default {
         this.qrCodeUploadLoading = false;
       };
       reader.readAsDataURL(file);
+    },
+
+    async handleSubmitReply({ reviewId, text, callback }) {
+      this.replyError = '';
+      try {
+        await this.submitReviewReply({ reviewId, text });
+        if (callback) callback();
+        // Refresh the reviews list to show the new reply
+        this.isLoadingReviews = true;
+        this.ownerReviews = await this.getReviewsForHost(this.profileData.uid);
+      
+      } catch (err) {
+        console.error("Error submitting reply:", err);
+        this.replyError = err.response?.data?.message || "Failed to post reply.";
+        if (callback) callback();
+      } finally {
+         this.isLoadingReviews = false;
+      }
     }
   },
 };
@@ -597,11 +683,15 @@ export default {
 
 <style lang="scss" scoped>
 @import '@/assets/styles/variables.scss';
-/* All your existing styles remain the same */
+
 .profile-container {
   padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
+  // --- NEW: Add media query for smaller padding on mobile ---
+  @media (max-width: 576px) {
+    padding: 1rem;
+  }
 }
 .profile-content {
   display: flex;
@@ -609,11 +699,28 @@ export default {
   align-items: flex-start;
   @media (max-width: 992px) {
     flex-direction: column;
+    gap: 2rem;
   }
 }
-.profile-left-section,
-.profile-right-section {
+.profile-left-section {
   flex: 1;
+  position: sticky;
+  top: 2rem;
+  // --- NEW: Responsive behavior for left section ---
+  @media (max-width: 992px) {
+    position: static;
+    width: 100%;
+  }
+  // ---
+}
+.profile-right-section {
+  flex: 2; 
+  min-width: 0; 
+  // --- NEW: Responsive behavior for right section ---
+  @media (max-width: 992px) {
+    width: 100%;
+  }
+  // ---
 }
 .profile-photo-container {
   width: 150px;
@@ -687,16 +794,28 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  // --- NEW: Allow wrapping on small screens ---
+  flex-wrap: wrap;
+  gap: 0.5rem; // Add gap for when it wraps
+  // ---
 }
 .item-label {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   font-size: 1.1rem;
+  // --- NEW: Responsive font size ---
+  @media (max-width: 576px) {
+    font-size: 1rem;
+  }
+  // ---
 }
 .item-value {
   font-size: 1rem;
   color: $text-color-medium;
+  // --- NEW: Allow break ---
+  word-break: break-all;
+  // ---
 }
 .check-icon,
 .cross-icon {
@@ -708,6 +827,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0; 
 }
 .check-icon {
   background-color: lighten($secondary-color, 35%);
@@ -813,5 +933,49 @@ export default {
   border-radius: $border-radius-sm;
   border: 1px solid $border-color;
 }
-</style>
 
+/* --- NEW STYLES for Right Section --- */
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: $text-color-medium;
+  font-size: 0.9rem;
+  background-color: $background-light;
+  border-radius: $border-radius-md;
+}
+.profile-section {
+  width: 100%;
+  margin-bottom: 2.5rem;
+  h4 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: $text-color-dark;
+    margin: 0 0 1.5rem 0;
+  }
+}
+.vehicle-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr); // 3 columns on desktop
+  }
+  @media (max-width: 992px) {
+    // This is when it stacks, so let's use the full grid
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr); // 2 columns on tablet
+  }
+  @media (max-width: 576px) {
+    grid-template-columns: 1fr; // 1 column on mobile
+  }
+}
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+</style>
