@@ -11,7 +11,6 @@
 
     <div v-else-if="booking" class="booking-details-layout">
 
-      <!-- == Main Content Area == -->
       <div class="main-content">
         <div class="header">
           <span class="booking-status" :class="getStatusClass(booking.paymentStatus)">
@@ -21,7 +20,6 @@
           <p class="booking-id">#{{ booking.id }}</p>
         </div>
 
-        <!-- Action Card: Owner Approval -->
         <div v-if="showOwnerActionCard" class="action-card owner-approval">
           <div class="card-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
           <div class="card-content">
@@ -34,7 +32,6 @@
           </div>
         </div>
 
-        <!-- Action Card: Renter Initial Payment -->
         <div v-if="showPaymentActionCard" class="action-card renter-payment">
           <div class="card-icon"><i class="bi bi-credit-card-fill"></i></div>
           <div class="card-content">
@@ -46,7 +43,6 @@
           </div>
         </div>
 
-        <!-- Action Card: Owner Confirm Downpayment -->
         <div v-if="showOwnerPaymentConfirmationCard" class="action-card owner-confirm">
           <div class="card-icon"><i class="bi bi-patch-check-fill"></i></div>
           <div class="card-content">
@@ -58,23 +54,21 @@
           </div>
         </div>
         
-        <!-- Action Card: Pay Extension Fee -->
         <div v-if="showPayExtensionCard && latestPendingExtension" class="action-card renter-payment extension-payment">
-            <div class="card-icon"><i class="bi bi-clock-history"></i></div>
-            <div class="card-content">
-                <h3 class="card-title">Extension Payment Required</h3>
-                <p>
-                    Your extension request is pending payment. Please pay the extension fee of
-                    <strong>₱{{ latestPendingExtension.cost.toLocaleString('en-US', { minimumFractionDigits: 2 }) }}</strong>
-                    to confirm the new return time: {{ formatFullDateTime(latestPendingExtension.newEndDate) || 'N/A' }}.
-                </p>
-                <button @click="openExtensionPaymentModal" class="button primary pay-now-button">
-                    Pay Extension Fee Now
-                </button>
-            </div>
+          <div class="card-icon"><i class="bi bi-clock-history"></i></div>
+          <div class="card-content">
+            <h3 class="card-title">Extension Payment Required</h3>
+            <p>
+              Your extension request is pending payment. Please pay the extension fee of
+              <strong>₱{{ latestPendingExtension.cost.toLocaleString('en-US', { minimumFractionDigits: 2 }) }}</strong>
+              to confirm the new return time: {{ formatFullDateTime(latestPendingExtension.newEndDate) || 'N/A' }}.
+            </p>
+            <button @click="openExtensionPaymentModal" class="button primary pay-now-button">
+              Pay Extension Fee Now
+            </button>
+          </div>
         </div>
 
-        <!-- Info Card: Downpayment Verified Message -->
         <div v-if="showDownpaymentVerifiedMessage" class="info-card status-info-card downpayment-verified">
           <div class="card-icon"><i class="bi bi-shield-check"></i></div>
           <div class="card-content">
@@ -84,25 +78,23 @@
           </div>
         </div>
 
-        <!-- Info Card: Vehicle -->
         <div class="info-card vehicle-card">
-           <img
-             :src="getVehicleImageUrl(booking.vehicleDetails)"
-             alt="Vehicle"
-             class="vehicle-image"
-           />
-           <div class="vehicle-info">
-             <h2 class="vehicle-name">
-               {{ booking.vehicleDetails?.make }} {{ booking.vehicleDetails?.model }}
-             </h2>
-             <p class="vehicle-year">{{ booking.vehicleDetails?.year }}</p>
-             <p class="vehicle-location" v-if="booking.vehicleDetails?.location?.city">
-                 <i class="bi bi-geo-alt-fill"></i> {{ booking.vehicleDetails.location.city }}
-             </p>
-           </div>
+          <img
+            :src="getVehicleImageUrl(booking.vehicleDetails)"
+            alt="Vehicle"
+            class="vehicle-image"
+          />
+          <div class="vehicle-info">
+            <h2 class="vehicle-name">
+              {{ booking.vehicleDetails?.make }} {{ booking.vehicleDetails?.model }}
+            </h2>
+            <p class="vehicle-year">{{ booking.vehicleDetails?.year }}</p>
+            <p class="vehicle-location" v-if="booking.vehicleDetails?.location?.city">
+              <i class="bi bi-geo-alt-fill"></i> {{ booking.vehicleDetails.location.city }}
+            </p>
+          </div>
         </div>
 
-        <!-- Info Card: Trip Details -->
         <div class="info-card trip-details-card">
           <h3 class="card-section-title">Trip Details</h3>
           <div class="details-grid">
@@ -118,53 +110,49 @@
               <span class="label">Booked On</span>
               <span class="value">{{ formatFullDateTime(booking.createdAt) }}</span>
             </div>
-             <div class="detail-item">
-               <span class="label">Duration</span>
-               <span class="value">{{ calculateDuration(booking.startDate, booking.endDate) }}</span>
-             </div>
+            <div class="detail-item">
+              <span class="label">Duration</span>
+              <span class="value">{{ calculateDuration(booking.startDate, booking.endDate) }}</span>
+            </div>
           </div>
         </div>
 
-        <!-- Info Card: Payment Details -->
         <div class="info-card payment-details-card">
-            <h3 class="card-section-title">Payment Details</h3>
-            <div class="payment-grid">
-                <div class="detail-item">
-                    <span class="label">Total Cost</span>
-                    <span class="value price total-price">₱{{ booking.totalCost ? booking.totalCost.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00' }}</span>
-                </div>
-                 <div class="detail-item">
-                    <span class="label">Amount Paid</span>
-                    <span class="value price paid-price">₱{{ booking.amountPaid ? booking.amountPaid.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00' }}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="label">Downpayment Due</span>
-                    <span class="value price">₱{{ booking.downPayment ? booking.downPayment.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00' }}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="label">Remaining Balance</span>
-                    <span class="value price remaining-price">₱{{ booking.remainingBalance ? booking.remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00' }}</span>
-                </div>
-                 <div class="detail-item" v-if="booking.paymentReferenceNumber">
-                     <span class="label">Payment Reference</span>
-                     <span class="value">{{ booking.paymentReferenceNumber }}</span>
-                 </div>
-                 <!-- Loop through all extensions to show history -->
-                 <div class="detail-item" v-for="(ext, index) in booking.extensions" :key="`ext-${index}`">
-                     <span class="label">Extension {{ index + 1 }} ({{ ext.status }})</span>
-                     <span class="value price">₱{{ ext.cost.toLocaleString('en-US', { minimumFractionDigits: 2 }) }}</span>
-                 </div>
+          <h3 class="card-section-title">Payment Details</h3>
+          <div class="payment-grid">
+            <div class="detail-item">
+              <span class="label">Total Cost</span>
+              <span class="value price total-price">₱{{ booking.totalCost ? booking.totalCost.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00' }}</span>
             </div>
+            <div class="detail-item">
+              <span class="label">Amount Paid</span>
+              <span class="value price paid-price">₱{{ booking.amountPaid ? booking.amountPaid.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Downpayment Due</span>
+              <span class="value price">₱{{ booking.downPayment ? booking.downPayment.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Remaining Balance</span>
+              <span class="value price remaining-price">₱{{ booking.remainingBalance ? booking.remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00' }}</span>
+            </div>
+            <div class="detail-item" v-if="booking.paymentReferenceNumber">
+              <span class="label">Payment Reference</span>
+              <span class="value">{{ booking.paymentReferenceNumber }}</span>
+            </div>
+            <div class="detail-item" v-for="(ext, index) in booking.extensions" :key="`ext-${index}`">
+              <span class="label">Extension {{ index + 1 }} ({{ ext.status }})</span>
+              <span class="value price">₱{{ ext.cost.toLocaleString('en-US', { minimumFractionDigits: 2 }) }}</span>
+            </div>
+          </div>
         </div>
 
       </div>
 
-      <!-- == Sidebar Content Area == -->
       <div class="sidebar-content">
-        <!-- Host Info Card -->
         <div class="info-card participant-card">
           <h3 class="card-section-title">Host</h3>
-           <div class="participant-details">
+          <div class="participant-details">
             <img 
               :src="booking.ownerDetails?.profilePhotoUrl || 'https://placehold.co/60x60/e2e8f0/666666?text=Host'" 
               alt="Host Avatar" 
@@ -178,157 +166,143 @@
           </div>
         </div>
 
-        <!-- Renter Info Card -->
         <div class="info-card participant-card">
           <h3 class="card-section-title">Renter</h3>
-           <div class="participant-details">
-             <img 
+          <div class="participant-details">
+            <img 
               :src="booking.renterDetails?.profilePhotoUrl || 'https://placehold.co/60x60/e2e8f0/666666?text=Renter'" 
               alt="Renter Avatar" 
               class="participant-avatar"
               @error="onImageError"
             />
-             <div>
+            <div>
               <p class="name">{{ booking.renterDetails?.name || 'N/A' }}</p>
               <p class="email">{{ booking.renterDetails?.email || 'No email available' }}</p>
             </div>
           </div>
         </div>
 
-        <!-- Sidebar Actions -->
         <div class="info-card sidebar-actions-card">
-           <h3 class="card-section-title">Actions</h3>
+          <h3 class="card-section-title">Actions</h3>
 
-           <!-- Actions shown BEFORE the trip is finished -->
-           <div v-if="!isTripFinished">
+          <div v-if="!isTripFinished">
 
-             <!-- Cancel Button (for Renter) -->
-             <div v-if="showCancelAction" class="action-group">
-               <button
-                 @click="handleCancelBooking"
-                 class="button danger full-width"
-                 :disabled="isCancelling"
-               >
-                 <span v-if="isCancelling">Cancelling...</span>
-                 <span v-else>
-                   <i class="bi bi-x-circle" style="pointer-events: none;"></i>
-                   Cancel Booking
-                 </span>
-               </button>
-             </div>
-
-             <!-- Extend Button (for Renter) -->
-             <button
-                 v-if="showExtensionButton"
-                 @click="isExtensionModalOpen = true"
-                 class="button secondary full-width"
-             >
-                 <i class="bi bi-clock-history"></i> Extend Booking
-             </button>
-
-             <!-- Mark as Returned Button (for Owner) -->
-             <button
-               v-if="showMarkAsReturnedButton"
-               @click="handleMarkAsReturned"
-               class="button primary full-width"
-               :disabled="isMarkingReturned"
-             >
-               <span v-if="isMarkingReturned">Updating...</span>
-               <span v-else><i class="bi bi-check2-circle"></i> Mark as Returned</span>
-             </button>
-             
-             <!-- Download Contract Button (for Owner/Admin) -->
-             <button
-               v-if="showDownloadContractButton"
-               @click="handleDownloadContract"
-               class="button secondary full-width"
-               :disabled="isDownloadingContract"
-             >
-               <span v-if="isDownloadingContract">Downloading...</span>
-               <span v-else><i class="bi bi-file-earmark-arrow-down-fill"></i> Download Contract</span>
-             </button>
-
-             <!-- Report Button -->
-             <button
-               v-if="showReportButton"
-               @click="isReportModalOpen = true"
-               class="button secondary full-width"
-             >
-               <i class="bi bi-flag-fill"></i> Report Issue
-             </button>
-
-             <!-- Go Back Button -->
-             <button @click="goBack" class="button secondary full-width">
-               <i class="bi bi-arrow-left"></i> Go Back
-             </button>
-
-           </div>
-
-           <!-- Actions shown AFTER the trip is finished -->
-            <div v-else class="completed-state">
-              <i class="bi bi-patch-check-fill completed-icon"></i>
-              <h4>Trip Completed</h4>
-              <p>This trip finished successfully.</p>
-
-              <!-- Write Review Button (for Renter) -->
-              <button v-if="canSubmitReview" @click="isReviewModalOpen = true" class="button secondary full-width review-button">
-                 <i class="bi bi-star-fill"></i> Write a Review
+            <div v-if="showCancelAction" class="action-group">
+              <button
+                @click="handleCancelBooking"
+                class="button danger full-width"
+                :disabled="isCancelling"
+              >
+                <span v-if="isCancelling">Cancelling...</span>
+                <span v-else>
+                  <i class="bi bi-x-circle" style="pointer-events: none;"></i>
+                  Cancel Booking
+                </span>
               </button>
-
-              <!-- Report Button -->
-             <button
-               v-if="showReportButton"
-               @click="isReportModalOpen = true"
-               class="button secondary full-width"
-               style="margin-bottom: 0.5rem;"
-             >
-               <i class="bi bi-flag-fill"></i> Report Issue
-             </button>
-
-             <!-- Go Back Button -->
-             <button @click="goBack" class="button secondary full-width">
-               <i class="bi bi-arrow-left"></i> Go Back
-             </button>
             </div>
+
+            <button
+                v-if="showExtensionButton"
+                @click="isExtensionModalOpen = true"
+                class="button secondary full-width"
+            >
+              <i class="bi bi-clock-history"></i> Extend Booking
+            </button>
+
+            <button
+              v-if="showMarkAsReturnedButton"
+              @click="handleMarkAsReturned"
+              class="button primary full-width"
+              :disabled="isMarkingReturned"
+            >
+              <span v-if="isMarkingReturned">Updating...</span>
+              <span v-else><i class="bi bi-check2-circle"></i> Mark as Returned</span>
+            </button>
+            
+            <button
+              v-if="showDownloadContractButton"
+              @click="handleDownloadContract"
+              class="button secondary full-width"
+              :disabled="isDownloadingContract"
+            >
+              <span v-if="isDownloadingContract">Downloading...</span>
+              <span v-else><i class="bi bi-file-earmark-arrow-down-fill"></i> Download Contract</span>
+            </button>
+
+            <button
+              v-if="showReportButton"
+              @click="isReportModalOpen = true"
+              class="button secondary full-width"
+            >
+              <i class="bi bi-flag-fill"></i> Report Issue
+            </button>
+
+            <button @click="goBack" class="button secondary full-width">
+              <i class="bi bi-arrow-left"></i> Go Back
+            </button>
+
+          </div>
+
+          <div v-else class="completed-state">
+            <i class="bi bi-patch-check-fill completed-icon"></i>
+            <h4>Trip Completed</h4>
+            <p>This trip finished successfully.</p>
+
+            <button v-if="canSubmitReview" @click="isReviewModalOpen = true" class="button secondary full-width review-button">
+              <i class="bi bi-star-fill"></i> Write a Review
+            </button>
+
+            <button
+              v-if="showReportButton"
+              @click="isReportModalOpen = true"
+              class="button secondary full-width"
+              style="margin-bottom: 0.5rem;"
+            >
+              <i class="bi bi-flag-fill"></i> Report Issue
+            </button>
+
+            <button @click="goBack" class="button secondary full-width">
+              <i class="bi bi-arrow-left"></i> Go Back
+            </button>
+          </div>
         </div>
 
       </div>
     </div>
 
-    <!-- Modals -->
     <SubmitReviewModal
-        v-if="booking && vehicle"
-        :is-open="isReviewModalOpen"
-        :booking="booking"
-        :vehicle="vehicle"
-        @close="isReviewModalOpen = false"
-        @review-submitted="handleReviewSubmission"
+      v-if="booking && vehicle"
+      :is-open="isReviewModalOpen"
+      :booking="booking"
+      :vehicle="vehicle"
+      @close="isReviewModalOpen = false"
+      @review-submitted="handleReviewSubmission"
     />
     <PaymentModal
-        v-if="booking"
-        :is-open="isPaymentModalOpen || isExtensionPaymentModalOpen"
-        :booking="booking"
-        :payment-type="paymentModalType"
-        :amount-due="paymentAmountDue"
-        :owner-details="booking.ownerDetails"
-        @close="closePaymentModals"
-        @payment-confirmed="handlePaymentSubmission"
+      v-if="booking"
+      :is-open="isPaymentModalOpen || isExtensionPaymentModalOpen"
+      :booking="booking"
+      :payment-type="paymentModalType"
+      :amount-due="paymentAmountDue"
+      :owner-details="booking.ownerDetails"
+      @close="closePaymentModals"
+      @payment-confirmed="handlePaymentSubmission"
     />
     <ReportIssueModal
-        v-if="booking"
-        :is-open="isReportModalOpen"
-        :booking-id="booking.id"
-        :user-role="userRole"
-        @close="isReportModalOpen = false"
-        @report-submitted="handleReportSubmission"
+      v-if="booking"
+      :is-open="isReportModalOpen"
+      :booking-id="booking.id"
+      :user-role="userRole"
+      @close="isReportModalOpen = false"
+      @report-submitted="handleReportSubmission"
     />
     <BookingExtensionModal
-        v-if="booking && vehicle"
-        :is-open="isExtensionModalOpen"
-        :booking="booking"
-        :vehicle="vehicle"
-        @close="isExtensionModalOpen = false"
-        @extension-requested="handleExtensionRequested"
+      v-if="booking && vehicle"
+      :is-open="isExtensionModalOpen"
+      :booking="booking"
+      :vehicle="vehicle"
+      @close="isExtensionModalOpen = false"
+      @extension-requested="handleExtensionRequested"
     />
   </div>
 </template>
@@ -344,10 +318,10 @@ import BookingExtensionModal from '@/components/modals/BookingExtensionModal.vue
 export default {
   name: 'BookingDetailView',
   components: {
-      SubmitReviewModal,
-      PaymentModal,
-      ReportIssueModal,
-      BookingExtensionModal
+    SubmitReviewModal,
+    PaymentModal,
+    ReportIssueModal,
+    BookingExtensionModal
   },
   props: ['bookingId'],
   data() {
@@ -387,16 +361,16 @@ export default {
       return isOwner && this.booking.paymentStatus === 'downpayment_pending_verification';
     },
     showDownpaymentVerifiedMessage() {
-        if (!this.booking || !this.user) return false;
-        const isRenter = this.user.uid === this.booking.renterId;
-        return isRenter && this.booking.paymentStatus === 'confirmed';
+      if (!this.booking || !this.user) return false;
+      const isRenter = this.user.uid === this.booking.renterId;
+      return isRenter && this.booking.paymentStatus === 'confirmed';
     },
     showCancelAction() {
       if (!this.booking || !this.user) return false;
       const isRenter = this.user.uid === this.booking.renterId;
       const cancellableStatuses = [
-          'pending_owner_approval',
-          'pending_payment'
+        'pending_owner_approval',
+        'pending_payment'
       ];
       return isRenter && cancellableStatuses.includes(this.booking.paymentStatus);
     },
@@ -406,8 +380,7 @@ export default {
     showMarkAsReturnedButton() {
       if (!this.booking || !this.user || !this.booking.vehicleDetails?.ownerId) return false;
       const isOwner = this.user.uid === this.booking.vehicleDetails.ownerId;
-      // Show if confirmed OR if extension is pending cash payment
-      const validStatuses = ['confirmed', 'pending_extension_payment'];
+      const validStatuses = ['confirmed', 'pending_extension_payment', 'awaiting_return'];
       return isOwner && validStatuses.includes(this.booking.paymentStatus);
     },
     isTripFinished() {
@@ -423,21 +396,19 @@ export default {
     },
     showReportButton() {
       if (!this.booking) return false;
-      // Show report button once confirmed and onwards
-      const relevantStatuses = ['confirmed', 'returned', 'completed', 'pending_extension_payment'];
+      const relevantStatuses = ['confirmed', 'returned', 'completed', 'pending_extension_payment', 'awaiting_return'];
       return relevantStatuses.includes(this.booking.paymentStatus);
     },
     showExtensionButton() {
-        if (!this.booking || !this.user) return false;
-        const isRenter = this.user.uid === this.booking.renterId;
-        // Show only if renter and booking is confirmed
-        return isRenter && this.booking.paymentStatus === 'confirmed';
+      if (!this.booking || !this.user) return false;
+      const isRenter = this.user.uid === this.booking.renterId;
+      return isRenter && this.booking.paymentStatus === 'confirmed';
     },
     latestPendingExtension() {
-        if (!this.booking || !Array.isArray(this.booking.extensions) || this.booking.extensions.length === 0) {
-            return null;
-        }
-        return [...this.booking.extensions].reverse().find(ext => ext.status === 'pending_payment');
+      if (!this.booking || !Array.isArray(this.booking.extensions) || this.booking.extensions.length === 0) {
+        return null;
+      }
+      return [...this.booking.extensions].reverse().find(ext => ext.status === 'pending_payment');
     },
     showPayExtensionCard() {
       if (!this.booking || !this.user) return false;
@@ -445,26 +416,27 @@ export default {
       return isRenter && this.booking.paymentStatus === 'pending_extension_payment' && !!this.latestPendingExtension;
     },
     showDownloadContractButton() {
-        if (!this.booking || !this.user) return false;
-        const isOwner = this.user.uid === this.booking.ownerId;
-        const validStatuses = ['confirmed', 'returned', 'completed', 'pending_extension_payment'];
-        return (isOwner || this.userRole === 'admin') && validStatuses.includes(this.booking.paymentStatus);
+      if (!this.booking || !this.user) return false;
+      const isOwner = this.user.uid === this.booking.ownerId;
+      const isRenter = this.user.uid === this.booking.renterId;
+      const validStatuses = ['confirmed', 'returned', 'completed', 'pending_extension_payment', 'awaiting_return'];
+      return (isOwner || isRenter || this.userRole === 'admin') && validStatuses.includes(this.booking.paymentStatus);
     }
   },
   methods: {
     ...mapActions([
-        'getBookingById',
-        'updateBookingStatus',
-        'getVehicleById',
-        'approveBooking',
-        'declineBooking',
-        'confirmDownpaymentByUser',
-        'confirmBookingPayment',
-        'cancelBooking',
-        'submitBookingReport',
-        'requestBookingExtension',
-        'confirmExtensionPayment',
-        'downloadBookingContract'
+      'getBookingById',
+      'updateBookingStatus',
+      'getVehicleById',
+      'approveBooking',
+      'declineBooking',
+      'confirmDownpaymentByUser',
+      'confirmBookingPayment',
+      'cancelBooking',
+      'submitBookingReport',
+      'requestBookingExtension',
+      'confirmExtensionPayment',
+      'downloadBookingContract' // Make sure this is in the store/modules/bookings.js
     ]),
 
     async fetchBooking() {
@@ -477,8 +449,8 @@ export default {
         if (this.booking.vehicleId) {
           this.vehicle = await this.getVehicleById(this.booking.vehicleId);
         } else {
-           console.warn("Vehicle ID missing from booking details.");
-           this.vehicle = null;
+          console.warn("Vehicle ID missing from booking details.");
+          this.vehicle = null;
         }
       } catch (error) {
         console.error("Failed to load booking/vehicle details:", error);
@@ -507,13 +479,13 @@ export default {
     },
 
     async handlePaymentSubmission() {
-        this.closePaymentModals();
-        if (this.paymentModalType === 'downpayment') {
-             alert('Downpayment submitted for verification! The owner will confirm shortly.');
-        } else if (this.paymentModalType === 'extension') {
-             alert('Extension payment submitted! Your booking has been updated.');
-        }
-        await this.fetchBooking();
+      this.closePaymentModals();
+      if (this.paymentModalType === 'downpayment') {
+        alert('Downpayment submitted for verification! The owner will confirm shortly.');
+      } else if (this.paymentModalType === 'extension') {
+        alert('Extension payment submitted! Your booking has been updated.');
+      }
+      await this.fetchBooking();
     },
 
     async handleConfirmPayment() { // OWNER confirms receipt
@@ -530,8 +502,8 @@ export default {
 
     async handleCancelBooking() {
       if (!this.showCancelAction) {
-           alert(`Booking cannot be cancelled in state: ${this.formatStatus(this.booking.paymentStatus)}.`);
-           return;
+        alert(`Booking cannot be cancelled in state: ${this.formatStatus(this.booking.paymentStatus)}.`);
+        return;
       }
       if (!window.confirm("Cancel this booking? This cannot be undone.")) return;
       this.isCancelling = true;
@@ -565,7 +537,7 @@ export default {
     handleReviewSubmission() {
       this.isReviewModalOpen = false;
       if (this.booking) this.booking.reviewSubmitted = true;
-       alert('Review submitted!');
+      alert('Review submitted!');
     },
 
     handleReportSubmission() {
@@ -574,66 +546,99 @@ export default {
     },
 
     handleExtensionRequested(result) {
-        this.isExtensionModalOpen = false;
-        alert(`Extension requested. Status updated. Please pay the fee: ₱${result?.extensionCost?.toFixed(2) || 'N/A'}`);
-        this.fetchBooking();
+      this.isExtensionModalOpen = false;
+      alert(`Extension requested. Status updated. Please pay the fee: ₱${result?.extensionCost?.toFixed(2) || 'N/A'}`);
+      this.fetchBooking();
     },
 
-     // Method to open the modal for DOWNPAYMENT
     openDownpaymentModal() {
-        this.paymentModalType = 'downpayment';
-        this.paymentAmountDue = this.booking.downPayment;
-        this.isPaymentModalOpen = true;
-        this.isExtensionPaymentModalOpen = false;
+      this.paymentModalType = 'downpayment';
+      this.paymentAmountDue = this.booking.downPayment;
+      this.isPaymentModalOpen = true;
+      this.isExtensionPaymentModalOpen = false;
     },
 
-     // UPDATED: Method to open the modal for EXTENSION payment
     openExtensionPaymentModal() {
-        const pendingExtension = this.latestPendingExtension; // Use the computed prop
-        if (pendingExtension && pendingExtension.cost > 0) {
-            this.paymentModalType = 'extension';
-            this.paymentAmountDue = pendingExtension.cost;
-            this.isExtensionPaymentModalOpen = true;
-            this.isPaymentModalOpen = false;
-        } else {
-            console.error("Cannot open extension payment modal: No pending extension or cost is missing.");
-            alert("Error: No pending extension payment found.");
-        }
-    },
-
-     // Method to close both payment modal flags
-    closePaymentModals() {
+      const pendingExtension = this.latestPendingExtension;
+      if (pendingExtension && pendingExtension.cost > 0) {
+        this.paymentModalType = 'extension';
+        this.paymentAmountDue = pendingExtension.cost;
+        this.isExtensionPaymentModalOpen = true;
         this.isPaymentModalOpen = false;
-        this.isExtensionPaymentModalOpen = false;
+      } else {
+        console.error("Cannot open extension payment modal: No pending extension or cost is missing.");
+        alert("Error: No pending extension payment found.");
+      }
     },
 
+    closePaymentModals() {
+      this.isPaymentModalOpen = false;
+      this.isExtensionPaymentModalOpen = false;
+    },
+
+    // --- THIS IS THE 100% CORRECT FUNCTION ---
     async handleDownloadContract() {
-        this.isDownloadingContract = true;
-        try {
-            const { data, filename } = await this.downloadBookingContract(this.booking.id);
-            
-            const url = window.URL.createObjectURL(new Blob([data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', filename);
-            document.body.appendChild(link);
-            link.click();
-            
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-            
-        } catch (error) {
-             console.error("Error downloading contract:", error);
-             alert(`Failed to download contract: ${error.response?.data?.message || error.message}`);
-        } finally {
-            this.isDownloadingContract = false;
+      this.isDownloadingContract = true;
+      console.log('%c[Download] Starting download...', 'color: blue; font-weight: bold;');
+      
+      try {
+        // 1. Calls the Vuex action we just added
+        const { data, filename } = await this.downloadBookingContract(this.booking.id);
+        
+        // --- DEBUGGING ---
+        // This will tell us *exactly* what the component received.
+        console.log('[Download] Received data from Vuex:', data);
+        console.log('[Download] Received filename from Vuex:', filename);
+        console.log('[Download] Is data a Blob?', data instanceof Blob);
+        console.log('[Download] Blob MIME type:', data.type); // Should be 'application/pdf'
+        console.log('[Download] Blob size:', data.size);
+        // --- END DEBUGGING ---
+
+        // 2. Check if data is *actually* a blob.
+        if (!(data instanceof Blob)) {
+          console.error('[Download] CRITICAL ERROR: Data is NOT a blob!', data);
+          alert('Download failed: Received invalid data from server.');
+          this.isDownloadingContract = false;
+          return;
         }
+
+        // 3. This is the line that was broken before. 
+        // It creates a URL from the blob directly.
+        const url = window.URL.createObjectURL(data);
+        
+        console.log('[Download] Created object URL:', url);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `BookingContract-${this.booking.id}.pdf`); // Uses the correct .pdf filename
+        document.body.appendChild(link);
+        link.click();
+        
+        // 4. Clean up
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        console.log('%c[Download] Download triggered successfully.', 'color: green; font-weight: bold;');
+        
+      } catch (error) {
+          console.error("Error in handleDownloadContract:", error);
+          if (error.response?.data instanceof Blob) {
+            try {
+              const errorText = await error.response.data.text();
+              const errorJson = JSON.parse(errorText);
+              alert(`Failed to download contract: ${errorJson.message || 'Server error'}`);
+            } catch (e) {
+                alert('Failed to download contract: An unknown server error occurred.');
+            }
+          } else {
+            alert(`Failed to download contract: ${error.response?.data?.message || error.message}`);
+          }
+      } finally {
+          this.isDownloadingContract = false;
+      }
     },
 
-    // --- NEW METHOD for Image Fallback ---
     onImageError(event) {
-        // Use a generic placeholder
-        event.target.src = 'https://placehold.co/60x60/e2e8f0/666666?text=User';
+      event.target.src = 'https://placehold.co/60x60/e2e8f0/666666?text=User';
     },
 
     // --- Formatting and Utility Methods ---
@@ -642,28 +647,27 @@ export default {
       return 'https://placehold.co/200x150/e2e8f0/666666?text=No+Image';
     },
     formatFullDateTime(dateStr) {
-        if (!dateStr) return 'N/A';
-        // Handle both ISO strings and Firestore Timestamp objects
-        const jsDate = dateStr && dateStr.toDate ? dateStr.toDate() : new Date(dateStr);
-         if (isNaN(jsDate.getTime())) return 'Invalid Date';
-        const dt = DateTime.fromJSDate(jsDate);
-        return dt.isValid ? dt.toLocaleString(DateTime.DATETIME_MED) : 'Invalid Date';
+      if (!dateStr) return 'N/A';
+      const jsDate = dateStr && dateStr.toDate ? dateStr.toDate() : new Date(dateStr);
+      if (isNaN(jsDate.getTime())) return 'Invalid Date';
+      const dt = DateTime.fromJSDate(jsDate);
+      return dt.isValid ? dt.toLocaleString(DateTime.DATETIME_MED) : 'Invalid Date';
     },
     calculateDuration(startStr, endStr) {
-        if (!startStr || !endStr) return 'N/A';
-        const startDate = startStr.toDate ? startStr.toDate() : new Date(startStr);
-        const endDate = endStr.toDate ? endStr.toDate() : new Date(endStr);
-         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return 'Invalid dates';
+      if (!startStr || !endStr) return 'N/A';
+      const startDate = startStr.toDate ? startStr.toDate() : new Date(startStr);
+      const endDate = endStr.toDate ? endStr.toDate() : new Date(endStr);
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return 'Invalid dates';
 
-        const start = DateTime.fromJSDate(startDate);
-        const end = DateTime.fromJSDate(endDate);
-        if (!start.isValid || !end.isValid || start >= end) return 'Invalid dates';
+      const start = DateTime.fromJSDate(startDate);
+      const end = DateTime.fromJSDate(endDate);
+      if (!start.isValid || !end.isValid || start >= end) return 'Invalid dates';
 
-        const diff = end.diff(start, ['days', 'hours']).normalize();
-        let durationString = '';
-        if (diff.days > 0) durationString += `${diff.days} day${diff.days > 1 ? 's' : ''}`;
-        if (diff.hours > 0) durationString += `${durationString ? ', ' : ''}${Math.round(diff.hours)} hour${diff.hours > 1 ? 's' : ''}`;
-        return durationString || 'Less than an hour';
+      const diff = end.diff(start, ['days', 'hours']).normalize();
+      let durationString = '';
+      if (diff.days > 0) durationString += `${diff.days} day${diff.days > 1 ? 's' : ''}`;
+      if (diff.hours > 0) durationString += `${durationString ? ', ' : ''}${Math.round(diff.hours)} hour${diff.hours > 1 ? 's' : ''}`;
+      return durationString || 'Less than an hour';
     },
     formatStatus(status) {
       if (!status) return 'Unknown';
@@ -715,15 +719,15 @@ export default {
 }
 
 .sidebar-content {
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-lg;
-    position: sticky;
-    top: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+  position: sticky;
+  top: $spacing-lg;
 
-    @media (max-width: 991px) {
-        position: static;
-    }
+  @media (max-width: 991px) {
+    position: static;
+  }
 }
 
 /* --- Header --- */
@@ -734,17 +738,17 @@ export default {
 }
 
 .booking-title {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: $text-color-dark;
-    margin: 0 0 0.25rem;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: $text-color-dark;
+  margin: 0 0 0.25rem;
 }
 
 .booking-id {
-    font-size: 0.9rem;
-    color: $text-color-medium;
-    font-family: monospace;
-    margin: 0;
+  font-size: 0.9rem;
+  color: $text-color-medium;
+  font-family: monospace;
+  margin: 0;
 }
 
 .booking-status {
@@ -800,25 +804,25 @@ export default {
   .action-buttons { display: flex; gap: $spacing-sm; margin-top: auto; }
 }
 .action-card.owner-approval {
-    background-color: lighten($accent-color, 45%); border-left-color: $accent-color;
-    .card-icon { color: $accent-color; } .card-title { color: darken($accent-color, 15%); }
+  background-color: lighten($accent-color, 45%); border-left-color: $accent-color;
+  .card-icon { color: $accent-color; } .card-title { color: darken($accent-color, 15%); }
 }
 .action-card.renter-payment {
-    background-color: lighten($primary-color, 45%); border-left-color: $primary-color;
-    .card-icon { color: $primary-color; } .card-title { color: darken($primary-color, 15%); }
-    .pay-now-button { width: 100%; margin-top: $spacing-sm; }
+  background-color: lighten($primary-color, 45%); border-left-color: $primary-color;
+  .card-icon { color: $primary-color; } .card-title { color: darken($primary-color, 15%); }
+  .pay-now-button { width: 100%; margin-top: $spacing-sm; }
 }
 .action-card.owner-confirm {
-    background-color: lighten($secondary-color, 45%); border-left-color: $secondary-color;
-    .card-icon { color: $secondary-color; } .card-title { color: darken($secondary-color, 15%); }
-     p strong { color: darken($secondary-color, 25%); }
+  background-color: lighten($secondary-color, 45%); border-left-color: $secondary-color;
+  .card-icon { color: $secondary-color; } .card-title { color: darken($secondary-color, 15%); }
+  p strong { color: darken($secondary-color, 25%); }
 }
 .action-card.extension-payment {
-    background-color: lighten($accent-color, 45%);
-    border-left-color: $accent-color;
-    .card-icon { color: $accent-color; }
-    .card-title { color: darken($accent-color, 15%); }
-    p strong { color: darken($accent-color, 25%); }
+  background-color: lighten($accent-color, 45%);
+  border-left-color: $accent-color;
+  .card-icon { color: $accent-color; }
+  .card-title { color: darken($accent-color, 15%); }
+  p strong { color: darken($accent-color, 25%); }
 }
 
 /* Status Info Card (for verified message) */
@@ -837,18 +841,18 @@ export default {
   .next-steps { font-style: italic; font-size: 0.85rem; margin-top: $spacing-sm; }
 }
 .status-info-card.downpayment-verified {
-    background-color: lighten($secondary-color, 45%);
-    border-left-color: $secondary-color;
-    .card-icon { color: $secondary-color; }
-    .card-title { color: darken($secondary-color, 15%); }
+  background-color: lighten($secondary-color, 45%);
+  border-left-color: $secondary-color;
+  .card-icon { color: $secondary-color; }
+  .card-title { color: darken($secondary-color, 15%); }
 }
 
 
 /* --- Vehicle Card --- */
 .vehicle-card {
-    display: flex;
-    align-items: center;
-    gap: $spacing-lg;
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
 }
 .vehicle-image {
   width: 120px;
@@ -861,8 +865,8 @@ export default {
 .vehicle-name { font-size: 1.3rem; font-weight: 600; margin: 0 0 0.25rem 0; }
 .vehicle-year { font-size: 0.9rem; color: $text-color-medium; margin-bottom: $spacing-sm; }
 .vehicle-location {
-    font-size: 0.9rem; color: $text-color-medium; display: flex; align-items: center; gap: 0.3rem;
-    i { font-size: 0.8rem; }
+  font-size: 0.9rem; color: $text-color-medium; display: flex; align-items: center; gap: 0.3rem;
+  i { font-size: 0.8rem; }
 }
 
 /* --- Details Grid (Trip & Payment) --- */
@@ -897,38 +901,36 @@ export default {
 
 /* --- Participant Cards (Sidebar) --- */
 .participant-card {
-   .participant-details { 
-     display: flex; 
-     align-items: center; 
-     gap: $spacing-md; 
-   }
-   // --- ADDED ---
-   .participant-avatar {
-     width: 50px;
-     height: 50px;
-     border-radius: 50%;
-     object-fit: cover;
-     flex-shrink: 0;
-     border: 2px solid $border-color-light;
-   }
-   // --- END ADDED ---
-   .name { font-size: 1rem; font-weight: 600; margin: 0 0 0.1rem 0; color: $text-color-dark; }
-   .email { font-size: 0.85rem; color: $text-color-medium; font-weight: 400; word-break: break-all; }
+  .participant-details { 
+    display: flex; 
+    align-items: center; 
+    gap: $spacing-md; 
+  }
+  .participant-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 2px solid $border-color-light;
+  }
+  .name { font-size: 1rem; font-weight: 600; margin: 0 0 0.1rem 0; color: $text-color-dark; }
+  .email { font-size: 0.85rem; color: $text-color-medium; font-weight: 400; word-break: break-all; }
 }
 
 /* --- Sidebar Actions Card --- */
 .sidebar-actions-card {
-    .button { margin-bottom: $spacing-sm; }
-    .action-group { margin-bottom: $spacing-sm; } // Reduced margin
-    .cancellation-info { font-size: 0.8rem; color: $text-color-medium; text-align: center; margin-top: $spacing-sm; }
+  .button { margin-bottom: $spacing-sm; }
+  .action-group { margin-bottom: $spacing-sm; } // Reduced margin
+  .cancellation-info { font-size: 0.8rem; color: $text-color-medium; text-align: center; margin-top: $spacing-sm; }
 }
 
 .completed-state {
-    text-align: center;
-    .completed-icon { font-size: 2.5rem; color: $secondary-color; margin-bottom: $spacing-sm; }
-    h4 { margin: 0 0 $spacing-sm 0; font-weight: 600; color: darken($secondary-color, 15%); }
-    p { font-size: 0.9rem; color: $text-color-medium; margin: 0 0 $spacing-md 0; }
-    .review-button { margin-top: $spacing-sm; margin-bottom: $spacing-sm; }
+  text-align: center;
+  .completed-icon { font-size: 2.5rem; color: $secondary-color; margin-bottom: $spacing-sm; }
+  h4 { margin: 0 0 $spacing-sm 0; font-weight: 600; color: darken($secondary-color, 15%); }
+  p { font-size: 0.9rem; color: $text-color-medium; margin: 0 0 $spacing-md 0; }
+  .review-button { margin-top: $spacing-sm; margin-bottom: $spacing-sm; }
 }
 
 /* --- Buttons --- */
@@ -948,12 +950,12 @@ export default {
   line-height: 1.5;
 
   &:hover:not(:disabled) {
-       transform: translateY(-2px);
-       box-shadow: $shadow-hover;
+    transform: translateY(-2px);
+    box-shadow: $shadow-hover;
   }
   &:active:not(:disabled) {
-       transform: translateY(0);
-       box-shadow: $shadow-light;
+    transform: translateY(0);
+    box-shadow: $shadow-light;
   }
   &:disabled {
     opacity: 0.6;
@@ -988,4 +990,3 @@ export default {
 }
 
 </style>
-

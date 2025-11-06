@@ -94,17 +94,17 @@ const actions = {
   },
   async downloadBookingContract({ _commit }, bookingId) {
     try {
-      // This calls the api.js function
+      
       const response = await api.downloadBookingContract(bookingId);
 
-      // Get the real filename from the server's header
       const disposition = response.headers['content-disposition'];
       let filename = `BookingContract-${bookingId}.pdf`; // Default
+
       if (disposition && disposition.includes('filename=')) {
         filename = disposition.split('filename=')[1].replace(/"/g, '');
       }
 
-      // 'response.data' is now the PDF file blob
+      console.log('Vuex Action: Returning blob and filename:', response.data, filename);
       return { data: response.data, filename: filename };
     } catch (error) {
       console.error('[Vuex Bookings] Failed to download contract:', error);
