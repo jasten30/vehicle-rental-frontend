@@ -18,7 +18,6 @@
         <ul>
           <li><router-link to="/about">About Us</router-link></li>
           <li><router-link to="/careers">Careers</router-link></li>
-          <li><router-link to="/press">Press</router-link></li>
           <li><router-link to="/blog">Blog</router-link></li>
         </ul>
       </div>
@@ -28,7 +27,9 @@
         <ul>
           <li><router-link to="/contact">Contact Support</router-link></li>
           <li><router-link to="/faq">FAQ</router-link></li>
-          <li><router-link to="/trust">Trust & Safety</router-link></li>
+          <!-- === UPDATED LINK === -->
+          <li><router-link to="/trust-and-safety">Trust & Safety</router-link></li>
+          <!-- === END UPDATE === -->
           <li><router-link to="/how-it-works">How it Works</router-link></li>
         </ul>
       </div>
@@ -37,16 +38,18 @@
         <h4 class="column-title">Hosting</h4>
         <ul>
           <li><router-link to="/become-a-host">Become a host</router-link></li>
-          <li><router-link to="/hosting-guide">Hosting Guide</router-link></li>
-          <li><router-link to="/insurance">Insurance</router-link></li>
+          <!-- Commented out links for pages that don't exist yet -->
+          <!-- <li><router-link to="/hosting-guide">Hosting Guide</router-link></li> -->
+          <!-- <li><router-link to="/insurance">Insurance</router-link></li> -->
         </ul>
       </div>
     </div>
     <div class="footer-bottom">
       <p>&copy; {{ new Date().getFullYear() }} RentCycle, Inc. All rights reserved.</p>
       <ul>
-        <li><router-link to="/privacy">Privacy Policy</router-link></li>
-        <li><router-link to="/terms">Terms of Service</router-link></li>
+        <!-- Changed to placeholder links to avoid 404 errors -->
+        <li><router-link to="#">Privacy Policy</router-link></li>
+        <li><router-link to="#">Terms of Service</router-link></li>
       </ul>
     </div>
   </footer>

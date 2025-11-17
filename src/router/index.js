@@ -10,6 +10,12 @@ import LoginView from '../views/Auth/LoginView.vue';
 import RegisterView from '../views/Auth/RegisterView.vue';
 import NotFoundView from '../views/NotFoundView.vue';
 import BecomeOwnerApplication from '../views/Auth/BecomeOwnerApplication.vue';
+import ContactView from '@/views/ContactView.vue';
+import HowItWorksView from '@/views/HowItWorksView.vue';
+import CareersView from '@/views/CareersView.vue';
+import BlogView from '@/views/BlogView.vue';
+import BlogPostDetailView from '@/views/BlogPostDetailView.vue'; 
+import FAQView from '@/views/FAQView.vue'; // <-- 1. ADDED IMPORT
 
 // Dashboard Views
 import AdminLayout from '../views/Dashboard/Admin/AdminLayout.vue';
@@ -23,7 +29,6 @@ import OwnerVehiclesView from '../views/Dashboard/Owner/OwnerVehiclesView.vue';
 import VehicleFormSteps from '../components/forms/VehicleFormSteps.vue'; // Used for AddVehicle
 import EditVehicleView from '../views/Dashboard/Owner/EditVehicleView.vue'; // Correct path
 import MotorcycleFormSteps from '../components/forms/motorcyle/MotorcycleFormSteps.vue'; // Correct path
-// import BookingPaymentView from '../views/Booking/BookingPaymentView.vue'; // Commented out as it's causing errors
 import OwnerBillingView from '../views/Booking/OwnerBillingView.vue';
 import BookingSummaryView from '../views/Booking/BookingSummaryView.vue';
 import OwnerBookingsView from '../views/Dashboard/Owner/OwnerBookingsView.vue';
@@ -87,7 +92,7 @@ const dashboardRoutes = [
         component: ChatView,
         meta: { requiresAuth: true },
       },
-
+      // --- REMOVED 'support' route ---
       {
         path: 'verify-driver',
         name: 'BecomeDriveVerified',
@@ -157,13 +162,6 @@ const dashboardRoutes = [
           authorize: ['owner', 'admin'],
         },
       },
-      // {
-      //   path: 'calendar/:vehicleId',
-      //   name: 'VehicleCalendar',
-      //   component: () => import('@/views/Dashboard/Owner/VehicleCalendarView.vue'),
-      //   props: true,
-      //   meta: { requiresAuth: true, authorize: ['owner', 'admin'] }
-      // },
       {
         path: 'admin',
         component: AdminLayout,
@@ -235,6 +233,37 @@ const routes = [
     component: AboutView,
   },
   {
+    path: '/contact',
+    name: 'Contact',
+    component: ContactView,
+  },
+  {
+    path: '/how-it-works',
+    name: 'HowItWorks',
+    component: HowItWorksView,
+  },
+  {
+    path: '/careers',
+    name: 'Careers',
+    component: CareersView,
+  },
+  {
+    path: '/blog',
+    name: 'Blog',
+    component: BlogView,
+  },
+  {
+    path: '/blog/:slug',
+    name: 'BlogPostDetail',
+    component: BlogPostDetailView,
+    props: true // This will pass the 'slug' as a prop
+  },
+  {
+    path: '/faq',
+    name: 'FAQ',
+    component: FAQView,
+  },
+  {
     path: '/vehicles',
     name: 'VehicleList',
     component: VehicleListView,
@@ -278,18 +307,6 @@ const routes = [
     component: ProfileSettingsView,
     props: true,
   },
-  // --- COMMENTED OUT THE BROKEN ROUTE ---
-  // {
-  //   path: '/booking/payment/:bookingId',
-  //   name: 'BookingPayment',
-  //   component: BookingPaymentView,
-  //   props: true,
-  //   meta: {
-  //     requiresAuth: true,
-  //     authorize: ['renter', 'owner', 'admin'],
-  //   },
-  // },
-  // --- END COMMENT ---
   {
     path: '/booking/verify-payment/:bookingId',
     name: 'PaymentVerification',
@@ -322,6 +339,13 @@ const routes = [
     props: true,
     meta: { requiresAuth: true },
   },
+  // --- ADDED TRUST & SAFETY ROUTE ---
+  {
+    path: '/trust-and-safety',
+    name: 'TrustAndSafety',
+    component: () => import('../views/TrustAndSafetyView.vue') // Lazy load for example
+  },
+  // --- END ADD ---
   ...dashboardRoutes,
   {
     path: '/:catchAll(.*)',
@@ -390,4 +414,3 @@ router.beforeEach(async (to, from, next) => {
 });
 
 export default router;
-

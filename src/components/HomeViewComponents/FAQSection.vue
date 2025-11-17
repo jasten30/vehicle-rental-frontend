@@ -1,4 +1,3 @@
-<!-- frontend/src/components/FAQSection.vue -->
 <template>
   <section class="faq-section">
     <h2 class="section-title">FREQUENTLY ASKED QUESTIONS</h2>
@@ -54,48 +53,50 @@ export default {
     return {
       // Use null to indicate no answer is currently open
       activeIndex: null,
+      // --- UPDATED FAQ ITEMS ---
       faqItems: [
         {
-          question: 'How do I book a car?',
-          answer: 'Booking a car on RentCycle is easy! Simply use the search bar on the homepage to enter your location, dates, and times. Browse the available vehicles, select the one you want, and follow the steps to complete your booking. You\'ll receive a confirmation with all the details.',
+          question: 'What is the booking process?',
+          answer: "It's simple! 1. Find a vehicle and request to book. 2. The host will approve or decline your request. 3. If approved, you pay the 20% downpayment via QR code and submit the reference number. 4. The host confirms your payment, and your booking is secured!",
         },
         {
-          question: 'What are the requirements to rent a car?',
-          answer: 'You must be at least 21 years old and have a valid driver\'s license. Some hosts may have additional requirements, which will be listed in the vehicle details. You will also need a valid credit card for the security deposit.',
+          question: 'What verification do I need to rent?',
+          answer: "To rent a vehicle, you must have a verified account. This includes verifying your email and phone number, and submitting an 'Approved to Drive' application (with your driver's license) from your profile settings.",
         },
         {
-          question: 'Is insurance included?',
-          answer: 'RentCycle provides basic liability coverage for all rentals. You also have the option to purchase additional protection plans for extra peace of mind during the booking process.',
+          question: 'How do payments work?',
+          answer: 'We use a two-part payment system. You pay a 20% downpayment via QR code (like GCash) to secure your booking. The remaining 80% balance is typically paid in cash directly to the host upon pickup. Always confirm details with your host in the chat.',
         },
         {
           question: 'How do I contact the vehicle host?',
-          answer: 'Once your booking is confirmed, you will receive the host\'s contact information via the app\'s messaging system. You can communicate with them directly to arrange pickup and drop-off details.',
+          answer: "Once your booking is fully confirmed (after the host verifies your downpayment), a private chat room will be automatically created for you and the host. You can use this chat to coordinate all pickup and drop-off details.",
         },
         {
-          question: 'Can I modify or cancel a reservation?',
-          answer: 'Yes, you can modify or cancel your reservation through the "My Bookings" section of your account. Please be aware that cancellation policies may vary depending on the host and the timing of the cancellation. Check the specific vehicle\'s policy before booking.',
+          question: 'How do I extend my trip?',
+          answer: 'To extend your trip, please contact the host directly through your booking\'s chat. They will coordinate with you on availability and any additional payment required.',
         },
         {
-          question: 'What if I\'m late for pickup?',
-          answer: 'We recommend you contact your host as soon as you know you\'ll be late. Many hosts are flexible, but some may have a strict policy or a late fee. Keeping them informed is key to a smooth process.',
+          question: 'What is your cancellation policy?',
+          answer: 'You can cancel your booking for a full refund at any time *before* the host has approved your request or *before* you have submitted your downpayment. Once a booking is confirmed, cancellations must be coordinated with the host.',
         },
         {
-          question: 'Are there any mileage limits?',
-          answer: 'Most vehicles on RentCycle have a standard daily mileage limit, which is clearly stated in the vehicle details. If you exceed this limit, an extra fee per mile will apply. Some hosts offer unlimited mileage for an additional charge.',
+          question: 'How do I list my own car or motorcycle?',
+          answer: "We'd love to have you! First, make sure you are an 'Approved to Drive'. Then, you can 'Become a Host' from your user menu. After your host application is approved, you'll get access to the owner dashboard to list your assets.",
         },
         {
-          question: 'How do I return the car?',
-          answer: 'Return instructions are coordinated directly with your host. Generally, you will return the car to the same location you picked it up from, unless other arrangements have been made. Ensure the fuel level and cleanliness are in the same condition as when you received the vehicle.',
+          question: "What if I'm a little late returning the vehicle?",
+          answer: "We offer a 3-hour grace period for unexpected delays, but please inform your host. If you're more than 3 hours late without an approved extension, your booking status will be updated and additional fees may apply.",
         },
         {
-          question: 'What forms of payment are accepted?',
-          answer: 'We accept all major credit and debit cards, including Visa, Mastercard, and American Express. All payments are securely processed through our platform.',
+          question: 'Is insurance included?',
+          answer: "Basic liability coverage is provided by the host. We strongly recommend renters have their own comprehensive insurance. You are responsible for any damages during the rental period, as outlined in the rental contract.",
         },
         {
-          question: 'Is there a minimum rental age?',
-          answer: 'The minimum age to rent a vehicle through RentCycle is 21. For drivers under the age of 25, a young driver fee may apply, which will be shown at the time of booking.',
+          question: 'What are the requirements to rent?',
+          answer: 'Besides being "Approved to Drive," you must have a verified email and phone number. All payments are handled via QR code and reference number verification to ensure a secure transaction for both you and the host.',
         },
       ],
+      // --- END UPDATED FAQ ITEMS ---
     };
   },
   computed: {
@@ -181,6 +182,7 @@ export default {
   box-shadow: $shadow-light;
   overflow: hidden; // This is important for the dropdown animation
   transition: box-shadow 0.2s ease;
+  border: 1px solid $border-color-light; // Softer border
 
   &:hover {
     box-shadow: $shadow-hover;
@@ -194,7 +196,7 @@ export default {
     cursor: pointer;
     // Add a light hover effect on the bar itself
     &:hover {
-      background-color: #f1f5fa;
+      background-color: #f8f9fa; // Lighter hover
     }
   }
 
@@ -204,13 +206,16 @@ export default {
     color: #191c2b; 
     margin: 0;
     user-select: none;
+    line-height: 1.4; // Added for readability
   }
 
   .faq-icon {
     display: flex;
     align-items: center;
     transition: transform 0.3s ease;
-    color: $secondary-color;
+    color: $primary-color; // Changed to primary color
+    flex-shrink: 0; // Prevent icon from shrinking
+    margin-left: 1rem;
     
     &.rotated {
       transform: rotate(-180deg);
@@ -220,7 +225,7 @@ export default {
   .faq-answer-container {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.4s ease-out;
+    transition: max-height 0.4s ease-out, padding 0.4s ease-out; // Added padding to transition
     padding: 0 1rem;
     
     &.open {

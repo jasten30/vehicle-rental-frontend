@@ -2,10 +2,10 @@
   <div class="about-us-page">
     <!-- Hero Section -->
     <section class="hero-section">
-      <div class="hero-content">
+      <div class="hero-content scroll-animate">
         <h1 class="hero-title">Connecting Journeys, Building Communities</h1>
         <p class="hero-subtitle">
-          RentCycle is more than just a car rental marketplace. We are a community-driven platform dedicated to making mobility accessible, sustainable, and enjoyable for everyone.
+          RentCycle is more than just a rental marketplace. We are a community-driven platform dedicated to making mobility accessible, sustainable, and enjoyable for everyone.
         </p>
       </div>
     </section>
@@ -13,57 +13,85 @@
     <!-- Mission Section -->
     <section class="mission-section">
       <div class="mission-content">
-        <div class="mission-text">
+        <div class="mission-text scroll-animate">
           <h2>Our Mission</h2>
           <p>
-            Our goal is to revolutionize the way people think about car ownership and travel. We empower local car owners to safely and easily share their vehicles, providing renters with a convenient and affordable alternative to traditional rental services. By fostering a peer-to-peer network, we aim to reduce waste, support local economies, and create meaningful connections.
+            Our goal is to revolutionize the way people think about vehicle ownership and travel. We empower local owners to safely and easily share their assets, providing renters with a convenient and affordable alternative to traditional rental services. By fostering a peer-to-peer network, we aim to reduce waste, support local economies, and create meaningful connections.
           </p>
         </div>
-        <div class="mission-image">
-          <img src="https://placehold.co/600x400/28a745/ffffff?text=Our+Community" alt="Community" />
+        <div class="mission-image scroll-animate">
+          <img src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=1200" alt="Happy car owner" />
         </div>
       </div>
     </section>
 
-    <!-- How It Works Section -->
+    <!-- ================================== -->
+    <!-- NEW "How It Works" Section -->
+    <!-- ================================== -->
     <section class="how-it-works-section">
-      <h2>How It Works</h2>
+      <h2 class="scroll-animate">How It Works</h2>
       <div class="steps-container">
-        <div class="step-card">
-          <div class="step-icon"><i class="bi bi-search"></i></div>
-          <h3>1. Discover</h3>
-          <p>Browse a unique selection of cars shared by local hosts, from daily drivers to luxury sedans.</p>
+        
+        <!-- Step 1 -->
+        <div class="step-row">
+          <div class="step-image-wrapper scroll-animate" style="--delay: 0s;">
+            <img src="https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1200" alt="Discover vehicles" class="step-image"/>
+          </div>
+          <div class="step-text-content scroll-animate" style="--delay: 0.1s;">
+            <div class="step-icon"><i class="bi bi-search"></i></div>
+            <h3>1. Discover</h3>
+            <p>Browse a unique selection of cars and motorcycles shared by local hosts, from daily drivers to luxury sedans.</p>
+          </div>
         </div>
-        <div class="step-card">
-          <div class="step-icon"><i class="bi bi-calendar-check"></i></div>
-          <h3>2. Book</h3>
-          <p>Choose your dates, book your trip, and get verified—all through our secure platform.</p>
+
+        <!-- Step 2 -->
+        <div class="step-row reverse">
+          <div class="step-image-wrapper scroll-animate" style="--delay: 0s;">
+            <!-- === UPDATED IMAGE HERE === -->
+            <img src="https://images.unsplash.com/photo-1502877338535-766e1452684a?q=80&w=1200" alt="Book a car" class="step-image"/>
+          </div>
+          <div class="step-text-content scroll-animate" style="--delay: 0.1s;">
+            <div class="step-icon"><i class="bi bi-calendar-check"></i></div>
+            <h3>2. Book</h3>
+            <p>Choose your dates, book your trip, and get verified—all through our secure platform.</p>
+          </div>
         </div>
-        <div class="step-card">
-          <div class="step-icon"><i class="bi bi-key-fill"></i></div>
-          <h3>3. Drive</h3>
-          <p>Pick up your car, unlock new experiences, and hit the open road with confidence.</p>
+        
+        <!-- Step 3 -->
+        <div class="step-row">
+          <div class="step-image-wrapper scroll-animate" style="--delay: 0s;">
+            <img src="https://images.unsplash.com/photo-1558981403-c5f9899a28bc?q=80&w=1200" alt="Drive a motorcycle" class="step-image"/>
+          </div>
+          <div class="step-text-content scroll-animate" style="--delay: 0.1s;">
+            <div class="step-icon"><i class="bi bi-key-fill"></i></div>
+            <h3>3. Drive</h3>
+            <p>Pick up your vehicle, unlock new experiences, and hit the open road with confidence.</p>
+          </div>
         </div>
+
       </div>
     </section>
+    <!-- ================================== -->
+    <!-- END "How It Works" Section -->
+    <!-- ================================== -->
 
     <!-- Meet the Team Section -->
     <section class="team-section">
-      <h2>Meet the Team</h2>
-      <p class="team-intro">We are a passionate team of innovators, thinkers, and adventurers dedicated to building the future of mobility.</p>
+      <h2 class="scroll-animate">Meet the Team</h2>
+      <p class="team-intro scroll-animate">We are a passionate team of innovators, thinkers, and adventurers dedicated to building the future of mobility.</p>
       <div class="team-grid">
-        <div class="team-member-card">
-          <img src="https://placehold.co/300x300/007bff/ffffff?text=CEO" alt="Team Member 1" class="team-member-photo" />
+        <div class="team-member-card scroll-animate" style="--delay: 0s;">
+          <img src="https://images.unsplash.com/photo-1557862921-37829c790f19?q=80&w=300" alt="Team Member 1" class="team-member-photo" />
           <h4 class="member-name">Alex Johnson</h4>
           <p class="member-role">Co-Founder & CEO</p>
         </div>
-        <div class="team-member-card">
-          <img src="https://placehold.co/300x300/fd7e14/ffffff?text=CTO" alt="Team Member 2" class="team-member-photo" />
+        <div class="team-member-card scroll-animate" style="--delay: 0.1s;">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300" alt="Team Member 2" class="team-member-photo" />
           <h4 class="member-name">Maria Garcia</h4>
           <p class="member-role">Co-Founder & CTO</p>
         </div>
-        <div class="team-member-card">
-          <img src="https://placehold.co/300x300/343a40/ffffff?text=COO" alt="Team Member 3" class="team-member-photo" />
+        <div class="team-member-card scroll-animate" style="--delay: 0.2s;">
+          <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=300" alt="Team Member 3" class="team-member-photo" />
           <h4 class="member-name">David Chen</h4>
           <p class="member-role">Chief Operating Officer</p>
         </div>
@@ -76,42 +104,121 @@
 <script>
 export default {
   name: 'AboutView',
+  data() {
+    return {
+      observer: null,
+    };
+  },
+  mounted() {
+    const options = {
+      root: null,
+      threshold: 0.2, // Trigger when 20% of the element is visible
+      rootMargin: "0px",
+    };
+
+    this.observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          this.observer.unobserve(entry.target);
+        }
+      });
+    }, options);
+
+    this.$nextTick(() => {
+      const sections = this.$el.querySelectorAll('.scroll-animate');
+      sections.forEach(section => {
+        this.observer.observe(section);
+      });
+    });
+  },
+  beforeUnmount() {
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+  },
 };
 </script>
 
 <style lang="scss" scoped>
 @import '@/assets/styles/variables.scss';
 
+// --- ADDED: Keyframes for the background animation ---
+@keyframes kenburns-bg {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.1) translate(-2%, 2%);
+  }
+}
+// ---
+
 .about-us-page {
   color: $text-color-dark;
+  overflow-x: hidden; // Prevent horizontal scroll from animations
 }
 
 // Hero Section
 .hero-section {
-  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://placehold.co/1600x600/cccccc/333333?text=Driving+Forward');
-  background-size: cover;
-  background-position: center;
+  position: relative;
+  overflow: hidden;
   padding: 6rem 2rem;
   text-align: center;
   color: white;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1600');
+    background-size: cover;
+    background-position: center;
+    animation: kenburns-bg 20s ease-in-out infinite alternate;
+    z-index: 1;
+    will-change: transform;
+  }
+
+  @media (max-width: 768px) {
+    padding: 4rem 1.5rem;
+  }
 }
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+}
+
 .hero-title {
   font-size: 3.5rem;
   font-weight: 900;
   margin-bottom: 1rem;
+  @media (max-width: 768px) {
+    font-size: 2.5rem;
+  }
 }
 .hero-subtitle {
   font-size: 1.25rem;
   max-width: 800px;
   margin: 0 auto;
   line-height: 1.6;
+  opacity: 0.9;
+  @media (max-width: 768px) {
+    font-size: 1rem;
+  }
 }
 
 // Common Section Styling
 section {
-  padding: 4rem 2rem;
+  padding: 6rem 2rem;
   max-width: 1200px;
   margin: 0 auto;
+  @media (max-width: 768px) {
+    padding: 3rem 1.5rem;
+  }
 }
 
 // Mission Section
@@ -132,6 +239,9 @@ section {
   font-weight: 700;
   margin-bottom: 1.5rem;
   color: $primary-color;
+  @media (max-width: 768px) {
+    font-size: 2rem;
+  }
 }
 .mission-text p {
   font-size: 1.1rem;
@@ -142,48 +252,97 @@ section {
   width: 100%;
   border-radius: $border-radius-lg;
   box-shadow: $shadow-medium;
+  @media (max-width: 768px) {
+    grid-row: 1; // Move image to the top on mobile
+  }
 }
 
-// How It Works Section
+// ==================================
+// UPDATED "How It Works" Section
+// ==================================
 .how-it-works-section {
-  background-color: $background-color;
-  text-align: center;
+  background-color: $background-light;
+  text-align: left; // Changed from center
 }
 .how-it-works-section h2 {
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 3rem;
+  text-align: center; // Keep title centered
+  @media (max-width: 768px) {
+    font-size: 2rem;
+  }
 }
 .steps-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4rem; // Add more space between rows
 }
-.step-card {
-  padding: 2rem;
-  background: $card-background;
+.step-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: center;
+
+  // Reverse layout for even rows
+  &.reverse {
+    .step-image-wrapper {
+      order: 2;
+    }
+    .step-text-content {
+      order: 1;
+    }
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    &.reverse {
+      .step-image-wrapper, .step-text-content {
+        order: initial; // Reset order on mobile
+      }
+    }
+  }
+}
+.step-image-wrapper {
   border-radius: $border-radius-lg;
-  box-shadow: $shadow-light;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  &:hover {
-    transform: translateY(-10px);
-    box-shadow: $shadow-medium;
+  overflow: hidden;
+  box-shadow: $shadow-large;
+}
+.step-image {
+  width: 100%;
+  height: 100%;
+  max-height: 400px;
+  object-fit: cover;
+  display: block;
+}
+.step-text-content {
+  padding: 1rem;
+  @media (max-width: 768px) {
+    text-align: center;
+    padding: 0;
   }
 }
 .step-icon {
   font-size: 3rem;
   color: $primary-color;
   margin-bottom: 1.5rem;
+  display: inline-block;
 }
-.step-card h3 {
-  font-size: 1.5rem;
-  font-weight: 600;
+.step-text-content h3 {
+  font-size: 2rem; // Larger title
+  font-weight: 700;
+  margin-top: 0;
   margin-bottom: 1rem;
 }
-.step-card p {
+.step-text-content p {
   color: $text-color-medium;
-  line-height: 1.6;
+  line-height: 1.8;
+  font-size: 1.1rem;
 }
+// ==================================
+// END "How It Works" Section
+// ==================================
 
 // Team Section
 .team-section {
@@ -193,6 +352,9 @@ section {
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 1rem;
+  @media (max-width: 768px) {
+    font-size: 2rem;
+  }
 }
 .team-intro {
   font-size: 1.1rem;
@@ -216,6 +378,10 @@ section {
   margin-bottom: 1.5rem;
   border: 4px solid white;
   box-shadow: $shadow-medium;
+  transition: transform 0.3s ease;
+  &:hover {
+    transform: scale(1.05);
+  }
 }
 .member-name {
   font-size: 1.25rem;
@@ -224,5 +390,21 @@ section {
 }
 .member-role {
   color: $text-color-medium;
+}
+
+// --- NEW SCROLL ANIMATION STYLES ---
+.scroll-animate {
+  // Start hidden
+  opacity: 0;
+  transform: translateY(40px); // Start slightly lower
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  transition-delay: var(--delay, 0s); // Use CSS variable for delay
+  will-change: opacity, transform;
+
+  // Animate when 'is-visible' class is added
+  &.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

@@ -786,7 +786,6 @@ export default createStore({
       commit('RESET_VEHICLE_FILTERS');
     },
 
-    // --- NEW ACTION ---
     async forgotPassword({ _commit }, email) {
       try {
         await api.forgotPassword(email); 
@@ -795,7 +794,6 @@ export default createStore({
         throw error;
       }
     },
-    // --- END NEW ACTION ---
 
     // ================================================
     //  NEW ACTIONS FOR PROFILE PAGE
@@ -826,6 +824,16 @@ export default createStore({
         throw error; // Let the component handle the error message
       }
     },
+    // --- ADD THIS ---
+    async sendContactForm({ _commit }, formData) {
+      try {
+        await api.sendContactForm(formData);
+      } catch (error) {
+        console.error('[Vuex] Failed to send contact form:', error);
+        throw error; // Let the component handle the error message
+      }
+    },
+    // --- END ADD ---
     // ================================================
 
   },

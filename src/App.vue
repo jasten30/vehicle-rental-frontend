@@ -2,10 +2,8 @@
   <div id="app" class="app-container">
     <header class="app-header" v-if="userRole !== 'admin'">
       <router-link to="/" class="app-title-link">
-        <h1 class="app-title">
-          <span class="rent-text">RENT</span
-          ><span class="cycle-text">CYCLE</span>
-        </h1>
+        <!-- ADDED: Image logo -->
+        <img :src="logo" alt="RentCycle Logo" class="app-logo-image" />
       </router-link>
       <nav class="header-nav">
         <router-link to="/" class="nav-link">Home</router-link>
@@ -14,10 +12,7 @@
         <router-link to="/contact" class="nav-link">Contact</router-link>
       </nav>
       <div class="header-right">
-        <!-- --- NEW: Notification Bell added here --- -->
         <NotificationBell v-if="isAuthenticated" />
-
-        <!-- --- UPDATED: This is now a button that calls a method --- -->
         <button
           v-if="$route.name !== 'VehicleList'"
           @click.prevent="handleHostClick"
@@ -25,8 +20,6 @@
         >
           {{ hostLinkText }}
         </button>
-        <!-- --- END UPDATE --- -->
-
         <div class="user-menu-container">
           <button class="menu-button" @click="toggleMenu" ref="menuButton">
             <i class="bi bi-list menu-icon"></i>
@@ -136,7 +129,6 @@
                 >
                   <i class="bi bi-calendar-check-fill"></i>Calendar
                 </router-link>
-                <!-- --- UPDATED: This now calls the same method --- -->
                 <a
                   href="#"
                   class="dropdown-item with-icon"
@@ -144,10 +136,8 @@
                 >
                   <i class="bi bi-plus-circle-fill"></i>List New Asset
                 </a>
-                <!-- --- END UPDATE --- -->
               </div>
 
-              <!-- --- UPDATED: Show "Become a host" if user is a RENTER --- -->
               <div
                 v-if="isAuthenticated && userRole === 'renter'"
                 class="dropdown-section"
@@ -160,7 +150,6 @@
                   <i class="bi bi-plus-circle-fill"></i>Become a host
                 </a>
               </div>
-              <!-- --- END UPDATE --- -->
 
               <hr class="dropdown-divider" />
 
@@ -172,7 +161,11 @@
                 >
                   <i class="bi bi-key"></i>How RentCycle Works
                 </router-link>
-                <router-link to="#" class="dropdown-item with-icon">
+                <router-link 
+                  to="/contact" 
+                  class="dropdown-item with-icon"
+                  @click="closeMenu"
+                >
                   <i class="bi bi-headset"></i>Contact Support
                 </router-link>
                 <router-link to="#" class="dropdown-item with-icon">
@@ -199,17 +192,13 @@
       <router-view />
     </main>
 
-    <!-- --- NEW: Added FooterSection here --- -->
     <FooterSection v-if="userRole !== 'admin'" />
-    <!-- --- END NEW --- -->
 
-    <!-- --- NEW: Add the modal component here --- -->
     <VehicleTypeChoiceModal
       :show="isChoiceModalVisible"
       @close="isChoiceModalVisible = false"
       @navigate="handleTypeChoice"
     />
-    <!-- --- END NEW --- -->
   </div>
 </template>
 
@@ -218,9 +207,8 @@ import { mapGetters, mapActions } from 'vuex';
 import NotificationBadge from './utils/NotificationBadge.vue';
 import NotificationBell from './components/utils/NotificationBell.vue';
 import VehicleTypeChoiceModal from './components/modals/VehicleTypeChoiceModal.vue';
-// --- NEW: Import the Footer ---
 import FooterSection from './components/HomeViewComponents/FooterSection.vue';
-
+import logoHeader from '@/assets/rentcycle_logo.png';
 
 export default {
   name: 'App',
@@ -228,24 +216,24 @@ export default {
     NotificationBadge,
     NotificationBell,
     VehicleTypeChoiceModal,
-    FooterSection, // --- NEW: Register Footer ---
+    FooterSection,
   },
   data() {
     return {
       isMenuOpen: false,
       initialsDataUrl: null,
       isChoiceModalVisible: false,
+      logo: logoHeader, 
     };
   },
   computed: {
     ...mapGetters(['isAuthenticated', 'userRole', 'user', 'userChats']),
     hostLinkText() {
       if (this.isAuthenticated && this.userRole === 'owner') {
-        return 'List your asset'; // Updated text
+        return 'List your asset';
       }
       return 'Become a host';
     },
-    // hostLinkTarget computed property is no longer needed for the button
     initials() {
       if (!this.user) return '';
       const name = this.user.name || 'User';
@@ -352,7 +340,6 @@ export default {
 </script>
 
 <style lang="scss">
-/* All your existing global styles */
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Nunito:wght@400;700;900&display=swap');
 @import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css');
 @import './assets/styles/variables.scss';
@@ -371,9 +358,9 @@ body {
   box-shadow: none;
   background-color: white;
   margin: 0;
-  display: flex; // --- NEW: Flex layout ---
-  flex-direction: column; // --- NEW: Stack header/main/footer ---
-  min-height: 100vh; // --- NEW: Ensure it takes at least full screen height ---
+  display: flex; 
+  flex-direction: column; 
+  min-height: 100vh; 
 }
 .app-header {
   display: flex;
@@ -391,6 +378,9 @@ body {
   text-decoration: none;
   position: relative;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  
   &::before {
     content: '';
     position: absolute;
@@ -398,29 +388,19 @@ body {
     bottom: -0.5rem;
     left: 0;
     right: 0;
-    background-color: #f0f0f0;
-    clip-path: polygon(0 0, 95% 0, 100% 50%, 95% 100%, 0 100%);
-    border-radius: 9999px;
+    background-color: transparent; // No more pill
+    clip-path: none;
+    border-radius: 0;
   }
 }
-.app-title {
-  font-family: 'Anton', sans-serif;
-  font-size: 2.2rem;
-  font-weight: 400;
-  margin: 0;
-  line-height: 1;
-  position: relative;
-  z-index: 1;
-  padding: 0 1.5rem;
+
+
+.app-logo-image {
+  height: 50px; 
+  width: auto;
+  object-fit: contain;
 }
-.rent-text {
-  color: red;
-  font-style: italic;
-}
-.cycle-text {
-  color: black;
-  font-style: italic;
-}
+
 .header-right {
   display: flex;
   align-items: center;
@@ -571,6 +551,7 @@ body {
   text-decoration: none;
   font-weight: 500;
   transition: background-color 0.2s ease-in-out, transform 0.2s ease-out;
+  box-sizing: border-box; // Fix for width
   &.with-icon {
     display: flex;
     align-items: center;
@@ -606,7 +587,7 @@ body {
 .app-content {
   padding-top: 0;
   min-height: 300px;
-  flex-grow: 1; // --- NEW: Makes the main content grow to fill space ---
+  flex-grow: 1; 
 }
 .search-bar.header-search-bar {
   display: flex;
@@ -728,4 +709,3 @@ body {
   align-items: center;
 }
 </style>
-

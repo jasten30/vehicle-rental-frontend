@@ -25,6 +25,7 @@ export default {
     tokenLogin: () => apiClient.post('/auth/token-login'),
     reauthenticate: (password) => apiClient.post('/auth/reauthenticate', { password }),
     forgotPassword: (email) => apiClient.post('/auth/forgot-password', { email }),
+    sendContactForm: (data) => apiClient.post('/auth/contact', data),
 
     // Users
     getUserProfile: () => apiClient.get('/users/profile'),
