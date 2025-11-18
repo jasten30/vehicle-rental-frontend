@@ -27,9 +27,7 @@
         <ul>
           <li><router-link to="/contact">Contact Support</router-link></li>
           <li><router-link to="/faq">FAQ</router-link></li>
-          <!-- === UPDATED LINK === -->
           <li><router-link to="/trust-and-safety">Trust & Safety</router-link></li>
-          <!-- === END UPDATE === -->
           <li><router-link to="/how-it-works">How it Works</router-link></li>
         </ul>
       </div>
@@ -38,19 +36,16 @@
         <h4 class="column-title">Hosting</h4>
         <ul>
           <li><router-link to="/become-a-host">Become a host</router-link></li>
-          <!-- Commented out links for pages that don't exist yet -->
-          <!-- <li><router-link to="/hosting-guide">Hosting Guide</router-link></li> -->
-          <!-- <li><router-link to="/insurance">Insurance</router-link></li> -->
+          <li><router-link to="/hosting-guide">Hosting Guide</router-link></li>
         </ul>
       </div>
     </div>
     <div class="footer-bottom">
       <p>&copy; {{ new Date().getFullYear() }} RentCycle, Inc. All rights reserved.</p>
       <ul>
-        <!-- Changed to placeholder links to avoid 404 errors -->
-        <li><router-link to="#">Privacy Policy</router-link></li>
-        <li><router-link to="#">Terms of Service</router-link></li>
-      </ul>
+        <li><router-link to="/privacy-policy">Privacy Policy</router-link></li>
+        <li><router-link to="/terms-of-service">Terms of Service</router-link></li>
+        </ul>
     </div>
   </footer>
 </template>
@@ -65,7 +60,7 @@ export default {
 @import '@/assets/styles/variables.scss';
 
 .footer-container {
-  background-color: $background-light; // Use a light background
+  background-color: $background-light;
   color: $text-color-medium;
   padding: 4rem 2rem 2rem;
   border-top: 1px solid $border-color-light;
@@ -74,17 +69,17 @@ export default {
 
 .footer-content {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr; // Main brand column is wider
+  grid-template-columns: 2fr 1fr 1fr 1fr;
   gap: 2rem;
   max-width: 1400px;
   margin: 0 auto 3rem auto;
 
   @media (max-width: 992px) {
-    grid-template-columns: 1fr 1fr; // 2x2 grid
+    grid-template-columns: 1fr 1fr;
   }
 
   @media (max-width: 576px) {
-    grid-template-columns: 1fr; // Single column
+    grid-template-columns: 1fr;
   }
 }
 

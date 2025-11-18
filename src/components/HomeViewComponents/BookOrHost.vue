@@ -1,38 +1,29 @@
-<!-- vehicle-rental-frontend/src/components/BookOrHost.vue -->
 <template>
-  <section class="book-or-host-section">
-    <div class="content-container">
-      <div class="cards-container">
-        <!-- Left side: Book a car -->
-        <div class="action-card left-card">
-          <div class="text-content">
-            <h2 class="action-title">Book a car <span class="arrow-icon">></span></h2>
-          </div>
-          <div class="icon-placeholder">
-            <!-- Icon for book a car -->
-            <svg class="action-icon" xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="6" width="18" height="13" rx="2" ry="2"></rect>
-              <path d="M7 12h.01"></path>
-              <path d="M12 12h.01"></path>
-              <path d="M17 12h.01"></path>
-              <path d="M10 3L7 6"></path>
-              <path d="M17 6l-3-3"></path>
-            </svg>
-          </div>
-        </div>
-        <!-- Right side: Become a host -->
-        <div class="action-card right-card">
-          <div class="icon-placeholder">
-            <!-- Icon for become a host -->
-            <svg class="action-icon" xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2L12 12M12 12L2 12M12 12L12 22M12 12L22 12"></path>
-            </svg>
-          </div>
-          <div class="text-content">
-            <h2 class="action-title">Become a host <span class="arrow-icon">></span></h2>
-          </div>
+  <section class="split-interaction-section">
+    <div class="split-container">
+      
+      <div class="split-pane renter-pane" @click="goToVehicleList">
+        <div class="background-layer"></div>
+        <div class="content-layer">
+          <h2 class="pane-title">Drive</h2>
+          <p class="pane-subtitle">Find the perfect car for your journey.</p>
+          <button class="action-btn">
+            Book a Car <i class="bi bi-arrow-right"></i>
+          </button>
         </div>
       </div>
+
+      <div class="split-pane host-pane" @click="goToBecomeHost">
+        <div class="background-layer"></div>
+        <div class="content-layer">
+          <h2 class="pane-title">Host</h2>
+          <p class="pane-subtitle">Turn your idle vehicle into income.</p>
+          <button class="action-btn">
+            Become a Host <i class="bi bi-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
     </div>
   </section>
 </template>
@@ -40,186 +31,180 @@
 <script>
 export default {
   name: 'BookOrHost',
+  methods: {
+    goToVehicleList() {
+      this.$router.push({ name: 'VehicleList' });
+    },
+    goToBecomeHost() {
+      this.$router.push({ name: 'BecomeOwnerApplication' }); 
+    }
+  }
 };
 </script>
 
 <style lang="scss" scoped>
-/*
- The 'scoped' attribute ensures that these styles only apply to this component.
-*/
+@import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css');
+@import '@/assets/styles/variables.scss'; // Assuming you have global vars
 
-/* Keyframe for a subtle glow/pulse animation on the icons */
-@keyframes icon-pulse {
-  0% { transform: scale(1); opacity: 0.8; }
-  50% { transform: scale(1.1); opacity: 1; }
-  100% { transform: scale(1); opacity: 0.8; }
-}
+// Configuration
+$transition-speed: 0.6s;
+$overlay-color: rgba(0, 0, 0, 0.4);
+$overlay-hover: rgba(0, 0, 0, 0.2);
+$primary-accent: #ff385c; // Or your brand color
 
-.book-or-host-section {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 4rem 2rem;
+.split-interaction-section {
+  width: 100%;
+  height: 600px; // Fixed height for the split effect
   overflow: hidden;
   font-family: 'Nunito', sans-serif;
-  
-  // New background with image and overlay
-  background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://www.peruforless.com/images/rental-keys.jpg');
+
+  @media (max-width: 768px) {
+    height: auto; // Auto height for stacking on mobile
+    min-height: 80vh;
+  }
+}
+
+.split-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+
+.split-pane {
+  position: relative;
+  flex: 1; // Both start at 50% width
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: flex $transition-speed cubic-bezier(0.25, 1, 0.5, 1);
+  overflow: hidden;
+
+  // Background Images
+  &.renter-pane .background-layer {
+    background-image: url('https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?q=80&w=2070&auto=format&fit=crop');
+  }
+
+  &.host-pane .background-layer {
+    background-image: url('https://images.unsplash.com/photo-1560252829-804f1aedf1be?q=80&w=2070&auto=format&fit=crop');
+  }
+
+  // Hover Effects (Desktop Only)
+  @media (min-width: 769px) {
+    &:hover {
+      flex: 2; // Expands to take up more space
+      
+      .background-layer {
+        transform: scale(1.1); // Subtle zoom effect
+        filter: grayscale(0%); // Colorize on hover
+      }
+      
+      .content-layer {
+        background: rgba(0,0,0, 0.2); // Lighten backdrop
+      }
+    }
+
+    // When hovering one, darken the other sibling
+    .split-container:hover &:not(:hover) {
+      flex: 0.8; 
+      .background-layer {
+        filter: grayscale(100%) brightness(0.7);
+      }
+    }
+  }
+}
+
+.background-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background-size: cover;
   background-position: center;
-  background-attachment: fixed; // For a nice parallax effect
+  transition: all $transition-speed ease;
+  z-index: 0;
+  
+  // Initial state
+  filter: brightness(0.8);
 }
 
-/* Main content container to center the cards */
-.content-container {
+.content-layer {
   position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  max-width: 900px;
-  width: 100%;
-}
-
-/* New flex container for the cards */
-.cards-container {
-  display: flex;
-  width: 100%;
-  max-width: 900px;
-  border-radius: 1.5rem;
-  overflow: hidden;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-}
-
-/* Individual card styling with enhanced hover effects */
-.action-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 2rem;
-  flex: 1;
+  z-index: 2;
   text-align: center;
-  cursor: pointer;
-  
-  // Glassmorphism effect
-  background-color: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px); // For Safari
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  
-  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-.action-card.left-card {
-  border-right: none;
-}
-
-.action-card:hover {
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-  transform: translateY(-5px);
-}
-
-.action-card:hover .action-icon {
-  transform: scale(1.1);
-}
-
-.action-card:hover .icon-placeholder {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.action-card:hover .action-title .arrow-icon {
-  opacity: 1;
-  transform: translateX(5px);
-}
-
-
-/* Updated content and icon styling */
-.text-content {
-  margin-bottom: 1rem;
-}
-
-.action-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #ffffff; // Changed to white
-  margin-bottom: 0;
-  white-space: nowrap;
-}
-
-.arrow-icon {
-  font-weight: 900;
-  color: #ffffff; // Changed to white
-  opacity: 0;
-  transform: translateX(0);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-/* Icon placeholder and icon itself */
-.icon-placeholder {
+  color: white;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  width: 100%;
+  height: 100%;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  width: 60px;
-  height: 60px;
-  opacity: 0;
-  transform: scale(0.8);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  animation: none;
+  background: $overlay-color; // Darken image for readability
+  backdrop-filter: blur(2px); // Slight blur for modern feel
 }
 
-.action-card:hover .icon-placeholder {
-  animation: icon-pulse 1.5s infinite ease-in-out;
+.pane-title {
+  font-size: 4rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin: 0;
+  letter-spacing: 2px;
+  text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+
+  @media (max-width: 768px) {
+    font-size: 3rem;
+  }
 }
 
-.action-icon {
-  color: #ffffff; // Changed to white
-  transition: transform 0.3s ease;
+.pane-subtitle {
+  font-size: 1.2rem;
+  margin: 1rem 0 2rem;
+  font-weight: 600;
+  opacity: 0.9;
+  max-width: 300px;
 }
 
-/* Responsive design for mobile screens */
+.action-btn {
+  padding: 12px 30px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: white;
+  background: transparent;
+  border: 2px solid white;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+
+  &:hover {
+    background: white;
+    color: black;
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  }
+}
+
+// Mobile adjustments
 @media (max-width: 768px) {
-  .book-or-host-section {
-    padding: 2rem 1rem;
+  .split-pane {
+    min-height: 400px; // Ensure enough height on mobile
+    border-bottom: 1px solid rgba(255,255,255,0.2);
   }
   
-  .cards-container {
-    flex-direction: column;
-    gap: 2rem;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-  }
-
-  .action-card {
-    flex-direction: column;
-    text-align: center;
-    padding: 2rem 1rem;
-    border-right: none !important;
-  }
-
-  .action-card.left-card {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
-  }
-
-  .action-card:hover {
-    transform: none;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-  }
-
-  .action-card:hover .icon-placeholder {
-    animation: none;
-  }
-
-  .icon-placeholder {
-    opacity: 1; /* Always show icon on mobile */
-    transform: none;
-    margin-bottom: 1rem;
-  }
-  
-  .action-card:hover .action-title .arrow-icon {
-    opacity: 1;
-    transform: translateX(5px);
+  .content-layer {
+    background: rgba(0,0,0,0.5); // Darker overlay on mobile for readability
+    backdrop-filter: none;
   }
 }
 </style>

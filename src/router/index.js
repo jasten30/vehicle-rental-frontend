@@ -14,8 +14,11 @@ import ContactView from '@/views/ContactView.vue';
 import HowItWorksView from '@/views/HowItWorksView.vue';
 import CareersView from '@/views/CareersView.vue';
 import BlogView from '@/views/BlogView.vue';
-import BlogPostDetailView from '@/views/BlogPostDetailView.vue'; 
-import FAQView from '@/views/FAQView.vue'; // <-- 1. ADDED IMPORT
+import BlogPostDetailView from '@/views/BlogPostDetailView.vue';
+import FAQView from '@/views/FAQView.vue';
+import HostingGuideView from '@/views/HostingGuideView.vue';
+import PrivacyPolicyView from '@/views/PrivacyPolicyView.vue';
+import TermsOfServiceView from '@/views/TermsOfServiceView.vue';
 
 // Dashboard Views
 import AdminLayout from '../views/Dashboard/Admin/AdminLayout.vue';
@@ -92,7 +95,6 @@ const dashboardRoutes = [
         component: ChatView,
         meta: { requiresAuth: true },
       },
-      // --- REMOVED 'support' route ---
       {
         path: 'verify-driver',
         name: 'BecomeDriveVerified',
@@ -263,6 +265,22 @@ const routes = [
     name: 'FAQ',
     component: FAQView,
   },
+
+  {
+    path: '/hosting-guide',
+    name: 'HostingGuide',
+    component: HostingGuideView,
+  },
+  {
+    path: '/privacy-policy',
+    name: 'PrivacyPolicy',
+    component: PrivacyPolicyView,
+  },
+  {
+    path: '/terms-of-service',
+    name: 'TermsOfService',
+    component: TermsOfServiceView,
+  },
   {
     path: '/vehicles',
     name: 'VehicleList',
@@ -339,13 +357,11 @@ const routes = [
     props: true,
     meta: { requiresAuth: true },
   },
-  // --- ADDED TRUST & SAFETY ROUTE ---
   {
     path: '/trust-and-safety',
     name: 'TrustAndSafety',
-    component: () => import('../views/TrustAndSafetyView.vue') // Lazy load for example
+    component: () => import('../views/TrustAndSafetyView.vue')
   },
-  // --- END ADD ---
   ...dashboardRoutes,
   {
     path: '/:catchAll(.*)',
