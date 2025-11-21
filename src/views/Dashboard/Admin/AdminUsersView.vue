@@ -1,74 +1,164 @@
 <template>
   <div class="admin-page-container">
-    <div class="page-header">
-      <div>
-        <h2 class="section-title">Manage Users</h2>
-        <p class="section-subtitle">View, edit roles, and manage all users on the platform.</p>
+    <header class="page-header">
+      <div class="header-content">
+        <h2 class="section-title">User Management</h2>
+        <p class="section-subtitle">Monitor and manage user roles and platform access.</p>
       </div>
-      <div class="search-bar">
-        <i class="bi bi-search"></i>
-        <input type="text" v-model="searchQuery" placeholder="Search by name or email..." />
+      <div class="header-stats">
+        <div class="stat-item">
+          <span class="stat-val">{{ allUsers.length }}</span>
+          <span class="stat-label">Total</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="control-bar">
+      <div class="tabs-wrapper">
+        <button 
+          v-for="tab in ['all', 'owner', 'renter']" 
+          :key="tab"
+          class="filter-tab" 
+          :class="{ active: activeTab === tab }" 
+          @click="activeTab = tab"
+        >
+          {{ tab.charAt(0).toUpperCase() + tab.slice(1) + 's' }}
+        </button>
+      </div>
+
+      <div class="search-wrapper">
+        <i class="bi bi-search search-icon"></i>
+        <input 
+          type="text" 
+          v-model="searchQuery" 
+          placeholder="Find user by name or email..." 
+          class="search-input"
+        />
       </div>
     </div>
 
-    <!-- NEW: Tabbed navigation for filtering users by role -->
-    <div class="user-filters">
-        <button class="filter-tab" :class="{ active: activeTab === 'all' }" @click="activeTab = 'all'">All Users</button>
-        <button class="filter-tab" :class="{ active: activeTab === 'owner' }" @click="activeTab = 'owner'">Owners</button>
-        <button class="filter-tab" :class="{ active: activeTab === 'renter' }" @click="activeTab = 'renter'">Renters</button>
-    </div>
+    <div class="content-area">
+      
+      <div v-if="loading" class="state-container">
+        <div class="spinner"></div>
+        <p>Fetching users...</p>
+      </div>
 
-    <div v-if="loading" class="loading-state">
-      <p>Loading user data...</p>
-    </div>
-    <div v-else-if="error" class="error-state">
-      <p>Failed to load users. Please try again.</p>
-      <button @click="fetchData" class="button primary">Retry</button>
-    </div>
-    <div v-else-if="filteredUsers.length === 0" class="empty-state">
-      <p>No users found matching your criteria.</p>
-    </div>
+      <div v-else-if="error" class="state-container error">
+        <i class="bi bi-exclamation-circle"></i>
+        <p>{{ error }}</p>
+        <button @click="fetchData" class="button primary-btn">Retry</button>
+      </div>
 
-    <div v-else class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>User</th>
-            <th>Role</th>
-            <th>Listings</th>
-            <th>Joined</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="user in filteredUsers" :key="user.uid">
-            <td>
-              <div class="user-cell">
-                <span class="user-name">{{ user.name || 'N/A' }}</span>
-                <span class="user-email">{{ user.email }}</span>
+      <div v-else-if="filteredUsers.length === 0" class="state-container empty">
+        <i class="bi bi-people"></i>
+        <p>No users found.</p>
+      </div>
+
+      <div v-else>
+        <div class="desktop-view table-responsive">
+          <table class="modern-table">
+            <thead>
+              <tr>
+                <th>User Profile</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Joined</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="user in filteredUsers" :key="user.uid">
+                <td>
+                  <div class="user-info-cell">
+                    <div class="user-avatar" :style="{ backgroundColor: getAvatarColor(user.name) }">
+                      {{ getInitials(user.name) }}
+                    </div>
+                    <div class="user-text">
+                      <span class="name">{{ user.name || 'Unknown User' }}</span>
+                      <span class="email">{{ user.email }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span :class="['role-badge', getRoleClass(user.role)]">
+                    {{ user.role }}
+                  </span>
+                </td>
+                <td>
+                  <div class="listing-count">
+                    <i class="bi bi-car-front"></i> {{ user.listingCount || 0 }} Listings
+                  </div>
+                </td>
+                <td class="date-cell">{{ formatDate(user.createdAt) }}</td>
+                <td>
+                  <div class="actions-cell">
+                    <button @click="viewProfile(user.uid)" class="action-btn view" title="View Profile">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    <button 
+                      @click="toggleUserRole(user)" 
+                      class="action-btn edit" 
+                      title="Switch Role" 
+                      :disabled="user.role === 'admin'"
+                    >
+                      <i class="bi bi-arrow-left-right"></i>
+                    </button>
+                    <button 
+                      @click="handleDeleteUser(user)" 
+                      class="action-btn delete" 
+                      title="Delete User" 
+                      :disabled="user.role === 'admin'"
+                    >
+                      <i class="bi bi-trash3"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mobile-view grid-layout">
+          <div v-for="user in filteredUsers" :key="user.uid" class="user-card">
+            <div class="card-header">
+              <div class="user-avatar" :style="{ backgroundColor: getAvatarColor(user.name) }">
+                {{ getInitials(user.name) }}
               </div>
-            </td>
-            <td>
-              <span :class="['role-badge', getRoleClass(user.role)]">{{ user.role }}</span>
-            </td>
-            <td>{{ user.listingCount || 0 }}</td>
-            <td>{{ formatDate(user.createdAt) }}</td>
-            <td>
-              <div class="action-buttons">
-                <button @click="toggleUserRole(user)" class="button icon-button" title="Change Role" :disabled="user.role === 'admin'">
-                  <i class="bi bi-person-gear"></i>
+              <div class="card-meta">
+                <span :class="['role-badge', getRoleClass(user.role)]">{{ user.role }}</span>
+                <span class="join-date">{{ formatDate(user.createdAt) }}</span>
+              </div>
+            </div>
+            
+            <div class="card-body">
+              <h3 class="card-name">{{ user.name || 'Unknown' }}</h3>
+              <p class="card-email">{{ user.email }}</p>
+              <p class="card-listings"><i class="bi bi-car-front-fill"></i> {{ user.listingCount || 0 }} vehicles listed</p>
+            </div>
+
+            <div class="card-actions">
+              <button @click="viewProfile(user.uid)" class="btn-card secondary">Profile</button>
+              <div class="icon-group">
+                <button 
+                  @click="toggleUserRole(user)" 
+                  class="btn-icon" 
+                  :disabled="user.role === 'admin'"
+                >
+                  <i class="bi bi-arrow-left-right"></i>
                 </button>
-                <button @click="viewProfile(user.uid)" class="button icon-button" title="View Profile">
-                  <i class="bi bi-eye-fill"></i>
-                </button>
-                <button @click="handleDeleteUser(user)" class="button icon-button danger" title="Delete User" :disabled="user.role === 'admin'">
-                    <i class="bi bi-trash3-fill"></i>
+                <button 
+                  @click="handleDeleteUser(user)" 
+                  class="btn-icon danger" 
+                  :disabled="user.role === 'admin'"
+                >
+                  <i class="bi bi-trash3"></i>
                 </button>
               </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -84,14 +174,12 @@ export default {
       loading: true,
       error: null,
       searchQuery: '',
-      activeTab: 'all', // 'all', 'owner', 'renter'
+      activeTab: 'all',
     };
   },
   computed: {
     ...mapGetters(['allUsers']),
-    // This computed property now chains the filtering: first by role, then by search query.
     filteredUsers() {
-      // 1. Filter by the active tab
       let usersByRole;
       if (this.activeTab === 'all') {
         usersByRole = this.allUsers;
@@ -99,18 +187,13 @@ export default {
         usersByRole = this.allUsers.filter(user => user.role === this.activeTab);
       }
 
-      // 2. Apply the search query on the result of the tab filter
-      if (!this.searchQuery) {
-        return usersByRole;
-      }
+      if (!this.searchQuery) return usersByRole;
+
       const lowerQuery = this.searchQuery.toLowerCase();
       return usersByRole.filter(user => {
         const name = user.name || '';
         const email = user.email || '';
-        return (
-          name.toLowerCase().includes(lowerQuery) ||
-          email.toLowerCase().includes(lowerQuery)
-        );
+        return name.toLowerCase().includes(lowerQuery) || email.toLowerCase().includes(lowerQuery);
       });
     },
   },
@@ -127,6 +210,19 @@ export default {
         this.loading = false;
       }
     },
+    getInitials(name) {
+      if (!name) return 'U';
+      return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    },
+    getAvatarColor(name) {
+      const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1'];
+      if (!name) return '#9ca3af';
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return colors[Math.abs(hash) % colors.length];
+    },
     async toggleUserRole(user) {
       const newRole = user.role === 'owner' ? 'renter' : 'owner';
       if (!confirm(`Change ${user.email}'s role to '${newRole}'?`)) return;
@@ -135,28 +231,23 @@ export default {
         await this.updateUserRole({ userId: user.uid, role: newRole });
         await this.fetchData();
       } catch (error) {
-        alert('Failed to update user role. Please try again.');
-        console.error('Role update error:', error);
+        alert('Failed to update user role.');
       }
     },
     async handleDeleteUser(user) {
-        const confirmationMessage = `Are you sure you want to permanently delete the user ${user.email}? This will also delete all vehicles they own. This action cannot be undone.`;
-        if (!confirm(confirmationMessage)) return;
-
+        if (!confirm(`Permanently delete ${user.email}?`)) return;
         try {
             await this.deleteUser(user.uid);
-            alert('User deleted successfully.');
             await this.fetchData();
         } catch (error) {
-            alert('Failed to delete user. Please try again.');
-            console.error('User deletion error:', error);
+            alert('Failed to delete user.');
         }
     },
     viewProfile(userId) {
       this.$router.push({ name: 'UserProfileView', params: { userId } });
     },
     formatDate(dateObj) {
-      if (!dateObj) return 'N/A';
+      if (!dateObj) return '-';
       const date = dateObj._seconds ? new Date(dateObj._seconds * 1000) : new Date(dateObj);
       return DateTime.fromJSDate(date).toFormat('MMM dd, yyyy');
     },
@@ -175,99 +266,338 @@ export default {
 <style lang="scss" scoped>
 @import '@/assets/styles/variables.scss';
 
-.admin-page-container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+// --- Variables ---
+$bg-color: #f8f9fa;
+$text-main: #1f2937;
+$text-light: #6b7280;
+$border-color: #e5e7eb;
+$card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
+.admin-page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  color: $text-main;
+
+  @media(max-width: 768px) {
+    padding: 1rem;
+  }
+}
+
+// --- Header ---
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
+  align-items: flex-end;
+  margin-bottom: 2.5rem;
+
+  .section-title {
+    font-size: 2rem;
+    font-weight: 800;
+    margin: 0 0 0.5rem 0;
+    letter-spacing: -0.025em;
+  }
+  .section-subtitle {
+    color: $text-light;
+    margin: 0;
+    font-size: 1rem;
+  }
+  
+  .header-stats {
+    @media(max-width: 768px) { display: none; }
+    .stat-item {
+      text-align: center;
+      background: white;
+      padding: 0.5rem 1.5rem;
+      border-radius: 12px;
+      box-shadow: $card-shadow;
+      
+      .stat-val { display: block; font-weight: 800; font-size: 1.5rem; color: $primary-color; line-height: 1; }
+      .stat-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: $text-light; }
+    }
+  }
 }
-.section-title { font-size: 2.5rem; font-weight: 700; margin: 0; }
-.section-subtitle { font-size: 1.1rem; color: $text-color-medium; margin-top: 0.25rem; }
-.search-bar {
+
+// --- Control Bar (Tabs + Search) ---
+.control-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 0.5rem;
+  border-radius: 16px;
+  box-shadow: $card-shadow;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  @media(max-width: 768px) {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    padding: 1rem;
+  }
+}
+
+.tabs-wrapper {
+  display: flex;
+  gap: 0.25rem;
+  background: $bg-color;
+  padding: 0.25rem;
+  border-radius: 12px;
+
+  .filter-tab {
+    border: none;
+    background: none;
+    padding: 0.6rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: $text-light;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover { color: $text-main; }
+    &.active {
+      background: white;
+      color: $primary-color;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+  }
+  @media(max-width: 768px) {
+    width: 100%;
+    justify-content: space-between;
+    .filter-tab { flex: 1; text-align: center; padding: 0.6rem 0; font-size: 0.85rem; }
+  }
+}
+
+.search-wrapper {
   position: relative;
-  i {
+  @media(max-width: 768px) { width: 100%; }
+
+  .search-icon {
     position: absolute;
     left: 1rem;
     top: 50%;
     transform: translateY(-50%);
-    color: $text-color-medium;
+    color: $text-light;
   }
-  input {
-    padding: 0.75rem 1rem 0.75rem 3rem;
-    border-radius: $border-radius-pill;
+  .search-input {
+    padding: 0.75rem 1rem 0.75rem 2.8rem;
     border: 1px solid $border-color;
+    border-radius: 12px;
     width: 300px;
-    font-size: 1rem;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+    }
+    @media(max-width: 768px) { width: 100%; }
   }
 }
-/* NEW Styles for the filter tabs */
-.user-filters {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 2rem;
-    border-bottom: 1px solid $border-color;
-}
-.filter-tab {
-    padding: 0.75rem 1.5rem;
-    cursor: pointer;
-    background: none;
-    border: none;
-    font-size: 1rem;
-    font-weight: 600;
-    color: $text-color-medium;
-    border-bottom: 3px solid transparent;
-    transition: all 0.2s ease;
 
-    &.active {
-        color: $primary-color;
-        border-bottom-color: $primary-color;
-    }
-    &:hover:not(.active) {
-        background-color: #f9fafb;
-    }
+// --- Desktop Table View ---
+.desktop-view {
+  display: block;
+  @media(max-width: 768px) { display: none; }
 }
-.table-container { background-color: $card-background; border-radius: $border-radius-lg; box-shadow: $shadow-light; overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; text-align: left; }
-th, td { padding: 1rem; border-bottom: 1px solid $border-color; vertical-align: middle; }
-thead th { font-size: 0.8rem; font-weight: 600; color: $text-color-medium; text-transform: uppercase; }
-tbody tr:last-child td { border-bottom: none; }
-.user-cell { display: flex; flex-direction: column; }
-.user-name { font-weight: 600; color: $text-color-dark; }
-.user-email { font-size: 0.9rem; color: $text-color-medium; }
-.role-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: $border-radius-pill;
-  font-weight: 600;
-  font-size: 0.8rem;
-  text-transform: capitalize;
-  &.role-admin { background-color: lighten($admin-color, 40%); color: darken($admin-color, 20%); }
-  &.role-owner { background-color: lighten($accent-color, 35%); color: darken($accent-color, 20%); }
-  &.role-renter { background-color: #e5e7eb; color: #4b5568; }
+
+.table-responsive {
+  background: white;
+  border-radius: 16px;
+  box-shadow: $card-shadow;
+  overflow: hidden;
 }
-.action-buttons {
+
+.modern-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead th {
+    text-align: left;
+    padding: 1.25rem 1.5rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $text-light;
+    background: #fafafa;
+    border-bottom: 1px solid $border-color;
+  }
+
+  tbody td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid $border-color;
+    vertical-align: middle;
+  }
+
+  tbody tr:hover {
+    background-color: #f9fafb;
+  }
+
+  .text-right { text-align: right; }
+}
+
+// --- Mobile Card View ---
+.mobile-view {
+  display: none;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  @media(max-width: 768px) { display: grid; }
+}
+
+.user-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: $card-shadow;
   display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    
+    .card-meta {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.25rem;
+      .join-date { font-size: 0.75rem; color: $text-light; }
+    }
+  }
+
+  .card-body {
+    .card-name { margin: 0; font-size: 1.1rem; font-weight: 700; }
+    .card-email { margin: 0.1rem 0 0.5rem 0; font-size: 0.9rem; color: $text-light; }
+    .card-listings { margin: 0; font-size: 0.85rem; color: $primary-color; display: flex; align-items: center; gap: 0.5rem; background: rgba($primary-color, 0.05); padding: 0.25rem 0.5rem; border-radius: 6px; width: fit-content;}
+  }
+
+  .card-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid $border-color;
+    padding-top: 1rem;
+    margin-top: 0.5rem;
+
+    .btn-card {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: 1px solid $border-color;
+      background: white;
+      color: $text-main;
+    }
+    .icon-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+  }
+}
+
+// --- Shared Components ---
+.user-info-cell {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  .user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+  .user-text {
+    display: flex;
+    flex-direction: column;
+    .name { font-weight: 600; color: $text-main; }
+    .email { font-size: 0.85rem; color: $text-light; }
+  }
+}
+
+.role-badge {
+  padding: 0.35rem 0.75rem;
+  border-radius: 50px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+
+  &.role-admin { background: #fee2e2; color: #ef4444; }
+  &.role-owner { background: #e0e7ff; color: #6366f1; }
+  &.role-renter { background: #d1fae5; color: #10b981; }
+}
+
+.actions-cell {
+  display: flex;
+  justify-content: flex-end;
   gap: 0.5rem;
 }
-.icon-button {
-  background: none;
+
+.action-btn, .btn-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   border: none;
+  background: transparent;
+  color: $text-light;
   cursor: pointer;
-  color: $text-color-medium;
-  padding: 0.5rem;
-  border-radius: 50%;
   display: flex;
-  transition: background-color 0.2s ease;
-  &:hover:not(:disabled) { background-color: #f3f4f6; color: $primary-color; }
-  i { font-size: 1.25rem; }
-  &.danger:hover:not(:disabled) {
-      background-color: lighten($admin-color, 40%);
-      color: $admin-color;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+
+  &:hover { background: #f3f4f6; color: $primary-color; }
+  &.delete:hover { background: #fee2e2; color: #ef4444; }
+  &.edit:hover { background: #e0e7ff; color: #6366f1; }
+  &:disabled { opacity: 0.3; cursor: not-allowed; &:hover { background: none; } }
+}
+
+// --- State Containers ---
+.state-container {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: $text-light;
+  background: white;
+  border-radius: 16px;
+  box-shadow: $card-shadow;
+
+  .spinner {
+    margin: 0 auto 1rem;
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid rgba($primary-color, 0.3);
+    border-radius: 50%;
+    border-top-color: $primary-color;
+    animation: spin 1s ease-in-out infinite;
   }
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+  i { font-size: 2.5rem; margin-bottom: 1rem; display: block; opacity: 0.5; }
+  
+  &.error i { color: #ef4444; opacity: 1; }
+  
+  .primary-btn {
+    margin-top: 1rem;
+    background: $primary-color;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
   }
 }
-</style>
 
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>

@@ -1,15 +1,15 @@
 import { createStore } from 'vuex';
-import api from '@/views/services/api'; // UPDATED: Corrected import path
+import api from '@/views/services/api'; 
 import router from '../router';
-import { DateTime, Interval } from 'luxon'; // UPDATED: Imported Interval
+import { DateTime, Interval } from 'luxon'; 
 import {
   getAuth,
   onAuthStateChanged,
   signOut,
-  signInWithCustomToken,
+  signInWithEmailAndPassword, // Import this!
 } from 'firebase/auth';
 import owner from './modules/owner';
-import { setAuthToken } from '@/views/services/api'; // UPDATED: Corrected import path
+import { setAuthToken } from '@/views/services/api'; 
 
 export default createStore({
   state: {
@@ -32,7 +32,7 @@ export default createStore({
       availabilityEndDate: null,
       vehicleType: '',
       seats: null,
-      assetType: null, // Make sure this line exists
+      assetType: null, 
     },
     vehicleSort: {
       key: 'rentalPricePerDay',
@@ -91,7 +91,6 @@ export default createStore({
       state.authLoading = loading;
     },
     SET_VEHICLE_FILTER(state, { key, value }) {
-      // FIX: Use safe property check for ESLint
       if (Object.prototype.hasOwnProperty.call(state.vehicleFilters, key)) {
         state.vehicleFilters[key] = value;
       } else {
@@ -114,7 +113,7 @@ export default createStore({
         availabilityEndDate: null,
         vehicleType: '',
         seats: null,
-        assetType: null, // Make sure this is reset
+        assetType: null,
       };
     },
     SET_ALL_VEHICLES(state, vehicles) {
@@ -136,10 +135,10 @@ export default createStore({
       state.userChats = chats;
     },
     UPDATE_USER_FAVORITES(state, favoritesArray) {
-    if (state.user) {
-      state.user.favorites = favoritesArray;
-    }
-  },
+      if (state.user) {
+        state.user.favorites = favoritesArray;
+      }
+    },
   },
   actions: {
     async fetchNotifications({ commit }) {
@@ -208,6 +207,7 @@ export default createStore({
         throw error;
       }
     },
+    // --- INITIALIZE AUTH ---
     initializeAuth({ commit }) {
       return new Promise((resolve) => {
         const auth = getAuth();
@@ -215,9 +215,12 @@ export default createStore({
           if (user) {
             try {
               const authToken = await user.getIdToken();
-              setAuthToken(authToken); // This is your API token
+              setAuthToken(authToken); // Set token for API
+              
+              // Fetch Profile from Backend
               const response = await api.getUserProfile();
               const userRole = response.data.role || 'renter';
+              
               commit('SET_AUTH_STATE', {
                 user: response.data,
                 userRole,
@@ -238,36 +241,32 @@ export default createStore({
       });
     },
 
-    // --- UPDATED LOGIN ACTION ---
-    async login({ commit }, { idToken }) { // Now expects idToken
+    // --- FIXED LOGIN ACTION ---
+    // Replaced complex token exchange with standard Firebase login
+    async login({ commit, _dispatch }, { email, password }) {
       try {
         const auth = getAuth();
         
-        // 1. Send the ID Token to the backend to get a *custom* token
-        // This verifies the user and checks for 'isBlocked'
-        const backendResponse = await api.login({ idToken }); // Pass idToken
-        const customToken = backendResponse.data.token;
-
-        // 2. Sign in with the new custom token
-        // This is necessary to get the custom claims (like 'role')
-        const userCredential = await signInWithCustomToken(auth, customToken);
+        // 1. Authenticate against Firebase
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        
-        // 3. Get the *final* auth token (now with custom claims)
-        const finalAuthToken = await user.getIdToken();
-        setAuthToken(finalAuthToken);
 
-        // 4. Fetch the full user profile
+        // 2. Get the ID token and set it for API calls
+        const authToken = await user.getIdToken();
+        setAuthToken(authToken);
+
+        // 3. Fetch the User Profile from Backend to get Roles
         const profileResponse = await api.getUserProfile();
         const userRole = profileResponse.data.role || 'renter';
-        
+
+        // 4. Update State
         commit('SET_AUTH_STATE', {
           user: profileResponse.data,
           userRole,
-          authToken: finalAuthToken,
+          authToken,
         });
 
-        // 5. Redirect
+        // 5. Redirect based on Role
         if (userRole === 'admin') {
           router.push('/dashboard/admin/dashboard');
         } else if (userRole === 'owner') {
@@ -276,12 +275,13 @@ export default createStore({
           router.push('/dashboard/my-bookings');
         }
         return true;
+
       } catch (error) {
         console.error('[Vuex] Login failed:', error);
         throw error;
       }
     },
-    // --- END UPDATED LOGIN ACTION ---
+    // --- END LOGIN ACTION ---
 
     async fetchAllBookings({ commit }, params = {}) {
       try {
@@ -334,7 +334,6 @@ export default createStore({
               'https://placehold.co/400x300/e2e8f0/666666?text=No+Image',
             ];
           }
-          // --- REMOVED: Faulty normalization logic ---
           return normalized;
         });
         commit('SET_ALL_VEHICLES', normalizedVehicles);
@@ -379,7 +378,6 @@ export default createStore({
         throw error;
       }
     },
-    // FIX: Removed unused 'ownerId' parameter
     async getVehiclesByOwner({ _commit }) {
       try {
         const response = await api.getVehiclesByOwner();
@@ -398,11 +396,9 @@ export default createStore({
         throw error;
       }
     },
-    // FIX: Changed destructuring to { id, updates }
     async updateVehicle({ commit }, { id, updates }) {
       try {
         const response = await api.updateVehicle(id, updates);
-        // Optimistic update to the list
         commit('UPDATE_VEHICLE_SUCCESS', { id, ...updates });
         return response.data;
       } catch (error) {
@@ -501,26 +497,6 @@ export default createStore({
         await api.verifyEmailCode(code);
       } catch (error) {
         console.error('Failed to verify email code:', error);
-        throw error;
-      }
-    },
-    async tokenLogin({ dispatch }) {
-      try {
-        const response = await api.tokenLogin();
-        const customToken = response.data.token;
-        const auth = getAuth();
-        await signInWithCustomToken(auth, customToken);
-        await dispatch('fetchUserProfile');
-        const userRole = this.getters.userRole;
-        if (userRole === 'admin') {
-          router.push('/dashboard/admin/dashboard');
-        } else if (userRole === 'owner') {
-          router.push('/dashboard/owner/vehicles');
-        } else {
-          router.push('/dashboard/my-bookings');
-        }
-      } catch (error) {
-        console.error('[Vuex] Token login failed:', error);
         throw error;
       }
     },
@@ -732,7 +708,7 @@ export default createStore({
       try {
         const response = await api.downloadBookingContract(bookingId);
         const contentDisposition = response.headers['content-disposition'];
-        let filename = `BookingContract-${bookingId}.txt`; // default
+        let filename = `BookingContract-${bookingId}.txt`; 
         if (contentDisposition) {
             const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
             if (filenameMatch && filenameMatch.length === 2) filename = filenameMatch[1];
@@ -795,13 +771,10 @@ export default createStore({
       }
     },
 
-    // ================================================
-    //  NEW ACTIONS FOR PROFILE PAGE
-    // ================================================
     async getPublicVehiclesByOwner({ _commit }, userId) {
       try {
         const response = await api.getPublicVehiclesByOwner(userId);
-        return response.data; // Component will handle this data
+        return response.data; 
       } catch (error) {
         console.error('[Vuex] Failed to fetch public vehicles:', error);
         throw error;
@@ -810,7 +783,7 @@ export default createStore({
     async getReviewsForHost({ _commit }, hostId) {
       try {
         const response = await api.getReviewsForHost(hostId);
-        return response.data; // Component will handle this data
+        return response.data; 
       } catch (error) {
         console.error('[Vuex] Failed to fetch host reviews:', error);
         throw error;
@@ -821,21 +794,17 @@ export default createStore({
         await api.submitReviewReply(reviewId, { text });
       } catch (error) {
         console.error('[Vuex] Failed to submit review reply:', error);
-        throw error; // Let the component handle the error message
+        throw error;
       }
     },
-    // --- ADD THIS ---
     async sendContactForm({ _commit }, formData) {
       try {
         await api.sendContactForm(formData);
       } catch (error) {
         console.error('[Vuex] Failed to send contact form:', error);
-        throw error; // Let the component handle the error message
+        throw error;
       }
     },
-    // --- END ADD ---
-    // ================================================
-
   },
   getters: {
     notifications: (state) => state.notifications,
@@ -858,10 +827,6 @@ export default createStore({
     userChats: (state) => state.userChats,
     userFavorites: (state) => state.user?.favorites || [],
     
-    // ================================================
-    //  UPDATED GETTER
-    // ================================================
-    // FIX: Prefixed unused getters with _
     filteredAndSortedVehicles: (state, _getters) => {
       let vehicles = Array.isArray(state.allVehicles)
         ? [...state.allVehicles]
@@ -869,15 +834,11 @@ export default createStore({
       const filters = state.vehicleFilters;
 
       // --- (1) APPLY ASSET TYPE FILTER FIRST ---
-      // FIX: This logic is now correct
       if (filters.assetType === 'motorcycle') {
         vehicles = vehicles.filter(v => v.assetType === 'motorcycle');
       } else if (filters.assetType === 'vehicle') {
-        // Treat 'vehicle' OR 'undefined' as a vehicle
         vehicles = vehicles.filter(v => v.assetType === 'vehicle' || !v.assetType);
       }
-      // if filters.assetType is null, show all (no filter)
-      // --- END ASSET TYPE FILTER ---
 
       if (filters.vehicleType) {
         vehicles = vehicles.filter(
@@ -893,7 +854,7 @@ export default createStore({
             return false;
           }
           const vehicleSeats = parseInt(v.seatingCapacity, 10);
-          if (seatsFilterValue === 7) { // Assuming 7 means 7+
+          if (seatsFilterValue === 7) { 
             return vehicleSeats >= 7;
           } else {
             return vehicleSeats === seatsFilterValue;
@@ -991,7 +952,6 @@ export default createStore({
       }
       return vehicles;
     },
-    // ================================================
   },
   modules: {
     owner,

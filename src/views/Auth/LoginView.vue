@@ -5,7 +5,6 @@
     <div class="form-column">
       <div class="login-container">
         
-        <!-- Login View -->
         <template v-if="view === 'login'">
           <h2 class="login-title">Welcome Back</h2>
           <p class="login-subtitle">Sign in to continue to RentCycle</p>
@@ -24,7 +23,6 @@
             <div class="form-group">
               <div class="label-row">
                 <label for="password">Password</label>
-                <!-- NEW: Forgot Password Link -->
                 <a href="#" @click.prevent="view = 'forgot'" class="forgot-password-link">Forgot password?</a>
               </div>
               <input
@@ -48,7 +46,6 @@
           </p>
         </template>
 
-        <!-- Forgot Password View -->
         <template v-else-if="view === 'forgot'">
            <h2 class="login-title">Reset Password</h2>
            <p class="login-subtitle">Enter your email to receive a password reset link.</p>
@@ -85,20 +82,18 @@
 
 <script>
 import { mapActions } from 'vuex';
-// --- NEW: Import Firebase Auth methods ---
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 
 export default {
   name: 'LoginView',
   data() {
     return {
-      view: 'login', // 'login' or 'forgot'
+      view: 'login',
       email: '',
       password: '',
-      resetEmail: '', // For the forgot password form
+      resetEmail: '',
       loading: false,
       error: null,
-      successMessage: null, // For success feedback
+      successMessage: null,
     };
   },
   methods: {
@@ -109,25 +104,16 @@ export default {
       this.error = null;
       this.successMessage = null;
       try {
-        // --- THIS IS THE NEW LOGIC ---
-        // 1. Sign in with Firebase on the FRONTEND first
-        const auth = getAuth();
-        const userCredential = await signInWithEmailAndPassword(auth, this.email, this.password);
-        
-        // 2. Get the ID Token from the successful login
-        const idToken = await userCredential.user.getIdToken();
-
-        // 3. Send THIS TOKEN to your Vuex action (and to your backend)
-        // Your backend will now verify this token instead of a password
-        await this.login({ idToken }); 
-        // Vuex action will handle redirect
-
+        // Pass email/password directly to the store action
+        await this.login({ email: this.email, password: this.password }); 
+        // The store handles the redirect upon success
       } catch (err) {
-        // Handle Firebase auth errors
+        // Handle Errors
+        console.error(err);
         if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-            this.error = 'Invalid credentials.';
+            this.error = 'Invalid email or password.';
         } else {
-            this.error = err.response?.data?.message || 'Failed to log in.';
+            this.error = err.response?.data?.message || err.message || 'Failed to log in.';
         }
       } finally {
         this.loading = false;
@@ -208,7 +194,6 @@ export default {
   margin-bottom: 2rem;
 }
 
-/* Styles for the row containing label and forgot link */
 .label-row {
   display: flex;
   justify-content: space-between;
@@ -290,11 +275,11 @@ export default {
   border-radius: $border-radius-md;
   text-align: center;
   margin-top: 1rem;
-  font-size: 0.9rem; // Added for consistency
+  font-size: 0.9rem;
 }
 
 .success-message {
-  color: $secondary-color; // Or your success color
+  color: $secondary-color;
   background-color: lighten($secondary-color, 40%);
   padding: 0.75rem;
   border-radius: $border-radius-md;
