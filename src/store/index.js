@@ -6,7 +6,7 @@ import {
   getAuth,
   onAuthStateChanged,
   signOut,
-  signInWithEmailAndPassword, // Import this!
+  signInWithEmailAndPassword, 
 } from 'firebase/auth';
 import owner from './modules/owner';
 import { setAuthToken } from '@/views/services/api'; 
@@ -21,6 +21,8 @@ export default createStore({
     vehicle: null,
     allBookings: [],
     allUsers: [],
+    allPlatformFees: [], // <--- ADDED: For Admin
+    myPlatformFees: [],  // <--- ADDED: For Owner
     vehicleFilters: {
       make: '',
       model: '',
@@ -44,6 +46,19 @@ export default createStore({
     isLoadingNotifications: false,
   },
   mutations: {
+    // --- NEW MUTATIONS ---
+    SET_ALL_PLATFORM_FEES(state, fees) {
+      state.allPlatformFees = fees;
+    },
+    SET_MY_PLATFORM_FEES(state, fees) {
+      state.myPlatformFees = fees;
+    },
+    UPDATE_FEE_STATUS(state, { feeId, status }) {
+      const fee = state.allPlatformFees.find(f => f.id === feeId);
+      if (fee) fee.status = status;
+    },
+    // ---------------------
+
     SET_NOTIFICATIONS(state, notifications) {
       state.notifications = notifications;
     },
@@ -141,6 +156,47 @@ export default createStore({
     },
   },
   actions: {
+    // --- NEW ACTIONS ---
+    async fetchAllPlatformFees({ commit }) {
+      try {
+        const response = await api.getAllPlatformFees();
+        commit('SET_ALL_PLATFORM_FEES', response.data);
+      } catch (error) {
+        console.error('[Vuex] Failed to fetch platform fees:', error);
+      }
+    },
+
+    async fetchOwnerPlatformFees({ commit }) {
+      try {
+        const response = await api.getOwnerPlatformFees();
+        commit('SET_MY_PLATFORM_FEES', response.data);
+      } catch (error) {
+        console.error('[Vuex] Failed to fetch owner fees:', error);
+      }
+    },
+
+    async submitPlatformFee({ _commit }, payload) {
+      try {
+        // payload = { month, year, amount, referenceNumber }
+        await api.submitPlatformFeePayment(payload);
+        return true; // Success
+      } catch (error) {
+        console.error('[Vuex] Failed to submit fee payment:', error);
+        throw error;
+      }
+    },
+
+    async verifyPlatformFee({ commit }, feeId) {
+      try {
+        await api.verifyPlatformFee(feeId);
+        commit('UPDATE_FEE_STATUS', { feeId, status: 'verified' });
+      } catch (error) {
+        console.error('[Vuex] Failed to verify fee:', error);
+        throw error;
+      }
+    },
+    // -------------------
+
     async fetchNotifications({ commit }) {
       commit('SET_NOTIFICATIONS_LOADING', true);
       try {
@@ -241,8 +297,6 @@ export default createStore({
       });
     },
 
-    // --- FIXED LOGIN ACTION ---
-    // Replaced complex token exchange with standard Firebase login
     async login({ commit, _dispatch }, { email, password }) {
       try {
         const auth = getAuth();
@@ -807,6 +861,11 @@ export default createStore({
     },
   },
   getters: {
+    // --- NEW GETTERS ---
+    allPlatformFees: (state) => state.allPlatformFees,
+    myPlatformFees: (state) => state.myPlatformFees,
+    // -------------------
+
     notifications: (state) => state.notifications,
     unreadNotificationsCount: (state) => {
       return state.notifications.filter(n => !n.isRead).length;

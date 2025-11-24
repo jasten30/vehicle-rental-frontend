@@ -2,46 +2,57 @@
   <div class="admin-page-container">
     <header class="page-header">
       <div class="header-content">
-        <h2 class="section-title">Bookings Overview</h2>
-        <p class="section-subtitle">Monitor rental transactions and manage reservation statuses.</p>
+        <h2 class="section-title">Bookings & Finance</h2>
+        <p class="section-subtitle">
+          Monitor rental transactions and verify platform fees.
+        </p>
       </div>
       <div class="header-stats">
         <div class="stat-item">
-          <span class="stat-val">{{ filteredBookings.length }}</span>
-          <span class="stat-label">Total</span>
+          <span class="stat-val">{{ filteredList.length }}</span>
+          <span class="stat-label">Records</span>
         </div>
       </div>
     </header>
 
     <div class="control-bar">
       <div class="tabs-wrapper">
-        <button 
-          v-for="filter in statusFilters" 
+        <button
+          v-for="filter in statusFilters"
           :key="filter.value"
-          class="filter-tab" 
-          :class="{ active: activeFilter === filter.value }" 
+          class="filter-tab"
+          :class="{ active: activeFilter === filter.value }"
           @click="activeFilter = filter.value"
         >
           {{ filter.label }}
+        </button>
+
+        <div class="divider"></div>
+
+        <button
+          class="filter-tab fee-tab"
+          :class="{ active: activeFilter === 'platform_fees' }"
+          @click="activeFilter = 'platform_fees'"
+        >
+          <i class="bi bi-cash-coin"></i> Platform Fees
         </button>
       </div>
 
       <div class="search-wrapper">
         <i class="bi bi-search search-icon"></i>
-        <input 
-          type="text" 
-          v-model="searchQuery" 
-          placeholder="Search by renter, vehicle, or ID..." 
+        <input
+          type="text"
+          v-model="searchQuery"
+          placeholder="Search..."
           class="search-input"
         />
       </div>
     </div>
 
     <div class="content-area">
-      
       <div v-if="loading" class="state-container">
         <div class="spinner"></div>
-        <p>Loading bookings...</p>
+        <p>Loading data...</p>
       </div>
 
       <div v-else-if="error" class="state-container error">
@@ -50,121 +61,208 @@
         <button @click="fetchData" class="button primary-btn">Retry</button>
       </div>
 
-      <div v-else-if="filteredBookings.length === 0" class="state-container empty">
-        <i class="bi bi-calendar-x"></i>
-        <p>No bookings found.</p>
+      <div
+        v-else-if="paginatedList.length === 0"
+        class="state-container empty"
+      >
+        <i class="bi bi-inbox"></i>
+        <p>No records found.</p>
       </div>
 
-      <div v-else>
-        <div class="desktop-view table-responsive">
-          <table class="modern-table">
-            <thead>
-              <tr>
-                <th>Booking ID</th>
-                <th>Renter</th>
-                <th>Vehicle</th>
-                <th>Dates</th>
-                <th>Total</th>
-                <th>Status</th>
-                <th class="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="booking in filteredBookings" :key="booking.id">
-                <td class="id-cell">
-                  <span class="id-text">#{{ booking.id.substring(0, 8) }}...</span>
-                </td>
-                <td>
-                  <div class="user-info-cell">
-                    <div class="user-avatar" :style="{ backgroundColor: getAvatarColor(booking.resolvedRenterName) }">
-                      {{ getInitials(booking.resolvedRenterName) }}
-                    </div>
-                    <div class="user-text">
-                      <span class="name">{{ booking.resolvedRenterName }}</span>
-                      <span class="email">{{ booking.resolvedRenterEmail }}</span>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <div class="vehicle-info">
-                    <span class="vehicle-name">{{ booking.vehicleName || 'Unknown Vehicle' }}</span>
-                  </div>
-                </td>
-                <td>
-                  <div class="date-range">
-                    <span>{{ formatDate(booking.startDate) }}</span>
-                    <i class="bi bi-arrow-right-short"></i>
-                    <span>{{ formatDate(booking.endDate) }}</span>
-                  </div>
-                </td>
-                <td class="price-cell">₱{{ booking.totalCost ? Number(booking.totalCost).toLocaleString() : '0' }}</td>
-                <td>
-                  <span :class="['status-badge', getStatusClass(booking.paymentStatus)]">
-                    {{ formatStatus(booking.paymentStatus) }}
-                  </span>
-                </td>
-                <td>
-                  <div class="actions-cell">
-                    <button @click="viewBooking(booking)" class="action-btn view" title="View Details">
-                      <i class="bi bi-eye"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div v-else class="list-container">
+        <template v-if="activeFilter === 'platform_fees'">
+          <div class="list-header fee-grid desktop-only">
+            <div class="col">Period</div>
+            <div class="col">Host</div>
+            <div class="col">Ref No.</div>
+            <div class="col">Amount</div>
+            <div class="col">Status</div>
+            <div class="col right">Actions</div>
+          </div>
 
-        <div class="mobile-view grid-layout">
-          <div v-for="booking in filteredBookings" :key="booking.id" class="booking-card">
-            <div class="card-header">
-              <div class="header-main">
-                <h3 class="vehicle-title">{{ booking.vehicleName }}</h3>
-                <span class="booking-ref">#{{ booking.id.substring(0, 8) }}</span>
+          <div
+            v-for="fee in paginatedList"
+            :key="fee.id"
+            class="list-item fee-grid"
+          >
+            <div class="mobile-top mobile-only">
+              <span class="period"
+                ><strong>{{ fee.month }} {{ fee.year }}</strong></span
+              >
+              <span
+                :class="[
+                  'status-badge',
+                  fee.status === 'verified'
+                    ? 'status-success'
+                    : 'status-warning',
+                ]"
+              >
+                {{ fee.status === 'verified' ? 'Verified' : 'Pending' }}
+              </span>
+            </div>
+
+            <div class="col period-cell desktop-only">
+              <strong>{{ fee.month }} {{ fee.year }}</strong>
+            </div>
+
+            <div class="col user-cell">
+              <div class="user-info">
+                <div class="user-avatar host">
+                  {{ getInitials(fee.hostName) }}
+                </div>
+                <div class="user-text">
+                  <span class="name">{{ fee.hostName }}</span>
+                  <span class="email">{{ fee.hostEmail }}</span>
+                </div>
               </div>
-              <span :class="['status-badge', getStatusClass(booking.paymentStatus)]">
+            </div>
+
+            <div class="col ref-cell font-mono">
+              <span class="label-mobile">Ref:</span> {{ fee.referenceNumber }}
+            </div>
+
+            <div class="col amount-cell text-success">
+              <span class="label-mobile">Amount:</span>
+              +₱{{
+                fee.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })
+              }}
+            </div>
+
+            <div class="col status-cell desktop-only">
+              <span
+                :class="[
+                  'status-badge',
+                  fee.status === 'verified'
+                    ? 'status-success'
+                    : 'status-warning',
+                ]"
+              >
+                {{ fee.status === 'verified' ? 'Verified' : 'Pending Review' }}
+              </span>
+            </div>
+
+            <div class="col actions-cell">
+              <button
+                v-if="fee.status !== 'verified'"
+                @click="verifyFeePayment(fee.id)"
+                class="button primary-btn small-btn"
+              >
+                Verify
+              </button>
+              <span v-else class="text-muted">
+                <i class="bi bi-check-all"></i> Done
+              </span>
+            </div>
+          </div>
+        </template>
+
+        <template v-else>
+          <div class="list-header booking-grid desktop-only">
+            <div class="col">ID</div>
+            <div class="col">Renter</div>
+            <div class="col">Vehicle</div>
+            <div class="col">Dates</div>
+            <div class="col">Total</div>
+            <div class="col">Status</div>
+            <div class="col right">Actions</div>
+          </div>
+
+          <div
+            v-for="booking in paginatedList"
+            :key="booking.id"
+            class="list-item booking-grid"
+          >
+            <div class="mobile-top mobile-only">
+              <span class="id-text"
+                >#{{ booking.id.substring(0, 8) }}</span
+              >
+              <span
+                :class="[
+                  'status-badge',
+                  getStatusClass(booking.paymentStatus),
+                ]"
+              >
                 {{ formatStatus(booking.paymentStatus) }}
               </span>
             </div>
-            
-            <div class="card-body">
-              <div class="info-row">
-                <div class="user-mini">
-                  <div class="avatar-sm" :style="{ backgroundColor: getAvatarColor(booking.resolvedRenterName) }">
-                    {{ getInitials(booking.resolvedRenterName) }}
-                  </div>
-                  <div class="text-col">
-                    <span class="name">{{ booking.resolvedRenterName }}</span>
-                    <span class="email">{{ booking.resolvedRenterEmail }}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="date-row">
-                <div class="date-block">
-                  <span class="label">From</span>
-                  <span class="value">{{ formatDate(booking.startDate) }}</span>
-                </div>
-                <i class="bi bi-arrow-right"></i>
-                <div class="date-block">
-                  <span class="label">To</span>
-                  <span class="value">{{ formatDate(booking.endDate) }}</span>
-                </div>
-              </div>
 
-              <div class="cost-row">
-                <span class="label">Total Cost</span>
-                <span class="value">₱{{ booking.totalCost ? Number(booking.totalCost).toLocaleString() : '0' }}</span>
+            <div class="col id-cell desktop-only">
+              #{{ booking.id.substring(0, 8) }}...
+            </div>
+
+            <div class="col user-cell">
+              <div class="user-info">
+                <div class="user-text">
+                  <span class="name">{{ booking.resolvedRenterName }}</span>
+                  <span class="email">{{ booking.renterEmail }}</span>
+                </div>
               </div>
             </div>
 
-            <div class="card-footer">
-              <button @click="viewBooking(booking)" class="btn-card secondary">
-                View Details
+            <div class="col vehicle-cell">
+              <span class="label-mobile">Vehicle:</span>
+              <span class="vehicle-name">{{ booking.vehicleName }}</span>
+            </div>
+
+            <div class="col date-cell">
+              <div class="date-range">
+                <span>{{ formatDate(booking.startDate) }}</span>
+                <i class="bi bi-arrow-right-short arrow-icon"></i>
+                <span>{{ formatDate(booking.endDate) }}</span>
+              </div>
+            </div>
+
+            <div class="col price-cell">
+              <span class="label-mobile">Total:</span>
+              ₱{{
+                booking.totalCost
+                  ? booking.totalCost.toLocaleString()
+                  : '0'
+              }}
+            </div>
+
+            <div class="col status-cell desktop-only">
+              <span
+                :class="[
+                  'status-badge',
+                  getStatusClass(booking.paymentStatus),
+                ]"
+              >
+                {{ formatStatus(booking.paymentStatus) }}
+              </span>
+            </div>
+
+            <div class="col actions-cell">
+              <button
+                @click="viewBooking(booking)"
+                class="action-btn view"
+                title="View Details"
+              >
+                <i class="bi bi-eye"></i>
               </button>
             </div>
           </div>
-        </div>
+        </template>
+      </div>
+
+      <div class="pagination-container" v-if="totalPages > 1">
+        <button
+          class="page-btn"
+          :disabled="currentPage === 1"
+          @click="prevPage"
+        >
+          <i class="bi bi-chevron-left"></i> Previous
+        </button>
+        <span class="page-info">
+          Page {{ currentPage }} of {{ totalPages }}
+        </span>
+        <button
+          class="page-btn"
+          :disabled="currentPage === totalPages"
+          @click="nextPage"
+        >
+          Next <i class="bi bi-chevron-right"></i>
+        </button>
       </div>
     </div>
 
@@ -194,6 +292,9 @@ export default {
       selectedBooking: null,
       activeFilter: 'all',
       searchQuery: '',
+      currentPage: 1,
+      itemsPerPage: 10,
+
       statusFilters: [
         { label: 'All', value: 'all' },
         { label: 'Pending', value: 'pending' },
@@ -204,102 +305,165 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(['allBookings', 'allUsers']),
-    
+    ...mapGetters(['allBookings', 'allUsers', 'allPlatformFees']),
+
     processedBookings() {
-      return this.allBookings.map(booking => {
+      return this.allBookings.map((booking) => {
         let resolvedRenterName = 'Unknown Renter';
         let resolvedRenterEmail = booking.renterEmail || 'No Email';
-        
-        // 1. Attempt to find user object from allUsers array
+
         if (this.allUsers && this.allUsers.length > 0) {
-            // Check renterId, userId, or match email
-            const targetId = booking.renterId || booking.userId;
-            const renter = this.allUsers.find(u => 
-              (targetId && (u.uid === targetId || u.id === targetId)) || 
+          const targetId = booking.renterId || booking.userId;
+          const renter = this.allUsers.find(
+            (u) =>
+              (targetId && (u.uid === targetId || u.id === targetId)) ||
               (booking.renterEmail && u.email === booking.renterEmail)
-            );
-
-            if (renter) {
-                resolvedRenterName = renter.name || renter.fullName || 'No Name';
-                resolvedRenterEmail = renter.email || booking.renterEmail;
-            }
+          );
+          if (renter) {
+            resolvedRenterName = renter.name || renter.fullName || 'No Name';
+            resolvedRenterEmail = renter.email || booking.renterEmail;
+          }
         }
-
-        // 2. Fallback: If name is still unknown but email exists, use start of email as name
-        if ((resolvedRenterName === 'Unknown Renter' || resolvedRenterName === 'No Name') && booking.renterEmail) {
-            resolvedRenterName = booking.renterEmail.split('@')[0];
+        if (
+          (resolvedRenterName === 'Unknown Renter' ||
+            resolvedRenterName === 'No Name') &&
+          booking.renterEmail
+        ) {
+          resolvedRenterName = booking.renterEmail.split('@')[0];
         }
-
-        return { 
-          ...booking, 
-          resolvedRenterName, 
-          resolvedRenterEmail 
-        };
+        return { ...booking, resolvedRenterName, resolvedRenterEmail };
       });
     },
 
-    filteredBookings() {
-      let result = this.processedBookings;
+    filteredList() {
+      const lowerQuery = this.searchQuery.toLowerCase();
 
-      // 1. Filter by Status Tab
-      if (this.activeFilter !== 'all') {
-        if (this.activeFilter === 'pending') {
-           const pendingStatuses = ['pending_owner_approval', 'pending_payment', 'downpayment_pending_verification'];
-           result = result.filter(b => pendingStatuses.includes(b.paymentStatus));
-        } else if (this.activeFilter === 'cancelled') {
-           const cancelledStatuses = ['cancelled', 'declined_by_owner', 'cancelled_by_renter'];
-           result = result.filter(b => cancelledStatuses.includes(b.paymentStatus));
-        } else if (this.activeFilter === 'completed') {
-           const completedStatuses = ['completed', 'returned'];
-           result = result.filter(b => completedStatuses.includes(b.paymentStatus));
-        } else {
-           // Exact match for 'confirmed', etc.
-           result = result.filter(b => b.paymentStatus === this.activeFilter);
-        }
-      }
-
-      // 2. Filter by Search Query
-      if (this.searchQuery) {
-        const lowerQuery = this.searchQuery.toLowerCase();
-        result = result.filter(b => 
-            b.id.toLowerCase().includes(lowerQuery) ||
-            b.vehicleName?.toLowerCase().includes(lowerQuery) ||
-            b.resolvedRenterName?.toLowerCase().includes(lowerQuery) ||
-            b.resolvedRenterEmail?.toLowerCase().includes(lowerQuery)
+      // CASE A: PLATFORM FEES TAB
+      if (this.activeFilter === 'platform_fees') {
+        return this.allPlatformFees.filter(
+          (fee) =>
+            (fee.hostName || '').toLowerCase().includes(lowerQuery) ||
+            (fee.referenceNumber || '').toLowerCase().includes(lowerQuery)
         );
       }
 
-      // 3. Sort by Date (Newest First)
+      // CASE B: STANDARD BOOKINGS
+      let result = this.processedBookings;
+
+      if (this.activeFilter !== 'all') {
+        if (this.activeFilter === 'pending') {
+          const pendingStatuses = [
+            'pending_owner_approval',
+            'pending_payment',
+            'downpayment_pending_verification',
+          ];
+          result = result.filter((b) =>
+            pendingStatuses.includes(b.paymentStatus)
+          );
+        } else if (this.activeFilter === 'cancelled') {
+          const cancelledStatuses = [
+            'cancelled',
+            'declined_by_owner',
+            'cancelled_by_renter',
+          ];
+          result = result.filter((b) =>
+            cancelledStatuses.includes(b.paymentStatus)
+          );
+        } else if (this.activeFilter === 'completed') {
+          const completedStatuses = ['completed', 'returned'];
+          result = result.filter((b) =>
+            completedStatuses.includes(b.paymentStatus)
+          );
+        } else {
+          result = result.filter((b) => b.paymentStatus === this.activeFilter);
+        }
+      }
+
+      if (this.searchQuery) {
+        result = result.filter(
+          (b) =>
+            b.id.toLowerCase().includes(lowerQuery) ||
+            b.vehicleName?.toLowerCase().includes(lowerQuery) ||
+            b.resolvedRenterName?.toLowerCase().includes(lowerQuery)
+        );
+      }
+
       return result.sort((a, b) => {
-          const dateA = new Date(a.createdAt?.seconds ? a.createdAt.seconds * 1000 : a.createdAt);
-          const dateB = new Date(b.createdAt?.seconds ? b.createdAt.seconds * 1000 : b.createdAt);
-          return dateB - dateA;
+        const dateA = new Date(
+          a.createdAt?.seconds ? a.createdAt.seconds * 1000 : a.createdAt
+        );
+        const dateB = new Date(
+          b.createdAt?.seconds ? b.createdAt.seconds * 1000 : b.createdAt
+        );
+        return dateB - dateA;
       });
-    }
+    },
+
+    totalPages() {
+      return Math.ceil(this.filteredList.length / this.itemsPerPage);
+    },
+    paginatedList() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      const end = start + this.itemsPerPage;
+      return this.filteredList.slice(start, end);
+    },
+  },
+  watch: {
+    activeFilter() {
+      this.currentPage = 1;
+    },
+    searchQuery() {
+      this.currentPage = 1;
+    },
   },
   methods: {
-    ...mapActions(['fetchAllBookings', 'fetchAllUsers']),
-    
+    ...mapActions([
+      'fetchAllBookings',
+      'fetchAllUsers',
+      'fetchAllPlatformFees',
+      'verifyPlatformFee',
+    ]),
+
     async fetchData() {
       this.loading = true;
       this.error = null;
       try {
         await Promise.all([
-            this.fetchAllBookings(),
-            this.fetchAllUsers() // Essential to link Renter IDs to Names
+          this.fetchAllBookings(),
+          this.fetchAllUsers(),
+          this.fetchAllPlatformFees(),
         ]);
       } catch (err) {
-        this.error = 'An error occurred while fetching booking data.';
-        console.error('[AdminBookingsView] Fetch error:', err);
+        this.error = 'An error occurred while fetching data.';
       } finally {
         this.loading = false;
       }
     },
+
+    async verifyFeePayment(id) {
+      if (!confirm('Verify this payment has been received?')) return;
+
+      try {
+        await this.verifyPlatformFee(id);
+        alert('Payment verified successfully.');
+      } catch (e) {
+        alert('Failed to verify payment.');
+      }
+    },
+
+    nextPage() {
+      if (this.currentPage < this.totalPages) this.currentPage++;
+    },
+    prevPage() {
+      if (this.currentPage > 1) this.currentPage--;
+    },
+
     formatDate(dateString) {
       if (!dateString) return 'N/A';
       if (typeof dateString === 'object' && dateString.seconds) {
-          return DateTime.fromSeconds(dateString.seconds).toFormat('MMM dd, yyyy');
+        return DateTime.fromSeconds(dateString.seconds).toFormat(
+          'MMM dd, yyyy'
+        );
       }
       return DateTime.fromISO(dateString).toFormat('MMM dd, yyyy');
     },
@@ -308,17 +472,13 @@ export default {
       return status.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
     },
     getInitials(name) {
-      if (!name || name === 'Unknown Renter') return '?';
-      return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
-    },
-    getAvatarColor(name) {
-      const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1'];
-      if (!name || name === 'Unknown Renter') return '#9ca3af';
-      let hash = 0;
-      for (let i = 0; i < name.length; i++) {
-        hash = name.charCodeAt(i) + ((hash << 5) - hash);
-      }
-      return colors[Math.abs(hash) % colors.length];
+      if (!name) return '?';
+      return name
+        .split(' ')
+        .slice(0, 2)
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase();
     },
     getStatusClass(status) {
       switch (status) {
@@ -334,7 +494,6 @@ export default {
           return 'status-warning';
         case 'cancelled':
         case 'declined_by_owner':
-        case 'cancelled_by_renter':
           return 'status-danger';
         default:
           return 'status-default';
@@ -354,12 +513,11 @@ export default {
 <style lang="scss" scoped>
 @import '@/assets/styles/variables.scss';
 
-// --- Variables ---
 $bg-color: #f8f9fa;
 $text-main: #1f2937;
 $text-light: #6b7280;
 $border-color: #e5e7eb;
-$card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 
 .admin-page-container {
   max-width: 1200px;
@@ -367,96 +525,123 @@ $card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.
   padding: 2rem;
   color: $text-main;
 
-  @media(max-width: 768px) {
+  @media (max-width: 768px) {
     padding: 1rem;
   }
 }
 
-// --- Header ---
+/* HEADER */
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-bottom: 2.5rem;
+  margin-bottom: 2rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
 
   .section-title {
     font-size: 2rem;
     font-weight: 800;
     margin: 0 0 0.5rem 0;
-    letter-spacing: -0.025em;
   }
   .section-subtitle {
     color: $text-light;
     margin: 0;
     font-size: 1rem;
   }
-  
-  .header-stats {
-    @media(max-width: 768px) { display: none; }
-    .stat-item {
-      text-align: center;
-      background: white;
-      padding: 0.5rem 1.5rem;
-      border-radius: 12px;
-      box-shadow: $card-shadow;
-      .stat-val { display: block; font-weight: 800; font-size: 1.5rem; color: $primary-color; line-height: 1; }
-      .stat-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: $text-light; }
+
+  .header-stats .stat-item {
+    background: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 12px;
+    box-shadow: $card-shadow;
+    text-align: center;
+    .stat-val {
+      display: block;
+      font-weight: 800;
+      font-size: 1.5rem;
+      color: $primary-color;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: $text-light;
     }
   }
 }
 
-// --- Control Bar ---
+/* CONTROL BAR */
 .control-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   background: white;
-  padding: 0.5rem;
+  padding: 0.75rem;
   border-radius: 16px;
   box-shadow: $card-shadow;
   margin-bottom: 2rem;
   flex-wrap: wrap;
   gap: 1rem;
 
-  @media(max-width: 992px) {
+  @media (max-width: 992px) {
     flex-direction: column-reverse;
     align-items: stretch;
-    padding: 1rem;
   }
 }
 
 .tabs-wrapper {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.5rem;
   background: $bg-color;
   padding: 0.25rem;
   border-radius: 12px;
   overflow-x: auto;
-  
+
   .filter-tab {
     border: none;
     background: none;
-    padding: 0.6rem 1.25rem;
+    padding: 0.6rem 1.2rem;
     font-size: 0.9rem;
     font-weight: 600;
     color: $text-light;
     border-radius: 8px;
     cursor: pointer;
     white-space: nowrap;
-    transition: all 0.2s ease;
+    transition: all 0.2s;
 
-    &:hover { color: $text-main; }
+    &:hover {
+      color: $text-main;
+    }
     &.active {
       background: white;
       color: $primary-color;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+  }
+  .divider {
+    width: 1px;
+    background: #d1d5db;
+    margin: 0 0.5rem;
+  }
+  .fee-tab {
+    color: #059669;
+    &.active {
+      color: #047857;
     }
   }
 }
 
 .search-wrapper {
   position: relative;
-  @media(max-width: 992px) { width: 100%; }
+  flex-grow: 1;
+  max-width: 300px;
+  @media (max-width: 992px) {
+    max-width: 100%;
+  }
 
   .search-icon {
     position: absolute;
@@ -466,256 +651,229 @@ $card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.
     color: $text-light;
   }
   .search-input {
+    width: 100%;
     padding: 0.75rem 1rem 0.75rem 2.8rem;
     border: 1px solid $border-color;
     border-radius: 12px;
-    width: 300px;
-    transition: all 0.2s;
-    font-size: 0.95rem;
-
+    outline: none;
+    transition: border 0.2s;
     &:focus {
-      outline: none;
       border-color: $primary-color;
-      box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
     }
-    @media(max-width: 992px) { width: 100%; }
   }
 }
 
-// --- Desktop Table ---
-.desktop-view {
-  display: block;
-  @media(max-width: 992px) { display: none; }
+/* LIST LAYOUT (Replaces Table) */
+.list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.table-responsive {
+/* Desktop Header Row */
+.list-header {
+  display: grid;
+  padding: 1rem 1.5rem;
+  background: white;
+  border-radius: 12px;
+  font-weight: 700;
+  color: $text-light;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  box-shadow: $card-shadow;
+
+  @media (max-width: 991px) {
+    display: none;
+  }
+
+  &.booking-grid {
+    grid-template-columns: 0.8fr 1.5fr 1.2fr 1.5fr 1fr 1fr 0.5fr;
+  }
+  &.fee-grid {
+    grid-template-columns: 1fr 2fr 1.5fr 1fr 1fr 0.5fr;
+  }
+  .col.right {
+    text-align: right;
+  }
+}
+
+/* List Items */
+.list-item {
   background: white;
   border-radius: 16px;
   box-shadow: $card-shadow;
-  overflow: hidden;
+  padding: 1rem 1.5rem;
+  display: grid;
+  align-items: center;
+  transition: transform 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  /* DESKTOP GRID */
+  @media (min-width: 992px) {
+    &.booking-grid {
+      grid-template-columns: 0.8fr 1.5fr 1.2fr 1.5fr 1fr 1fr 0.5fr;
+    }
+    &.fee-grid {
+      grid-template-columns: 1fr 2fr 1.5fr 1fr 1fr 0.5fr;
+    }
+
+    .mobile-top,
+    .mobile-only,
+    .label-mobile {
+      display: none;
+    }
+    .col {
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+    }
+    .actions-cell {
+      justify-content: flex-end;
+    }
+  }
+
+  /* MOBILE CARD STACK */
+  @media (max-width: 991px) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    padding: 1.25rem;
+
+    .desktop-only {
+      display: none;
+    }
+
+    .mobile-top {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid $border-color;
+      padding-bottom: 0.8rem;
+      margin-bottom: 0.5rem;
+
+      .id-text {
+        font-family: 'Roboto Mono', monospace;
+        color: $primary-color;
+        font-weight: 700;
+      }
+      .period {
+        font-weight: 700;
+      }
+    }
+
+    .col {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .label-mobile {
+      font-size: 0.8rem;
+      color: $text-light;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .actions-cell {
+      margin-top: 0.5rem;
+      border-top: 1px solid $border-color;
+      padding-top: 1rem;
+      justify-content: flex-end;
+    }
+  }
 }
 
-.modern-table {
-  width: 100%;
-  border-collapse: collapse;
-
-  thead th {
-    text-align: left;
-    padding: 1.25rem 1.5rem;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: $text-light;
-    background: #fafafa;
-    border-bottom: 1px solid $border-color;
-  }
-
-  tbody td {
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid $border-color;
-    vertical-align: middle;
-  }
-
-  tbody tr:hover {
-    background-color: #f9fafb;
-  }
-
-  .text-right { text-align: right; }
-}
-
+/* COMPONENT STYLES */
 .id-cell {
-  .id-text {
-    font-family: 'Roboto Mono', monospace;
-    color: $primary-color;
-    font-weight: 600;
-    font-size: 0.85rem;
-  }
+  font-family: 'Roboto Mono', monospace;
+  color: $primary-color;
+  font-weight: 600;
+  font-size: 0.85rem;
 }
-
 .user-info-cell {
   display: flex;
   align-items: center;
   gap: 1rem;
-
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
   .user-avatar {
     width: 36px;
     height: 36px;
-    background-color: $primary-color;
+    background: $primary-color;
     color: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.8rem;
     font-weight: 700;
-    flex-shrink: 0;
+    font-size: 0.8rem;
+    &.host {
+      background-color: #7c3aed;
+    }
   }
   .user-text {
     display: flex;
     flex-direction: column;
-    .name { font-weight: 600; color: $text-main; font-size: 0.9rem; }
-    .email { font-size: 0.8rem; color: $text-light; }
+    .name {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .email {
+      font-size: 0.8rem;
+      color: $text-light;
+    }
   }
 }
-
-.vehicle-info {
-  font-weight: 600;
-  color: $text-main;
-}
-
 .date-range {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.9rem;
   color: $text-light;
-  white-space: nowrap;
 }
-
 .price-cell {
-  font-family: 'Roboto Mono', monospace;
   font-weight: 700;
-  color: $text-main;
+  font-family: monospace;
+}
+.text-success {
+  color: #10b981;
+}
+.font-mono {
+  font-family: monospace;
 }
 
-// --- Mobile Cards ---
-.mobile-view {
-  display: none;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
-  @media(max-width: 992px) { display: grid; }
-}
-
-.booking-card {
-  background: white;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: $card-shadow;
-  display: flex;
-  flex-direction: column;
-
-  .card-header {
-    padding: 1.25rem;
-    border-bottom: 1px solid $border-color;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-
-    .header-main {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-      .vehicle-title { margin: 0; font-size: 1rem; font-weight: 700; }
-      .booking-ref { font-size: 0.75rem; color: $text-light; font-family: monospace; }
-    }
-  }
-
-  .card-body {
-    padding: 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-
-    .info-row {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      
-      .user-mini {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        
-        .avatar-sm {
-          width: 30px;
-          height: 30px;
-          background-color: $primary-color;
-          color: white;
-          border-radius: 50%;
-          font-size: 0.7rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-        }
-        .text-col {
-          display: flex;
-          flex-direction: column;
-          .name { font-weight: 600; font-size: 0.9rem; }
-          .email { font-size: 0.75rem; color: $text-light; }
-        }
-      }
-    }
-
-    .date-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: $bg-color;
-      padding: 0.75rem;
-      border-radius: 8px;
-      
-      .date-block {
-        display: flex;
-        flex-direction: column;
-        .label { font-size: 0.7rem; text-transform: uppercase; color: $text-light; }
-        .value { font-size: 0.85rem; font-weight: 600; }
-      }
-      i { color: $text-light; }
-    }
-
-    .cost-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      .label { font-size: 0.9rem; color: $text-light; }
-      .value { font-size: 1.1rem; font-weight: 800; color: $primary-color; }
-    }
-  }
-
-  .card-footer {
-    padding: 1rem 1.25rem;
-    border-top: 1px solid $border-color;
-    background: #fafafa;
-    display: flex;
-    justify-content: flex-end;
-
-    .btn-card {
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.85rem;
-      border: 1px solid $border-color;
-      background: white;
-      color: $text-main;
-      cursor: pointer;
-      transition: all 0.2s;
-      
-      &:hover { border-color: $primary-color; color: $primary-color; }
-    }
-  }
-}
-
-// --- Common Styles ---
 .status-badge {
   padding: 0.35rem 0.75rem;
   border-radius: 50px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
   white-space: nowrap;
-
-  &.status-success { background: #d1fae5; color: #065f46; }
-  &.status-warning { background: #fef3c7; color: #92400e; }
-  &.status-danger { background: #fee2e2; color: #991b1b; }
-  &.status-default { background: #f3f4f6; color: #4b5563; }
-}
-
-.actions-cell {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
+  &.status-success {
+    background: #d1fae5;
+    color: #065f46;
+  }
+  &.status-warning {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  &.status-danger {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  &.status-default {
+    background: #f3f4f6;
+    color: #4b5563;
+  }
 }
 
 .action-btn {
@@ -729,22 +887,53 @@ $card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
-
-  &:hover { background: #e0f2fe; color: #0284c7; }
+  &:hover {
+    background: #e0f2fe;
+    color: #0284c7;
+  }
 }
-
 .primary-btn {
   background: $primary-color;
   color: white;
   border: none;
-  padding: 0.6rem 1.2rem;
+  padding: 0.5rem 1rem;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
+  &.small-btn {
+    font-size: 0.8rem;
+  }
 }
 
-// --- States ---
+/* PAGINATION */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  .page-btn {
+    background: white;
+    color: black;
+    border: 1px solid $border-color;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    &:hover:not(:disabled) {
+      border-color: $primary-color;
+      color: $primary-color;
+    }
+    &:disabled {
+      opacity: 0.5;
+    }
+  }
+  .page-info {
+    font-size: 0.9rem;
+    color: $text-light;
+  }
+}
+
+/* STATE CONTAINERS */
 .state-container {
   text-align: center;
   padding: 4rem 2rem;
@@ -752,20 +941,29 @@ $card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.
   background: white;
   border-radius: 16px;
   box-shadow: $card-shadow;
-
-  .spinner {
-    margin: 0 auto 1rem;
-    width: 2rem;
-    height: 2rem;
-    border: 3px solid rgba($primary-color, 0.3);
-    border-radius: 50%;
-    border-top-color: $primary-color;
-    animation: spin 1s ease-in-out infinite;
+  i {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    display: block;
+    opacity: 0.5;
   }
-  i { font-size: 2.5rem; margin-bottom: 1rem; display: block; opacity: 0.5; }
-  
-  &.error i { color: #ef4444; opacity: 1; }
+  &.error i {
+    color: #ef4444;
+    opacity: 1;
+  }
 }
-
-@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  margin: 0 auto 1rem;
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid rgba($primary-color, 0.3);
+  border-radius: 50%;
+  border-top-color: $primary-color;
+  animation: spin 1s ease-in-out infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 </style>
