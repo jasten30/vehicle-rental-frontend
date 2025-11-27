@@ -9,20 +9,19 @@ const apiClient = axios.create({
     },
 });
 
-// Interceptor to add token (Best practice: get from store getter)
+// Interceptor to add token
 apiClient.interceptors.request.use(
-  (config) => {
-    // Ensure you have a getter for 'authToken' in your store
-    const token = store.getters.authToken; 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
+    (config) => {
+        const token = store.getters.authToken; 
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
 );
 
-// Function to set the authentication token manually (if needed)
+// Function to set the authentication token manually
 export const setAuthToken = (token) => {
     if (token) {
         apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -69,6 +68,8 @@ export default {
     getBookingReports: () => apiClient.get('/admin/reports'),
     resolveBookingReport: (reportId) => apiClient.put(`/admin/reports/${reportId}/resolve`),
     findOrCreateAdminUserChat: (payload) => apiClient.post('/admin/chats/find-or-create', payload),
+    toggleUserSuspension: (userId, isSuspended) => 
+        apiClient.put(`/users/update-suspension/${userId}`, { isSuspended }),
 
     // --- VEHICLES ---
     getAllVehicles: () => apiClient.get('/vehicles'),
@@ -117,8 +118,11 @@ export default {
     deferExtensionPayment: (bookingId, data) => apiClient.post(`/bookings/${bookingId}/defer-extension`, data),
 
     // --- PLATFORM FEES (NEW) ---
-    getAllPlatformFees: () => apiClient.get('/bookings/admin/platform-fees'),
-    verifyPlatformFee: (feeId) => apiClient.put(`/bookings/admin/platform-fees/${feeId}/verify`),
+    // Corrected path from /bookings/admin/platform-fees to /admin/platform-fees
+    getAllPlatformFees: () => apiClient.get('/admin/platform-fees'),
+    // Corrected path from /bookings/admin/host-statements to /admin/host-statements
+    getAllHostMonthlyStatements: () => apiClient.get('/admin/host-statements'), 
+    verifyPlatformFee: (feeId) => apiClient.put(`/bookings/admin/platform-fees/${feeId}/verify`), // This path may also need review
     getOwnerPlatformFees: () => apiClient.get('/bookings/owner/my-fees'),
     submitPlatformFeePayment: (paymentData) => apiClient.post('/bookings/pay-platform-fee', paymentData),
 

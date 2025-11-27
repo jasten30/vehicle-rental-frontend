@@ -68,14 +68,17 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="user in filteredUsers" :key="user.uid">
+              <tr v-for="user in filteredUsers" :key="user.uid" :class="{ 'suspended-row': user.isSuspended }">
                 <td>
                   <div class="user-info-cell">
                     <div class="user-avatar" :style="{ backgroundColor: getAvatarColor(user.name) }">
                       {{ getInitials(user.name) }}
                     </div>
                     <div class="user-text">
-                      <span class="name">{{ user.name || 'Unknown User' }}</span>
+                      <span class="name">
+                        {{ user.name || 'Unknown User' }}
+                        <i v-if="user.isSuspended" class="bi bi-slash-circle-fill text-danger ml-1" title="Suspended"></i>
+                      </span>
                       <span class="email">{{ user.email }}</span>
                     </div>
                   </div>
@@ -86,8 +89,9 @@
                   </span>
                 </td>
                 <td>
-                  <div class="listing-count">
-                    <i class="bi bi-car-front"></i> {{ user.listingCount || 0 }} Listings
+                  <div class="status-indicator">
+                    <span v-if="user.isSuspended" class="status-badge status-danger">Suspended</span>
+                    <span v-else class="status-badge status-success">Active</span>
                   </div>
                 </td>
                 <td class="date-cell">{{ formatDate(user.createdAt) }}</td>
@@ -96,6 +100,7 @@
                     <button @click="viewProfile(user.uid)" class="action-btn view" title="View Profile">
                       <i class="bi bi-eye"></i>
                     </button>
+                    
                     <button 
                       @click="toggleUserRole(user)" 
                       class="action-btn edit" 
@@ -104,6 +109,17 @@
                     >
                       <i class="bi bi-arrow-left-right"></i>
                     </button>
+
+                    <button 
+                      @click="handleSuspendUser(user)" 
+                      class="action-btn suspend" 
+                      :class="{ 'active-suspend': user.isSuspended }"
+                      :title="user.isSuspended ? 'Unsuspend User' : 'Suspend User'"
+                      :disabled="user.role === 'admin'"
+                    >
+                      <i :class="user.isSuspended ? 'bi bi-unlock-fill' : 'bi bi-slash-circle'"></i>
+                    </button>
+
                     <button 
                       @click="handleDeleteUser(user)" 
                       class="action-btn delete" 
@@ -120,14 +136,14 @@
         </div>
 
         <div class="mobile-view grid-layout">
-          <div v-for="user in filteredUsers" :key="user.uid" class="user-card">
+          <div v-for="user in filteredUsers" :key="user.uid" class="user-card" :class="{ 'suspended-card': user.isSuspended }">
             <div class="card-header">
               <div class="user-avatar" :style="{ backgroundColor: getAvatarColor(user.name) }">
                 {{ getInitials(user.name) }}
               </div>
               <div class="card-meta">
                 <span :class="['role-badge', getRoleClass(user.role)]">{{ user.role }}</span>
-                <span class="join-date">{{ formatDate(user.createdAt) }}</span>
+                <span v-if="user.isSuspended" class="status-badge status-danger small">Suspended</span>
               </div>
             </div>
             
@@ -147,6 +163,16 @@
                 >
                   <i class="bi bi-arrow-left-right"></i>
                 </button>
+                
+                <button 
+                  @click="handleSuspendUser(user)" 
+                  class="btn-icon suspend" 
+                  :class="{ 'active-suspend': user.isSuspended }"
+                  :disabled="user.role === 'admin'"
+                >
+                  <i :class="user.isSuspended ? 'bi bi-unlock-fill' : 'bi bi-slash-circle'"></i>
+                </button>
+
                 <button 
                   @click="handleDeleteUser(user)" 
                   class="btn-icon danger" 
@@ -198,7 +224,9 @@ export default {
     },
   },
   methods: {
-    ...mapActions(['fetchAllUsers', 'updateUserRole', 'deleteUser']),
+    // Ensure toggleUserSuspension is in mapActions
+    ...mapActions(['fetchAllUsers', 'updateUserRole', 'deleteUser', 'toggleUserSuspension']),
+    
     async fetchData() {
       this.loading = true;
       this.error = null;
@@ -234,6 +262,34 @@ export default {
         alert('Failed to update user role.');
       }
     },
+    
+    async handleSuspendUser(user) {
+        const action = user.isSuspended ? 'unsuspend' : 'suspend';
+        if (!confirm(`Are you sure you want to ${action} ${user.name || user.email}?`)) return;
+
+        // 1. Optimistic Update (Force Reactivity)
+        const originalStatus = user.isSuspended;
+        user.isSuspended = !originalStatus;
+
+        try {
+            await this.toggleUserSuspension({
+                userId: user.uid,
+                isSuspended: user.isSuspended
+            });
+            
+            alert(`User ${action}ed successfully.`);
+            
+            // 2. Re-fetch data to ensure backend state is synced
+            await this.fetchData(); 
+
+        } catch (error) {
+            // 3. Revert on error
+            user.isSuspended = originalStatus;
+            console.error(error);
+            alert('Failed to update user status.');
+        }
+    },
+    
     async handleDeleteUser(user) {
         if (!confirm(`Permanently delete ${user.email}?`)) return;
         try {
@@ -436,6 +492,12 @@ $card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.
     background-color: #f9fafb;
   }
 
+  // Dim suspended rows
+  .suspended-row {
+      background-color: #fef2f2; // Very light red bg
+      opacity: 0.8;
+  }
+
   .text-right { text-align: right; }
 }
 
@@ -455,6 +517,11 @@ $card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.
   display: flex;
   flex-direction: column;
   gap: 1rem;
+
+  &.suspended-card {
+      border-left: 5px solid #dc2626;
+      background-color: #fef2f2;
+  }
 
   .card-header {
     display: flex;
@@ -540,6 +607,16 @@ $card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.
   &.role-renter { background: #d1fae5; color: #10b981; }
 }
 
+.status-badge {
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    &.status-danger { background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; }
+    &.status-success { background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
+    &.small { font-size: 0.7rem; padding: 2px 6px; }
+}
+
 .actions-cell {
   display: flex;
   justify-content: flex-end;
@@ -562,8 +639,20 @@ $card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.
   &:hover { background: #f3f4f6; color: $primary-color; }
   &.delete:hover { background: #fee2e2; color: #ef4444; }
   &.edit:hover { background: #e0e7ff; color: #6366f1; }
+  
+  /* Suspend specific styles */
+  &.suspend:hover { background: #fee2e2; color: #ef4444; }
+  &.active-suspend {
+      color: #dc2626;
+      background: #fee2e2;
+      &:hover { background: #dcfce7; color: #16a34a; }
+  }
+  
   &:disabled { opacity: 0.3; cursor: not-allowed; &:hover { background: none; } }
 }
+
+.ml-1 { margin-left: 0.25rem; }
+.text-danger { color: #dc2626; }
 
 // --- State Containers ---
 .state-container {

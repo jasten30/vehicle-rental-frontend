@@ -9,28 +9,35 @@
       <div class="datetime-input-group">
         <label for="start-date">PICKUP</label>
         <div class="inputs-row">
-          <input type="date" id="start-date" v-model="startDate" :min="today" />
-          <input type="time" id="start-time" v-model="startTime" />
+          <input type="date" id="start-date" v-model="startDate" :min="today" :disabled="isBookingDisabled" />
+          <input type="time" id="start-time" v-model="startTime" :disabled="isBookingDisabled" />
         </div>
       </div>
       <div class="datetime-input-group">
         <label for="end-date">RETURN</label>
           <div class="inputs-row">
-          <!-- UPDATED: min is now minEndDate -->
-          <input type="date" id="end-date" v-model="endDate" :min="minEndDate" />
-          <!-- UPDATED: value is bound to startTime and is readonly -->
+          <input type="date" id="end-date" v-model="endDate" :min="minEndDate" :disabled="isBookingDisabled" />
           <input type="time" id="end-time" :value="startTime" readonly />
         </div>
       </div>
     </div>
 
-    <!-- Display verification message if needed -->
-    <div v-if="!isDriverVerified && userRole === 'renter'" class="availability-message warning">
+    <div v-if="isRenterSuspended" class="availability-message suspended">
+       <i class="bi bi-person-x-fill"></i>
+       <span>Your account is suspended. You cannot book vehicles.</span>
+    </div>
+
+    <div v-else-if="availabilityStatus === 'owner_suspended'" class="availability-message suspended">
+       <i class="bi bi-slash-circle-fill"></i>
+       <span>This vehicle is temporarily unavailable for booking.</span>
+    </div>
+
+    <div v-else-if="!isDriverVerified && userRole === 'renter'" class="availability-message warning">
          <i class="bi bi-exclamation-triangle-fill"></i>
          <span>Driver verification required to book.</span>
     </div>
 
-    <div v-if="totalCost > 0 && isDriverVerified" class="price-calculation">
+    <div v-if="totalCost > 0 && canDisplayPrice" class="price-calculation">
       <div class="price-row">
         <span>{{ rentalDurationDescription }}</span>
         <span>₱{{ totalCost.toLocaleString() }}</span>
@@ -42,9 +49,7 @@
       </div>
     </div>
 
-    <!-- Only show availability status if driver is verified or not a renter -->
-    <div v-if="availabilityMessage && (isDriverVerified || userRole !== 'renter')" class="availability-message" :class="availabilityStatus">
-      <!-- FIX: Corrected the broken class binding -->
+    <div v-if="shouldShowAvailabilityMessage" class="availability-message" :class="availabilityStatus">
       <i class="bi" :class="availabilityIcon"></i>
       <span>{{ availabilityMessage }}</span>
     </div>
@@ -52,11 +57,16 @@
     <button
       @click="handleContinueClick"
       class="continue-button"
-      :disabled="!canProceed"
-      :class="{ 'verification-button': !isDriverVerified && userRole === 'renter' }"
+      :disabled="isBookingDisabled || !canProceed"
+      :class="{ 
+        'verification-button': !isDriverVerified && userRole === 'renter' && !isBookingDisabled,
+        'suspended-button': isBookingDisabled
+      }"
+      :title="isBookingDisabled ? 'Booking Disabled' : ''"
     >
-      <span v-if="isLoadingAvailability">Checking...</span>
-      <!-- Change button text based on verification status for renters -->
+      <span v-if="isRenterSuspended">Account Suspended</span>
+      <span v-else-if="availabilityStatus === 'owner_suspended'">Vehicle Unavailable</span>
+      <span v-else-if="isLoadingAvailability">Checking...</span>
       <span v-else-if="!isDriverVerified && userRole === 'renter'">Get Verified to Drive</span>
       <span v-else>Continue</span>
     </button>
@@ -71,7 +81,6 @@
 
 <script>
 import DownpaymentConfirmationModal from '@/components/modals/DownpaymentConfirmationModal.vue';
-// Import mapState and mapGetters
 import { mapActions, mapState, mapGetters } from 'vuex';
 import { DateTime, Interval } from 'luxon';
 
@@ -96,12 +105,11 @@ export default {
       startDate: null,
       startTime: '09:00',
       endDate: null,
-      // endTime: '09:00', // <-- REMOVED. Will now be derived from startTime.
       totalCost: 0,
       rentalDurationDescription: '',
       isLoadingAvailability: false,
       availabilityMessage: '',
-      availabilityStatus: '', // 'available', 'unavailable', 'checking', 'verification_needed'
+      availabilityStatus: '', 
     };
   },
   computed: {
@@ -110,26 +118,28 @@ export default {
     }),
     ...mapGetters(['userRole']),
 
+    // Check if Renter (Self) is suspended
+    isRenterSuspended() {
+      return this.currentUser?.isSuspended === true;
+    },
+
+    // Consolidated check for disabling inputs
+    isBookingDisabled() {
+        return this.isRenterSuspended || this.availabilityStatus === 'owner_suspended';
+    },
+
     isDriverVerified() {
         return !!this.currentUser && this.currentUser.isApprovedToDrive === true;
     },
 
-    today() {
-      return DateTime.now().toISODate();
-    },
-    // UPDATED: minEndDate is now 1 day after startDate
+    today() { return DateTime.now().toISODate(); },
     minEndDate() {
       const today = this.today;
       if (!this.startDate) return today;
-      
       const start = DateTime.fromISO(this.startDate);
-      // Set minimum end date to be 1 day after the start date
       const nextDay = start.plus({ days: 1 }).toISODate(); 
-      
-      // Ensure minEndDate is not in the past
       return nextDay > today ? nextDay : today;
     },
-    // minReturnTime is no longer needed
     
     pickupDateTimeISO() {
       if (this.startDate && this.startTime) {
@@ -140,9 +150,7 @@ export default {
       }
       return null;
     },
-    // UPDATED: returnDateTimeISO now uses startTime
     returnDateTimeISO() {
-      // Uses endDate and startTime
       if (this.endDate && this.startTime) { 
         try {
           const dt = DateTime.fromISO(`${this.endDate}T${this.startTime}`, { zone: 'local' });
@@ -151,13 +159,24 @@ export default {
       }
       return null;
     },
+    
     canProceed() {
+        if (this.isBookingDisabled) return false;
+
         if (!this.isDriverVerified && this.userRole === 'renter') {
-            // Allow clicking "Get Verified" as long as dates are filled
             return !!(this.pickupDateTimeISO && this.returnDateTimeISO);
         }
         return this.availabilityStatus === 'available' && !this.isLoadingAvailability;
     },
+
+    canDisplayPrice() {
+        return !this.isBookingDisabled && this.isDriverVerified;
+    },
+
+    shouldShowAvailabilityMessage() {
+        return !this.isBookingDisabled && this.availabilityMessage && (this.isDriverVerified || this.userRole !== 'renter');
+    },
+    
     availabilityIcon() {
         if (this.availabilityStatus === 'available') return 'bi-check-circle-fill';
         if (this.availabilityStatus === 'unavailable') return 'bi-x-circle-fill';
@@ -167,19 +186,16 @@ export default {
   },
   watch: {
     currentUser: 'checkAvailabilityAndCalculateCost',
-    // UPDATED: Add logic to clear endDate if startDate makes it invalid
     startDate(newStartDate) {
       if (this.endDate && newStartDate >= this.endDate) {
-          this.endDate = null; // Reset end date
+          this.endDate = null; 
       }
       this.checkAvailabilityAndCalculateCost(); 
     },
     startTime() { 
-      // This will now trigger all computed props and re-check availability
       this.checkAvailabilityAndCalculateCost(); 
     },
     endDate() { this.checkAvailabilityAndCalculateCost(); },
-    // endTime watcher removed
     unavailableDates() { this.checkAvailabilityAndCalculateCost(); },
   },
   methods: {
@@ -192,84 +208,70 @@ export default {
         if (!start.isValid || !end.isValid || start >= end) return '';
 
         const diff = end.diff(start, ['days', 'hours']);
-        
-        // Since times are locked, we can be more precise
         const totalDays = diff.as('days'); 
-        
-        // Use Math.round to handle any minor daylight saving shifts
         const calculatedDays = Math.round(totalDays); 
 
-        if (calculatedDays <= 0) return ''; // Should be caught by validation, but good safety
+        if (calculatedDays <= 0) return '';
         return `Rental Period: ${calculatedDays} day${calculatedDays > 1 ? 's' : ''}`;
     },
 
     async checkAvailabilityAndCalculateCost() {
+      // 1. Stop if Renter is suspended (Client-side check)
+      if (this.isRenterSuspended) {
+        this.resetCost();
+        return;
+      }
+
       if (!this.pickupDateTimeISO || !this.returnDateTimeISO) {
-        this.totalCost = 0;
-        this.rentalDurationDescription = '';
-        this.availabilityMessage = '';
-        this.availabilityStatus = '';
+        this.resetCost();
+        this.availabilityStatus = ''; 
+        if(this.availabilityStatus !== 'owner_suspended') this.availabilityMessage = '';
         return;
       }
 
        if (!this.isDriverVerified && this.userRole === 'renter') {
-           this.availabilityMessage = 'Driver verification required to check availability and book.';
+           this.availabilityMessage = 'Driver verification required.';
            this.availabilityStatus = 'verification_needed';
            this.totalCost = 0;
            this.rentalDurationDescription = '';
            return;
        }
 
+      // Date Validation
       let start, end;
       try {
           start = DateTime.fromISO(this.pickupDateTimeISO);
           end = DateTime.fromISO(this.returnDateTimeISO);
-          if (!start.isValid || !end.isValid) throw new Error("Invalid Luxon DateTime created.");
+          if (!start.isValid || !end.isValid) throw new Error("Invalid Date");
       } catch(e) {
-          console.error("Error parsing selected dates:", e);
-          this.availabilityMessage = 'Invalid date/time selected.';
-          this.availabilityStatus = 'unavailable';
-          this.totalCost = 0;
+          this.setUnavailable('Invalid date/time selected.');
           return;
       }
 
-      // UPDATED: Now checks for strictly less than (e.g., 10:00AM must be before 10:00AM on the same day)
       if (start >= end) {
-        this.totalCost = 0;
-        this.rentalDurationDescription = '';
-        this.availabilityMessage = 'Return date must be at least 1 day after pickup.';
-        this.availabilityStatus = 'unavailable';
+        this.setUnavailable('Return date must be after pickup.');
         return;
       }
 
+      // Client-side Overlap Check
       const renterInterval = Interval.fromDateTimes(start, end);
-
       for (const blockedPeriod of this.unavailableDates) {
         if (!blockedPeriod.start || !blockedPeriod.end) continue;
-
         try {
             const blockedStart = DateTime.fromISO(blockedPeriod.start + 'T00:00:00Z').startOf('day');
             const blockedEnd = DateTime.fromISO(blockedPeriod.end + 'T23:59:59Z').endOf('day');
-
             if (!blockedStart.isValid || !blockedEnd.isValid) continue;
-
             const blockedInterval = Interval.fromDateTimes(blockedStart, blockedEnd);
-
             if (renterInterval.overlaps(blockedInterval)) {
-              this.availabilityMessage = `Vehicle is unavailable from ${blockedStart.toLocaleString(DateTime.DATE_MED)} to ${blockedEnd.toLocaleString(DateTime.DATE_MED)}.`;
-              this.availabilityStatus = 'unavailable';
-              this.totalCost = 0;
-              this.rentalDurationDescription = '';
+              this.setUnavailable('Selected dates overlap with existing bookings.');
               return;
             }
-        } catch(e) {
-            console.error("Error parsing blocked date period:", blockedPeriod, e);
-            continue;
-        }
+        } catch(e) { continue; }
       }
 
+      // Backend Check
       this.isLoadingAvailability = true;
-      this.availabilityMessage = 'Checking existing bookings...';
+      this.availabilityMessage = 'Checking...';
       this.availabilityStatus = 'checking';
       this.rentalDurationDescription = this.calculateRentalDurationDescription(this.pickupDateTimeISO, this.returnDateTimeISO);
 
@@ -287,25 +289,46 @@ export default {
           this.availabilityStatus = 'available';
           this.totalCost = response.totalCost;
         } else {
-          this.availabilityMessage = response.message;
-          this.availabilityStatus = 'unavailable';
-          this.totalCost = 0;
+          this.setUnavailable(response.message);
         }
       } catch (error) {
-        console.error("[BookingBox] Failed to check backend availability:", error);
+        // FIX: Handle 403 Silently (No console.error)
         if (error.response && error.response.status === 403) {
-            this.availabilityMessage = 'You are not authorized to reserve this vehicle. Please ensure you are logged in as a verified renter to proceed with the booking.';
+            const msg = error.response.data?.message || 'Booking unavailable.';
+            this.availabilityMessage = msg;
+            
+            // Determine if it is Owner or Renter suspension based on message content
+            if (msg.includes('Owner') || msg.includes('unavailable')) {
+                this.availabilityStatus = 'owner_suspended';
+            } else {
+                this.availabilityStatus = 'suspended';
+            }
         } else {
-            this.availabilityMessage = 'Could not check booking schedule. Please try again.';
+            // Only log unexpected errors
+            console.error("[BookingBox] Availability check error:", error);
+            this.setUnavailable('Could not check schedule.');
         }
-        this.availabilityStatus = 'unavailable';
         this.totalCost = 0;
       } finally {
         this.isLoadingAvailability = false;
       }
     },
 
+    resetCost() {
+        this.totalCost = 0;
+        this.rentalDurationDescription = '';
+    },
+
+    setUnavailable(msg) {
+        this.availabilityMessage = msg;
+        this.availabilityStatus = 'unavailable';
+        this.totalCost = 0;
+        this.rentalDurationDescription = '';
+    },
+
     handleContinueClick() {
+      if (this.isBookingDisabled) return; 
+
       if (!this.isDriverVerified && this.userRole === 'renter') {
           this.$router.push({ name: 'BecomeDriveVerified' });
           return;
@@ -318,17 +341,11 @@ export default {
     async proceedWithBooking() {
       this.isConfirmationModalOpen = false;
 
-      if (!this.isDriverVerified && this.userRole === 'renter') {
-          alert('You must be a verified driver to book.');
-          this.$router.push({ name: 'BecomeDriveVerified' });
-          return;
+      if (this.isBookingDisabled) {
+         alert('Booking is currently disabled.');
+         return;
       }
-      if (!this.pickupDateTimeISO || !this.returnDateTimeISO || this.availabilityStatus !== 'available') {
-          console.error("Booking data is invalid or availability not confirmed.");
-          alert('Cannot proceed with booking. Please ensure dates/times are valid and availability is confirmed.');
-          return;
-      }
-
+      
       try {
         const bookingData = {
           vehicleId: this.vehicle.id,
@@ -342,7 +359,11 @@ export default {
 
       } catch (error) {
         console.error("Failed to create booking:", error);
-        alert('An error occurred while creating the booking. Please try again.');
+        if (error.response && error.response.status === 403) {
+           alert('Action Blocked: Account suspended or vehicle unavailable.');
+        } else {
+           alert('An error occurred while creating the booking. Please try again.');
+        }
       }
     },
   },
@@ -425,20 +446,15 @@ export default {
             box-shadow: 0 0 0 3px lighten($primary-color, 40%);
         }
         
-        // --- Style for readonly time input ---
-        &[readonly] {
+        &[readonly], &:disabled {
             background-color: $background-light;
             color: $text-color-medium;
             cursor: not-allowed;
             border-style: dashed;
         }
     }
-     input[type="date"] {
-         flex-basis: 55%;
-     }
-     input[type="time"] {
-         flex-basis: 45%;
-     }
+     input[type="date"] { flex-basis: 55%; }
+     input[type="time"] { flex-basis: 45%; }
 }
 
 
@@ -462,9 +478,7 @@ export default {
     font-weight: 700;
     font-size: 1.15rem;
     color: $text-color-dark;
-    span:last-child {
-        color: $text-color-dark;
-    }
+    span:last-child { color: $text-color-dark; }
   }
 }
 
@@ -491,23 +505,31 @@ export default {
     border-color: #a7f3d0;
     i { color: #10b981; }
   }
-  &.unavailable, &.verification_needed { // Apply unavailable style also for verification needed
+  &.unavailable, &.verification_needed { 
     background-color: #fee2e2;
     color: #991b1b;
     border-color: #fecaca;
      i { color: #dc2626; }
   }
-   &.warning { // Specific style for the verification message shown above price
-    background-color: #FEF3C7; // Light yellow
-    color: #92400E; // Dark yellow/brown
-    border-color: #FDE68A; // Lighter yellow border
-    i { color: #D97706; } // Medium yellow/orange icon
+   &.warning { 
+    background-color: #FEF3C7; 
+    color: #92400E; 
+    border-color: #FDE68A; 
+    i { color: #D97706; } 
   }
   &.checking {
     background-color: #e5e7eb;
     color: #4b5563;
     border-color: #d1d5db;
     i { color: #6b7280; }
+  }
+  
+  /* Suspended Styles */
+  &.suspended {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border-color: #fca5a5;
+    i { color: #ef4444; font-size: 1.2rem; }
   }
 }
 
@@ -524,27 +546,35 @@ export default {
   cursor: pointer;
   transition: background-color 0.2s ease-in-out, transform 0.1s ease;
 
-  // Style for verification button
   &.verification-button {
-      background-color: $secondary-color; // Use a different color like secondary
-       &:hover:not(:disabled) {
-         background-color: darken($secondary-color, 10%);
-       }
+      background-color: $secondary-color; 
+       &:hover:not(:disabled) { background-color: darken($secondary-color, 10%); }
+  }
+
+  /* Suspended Button Style */
+  &.suspended-button {
+    background-color: #e5e7eb;
+    color: #6b7280;
+    cursor: not-allowed;
+    border: 1px solid #d1d5db;
+    &:hover { background-color: #e5e7eb; transform: none; }
   }
 
   &:hover:not(:disabled) {
     background-color: darken($primary-color, 10%);
     transform: translateY(-2px);
   }
-   &:active:not(:disabled) {
-       transform: translateY(0px);
-   }
+   &:active:not(:disabled) { transform: translateY(0px); }
 
   &:disabled {
     background-color: lighten($primary-color, 25%);
     cursor: not-allowed;
     opacity: 0.8;
   }
+  
+  &.suspended-button:disabled {
+     background-color: #e5e7eb;
+     opacity: 1;
+  }
 }
 </style>
-

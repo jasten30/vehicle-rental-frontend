@@ -21,8 +21,9 @@ export default createStore({
     vehicle: null,
     allBookings: [],
     allUsers: [],
-    allPlatformFees: [], // <--- ADDED: For Admin
-    myPlatformFees: [],  // <--- ADDED: For Owner
+    allPlatformFees: [], 
+    myPlatformFees: [],
+    allHostStatements: [], 
     vehicleFilters: {
       make: '',
       model: '',
@@ -46,7 +47,6 @@ export default createStore({
     isLoadingNotifications: false,
   },
   mutations: {
-    // --- NEW MUTATIONS ---
     SET_ALL_PLATFORM_FEES(state, fees) {
       state.allPlatformFees = fees;
     },
@@ -57,8 +57,9 @@ export default createStore({
       const fee = state.allPlatformFees.find(f => f.id === feeId);
       if (fee) fee.status = status;
     },
-    // ---------------------
-
+    SET_ALL_HOST_STATEMENTS(state, statements) {
+        state.allHostStatements = statements;
+    },
     SET_NOTIFICATIONS(state, notifications) {
       state.notifications = notifications;
     },
@@ -109,7 +110,7 @@ export default createStore({
       if (Object.prototype.hasOwnProperty.call(state.vehicleFilters, key)) {
         state.vehicleFilters[key] = value;
       } else {
-         console.warn(`[Vuex] Attempted to set unknown filter key: ${key}`);
+          console.warn(`[Vuex] Attempted to set unknown filter key: ${key}`);
       }
     },
     SET_VEHICLE_SORT(state, { key, order }) {
@@ -156,7 +157,7 @@ export default createStore({
     },
   },
   actions: {
-    // --- NEW ACTIONS ---
+    // --- PLATFORM FEES ACTIONS ---
     async fetchAllPlatformFees({ commit }) {
       try {
         const response = await api.getAllPlatformFees();
@@ -165,6 +166,15 @@ export default createStore({
         console.error('[Vuex] Failed to fetch platform fees:', error);
       }
     },
+    async fetchAllHostStatements({ commit }) {
+        try {
+            const response = await api.getAllHostMonthlyStatements(); 
+            commit('SET_ALL_HOST_STATEMENTS', response.data);
+        } catch (error) {
+            console.error('[Vuex] Failed to fetch host statements:', error);
+        }
+    },
+    // -------------------
 
     async fetchOwnerPlatformFees({ commit }) {
       try {
@@ -177,9 +187,8 @@ export default createStore({
 
     async submitPlatformFee({ _commit }, payload) {
       try {
-        // payload = { month, year, amount, referenceNumber }
         await api.submitPlatformFeePayment(payload);
-        return true; // Success
+        return true; 
       } catch (error) {
         console.error('[Vuex] Failed to submit fee payment:', error);
         throw error;
@@ -195,7 +204,6 @@ export default createStore({
         throw error;
       }
     },
-    // -------------------
 
     async fetchNotifications({ commit }) {
       commit('SET_NOTIFICATIONS_LOADING', true);
@@ -263,7 +271,6 @@ export default createStore({
         throw error;
       }
     },
-    // --- INITIALIZE AUTH ---
     initializeAuth({ commit }) {
       return new Promise((resolve) => {
         const auth = getAuth();
@@ -271,9 +278,8 @@ export default createStore({
           if (user) {
             try {
               const authToken = await user.getIdToken();
-              setAuthToken(authToken); // Set token for API
+              setAuthToken(authToken);
               
-              // Fetch Profile from Backend
               const response = await api.getUserProfile();
               const userRole = response.data.role || 'renter';
               
@@ -301,26 +307,21 @@ export default createStore({
       try {
         const auth = getAuth();
         
-        // 1. Authenticate against Firebase
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // 2. Get the ID token and set it for API calls
         const authToken = await user.getIdToken();
         setAuthToken(authToken);
 
-        // 3. Fetch the User Profile from Backend to get Roles
         const profileResponse = await api.getUserProfile();
         const userRole = profileResponse.data.role || 'renter';
 
-        // 4. Update State
         commit('SET_AUTH_STATE', {
           user: profileResponse.data,
           userRole,
           authToken,
         });
 
-        // 5. Redirect based on Role
         if (userRole === 'admin') {
           router.push('/dashboard/admin/dashboard');
         } else if (userRole === 'owner') {
@@ -335,7 +336,6 @@ export default createStore({
         throw error;
       }
     },
-    // --- END LOGIN ACTION ---
 
     async fetchAllBookings({ commit }, params = {}) {
       try {
@@ -601,7 +601,6 @@ export default createStore({
       try {
         const response = await api.getUserChats();
         commit('SET_USER_CHATS', response.data);
-        return response.data;
       } catch (error) {
         console.error('[Vuex] Failed to fetch user chats:', error);
         throw error;
@@ -665,6 +664,15 @@ export default createStore({
         await api.deleteUser(userId);
       } catch (error) {
         console.error('[Vuex] Failed to delete user:', error);
+        throw error;
+      }
+    },
+    async deleteVehicle({ _commit }, vehicleId) {
+      try {
+        await api.deleteVehicle(vehicleId);
+        return true;
+      } catch (error) {
+        console.error('[Vuex] Failed to delete vehicle:', error);
         throw error;
       }
     },
@@ -859,12 +867,98 @@ export default createStore({
         throw error;
       }
     },
+    async toggleUserSuspension({ _commit }, { userId, isSuspended }) {
+      try {
+        await api.toggleUserSuspension(userId, isSuspended);
+        return true;
+      } catch (error) {
+        console.error('[Vuex] Failed to toggle suspension:', error);
+        throw error;
+      }
+    },
   },
   getters: {
-    // --- NEW GETTERS ---
+
     allPlatformFees: (state) => state.allPlatformFees,
     myPlatformFees: (state) => state.myPlatformFees,
-    // -------------------
+    
+    allHostStatements: (state) => state.allHostStatements,
+    
+    calculatedUnpaidPlatformFees: (state, getters) => {
+        // --- CORE CALCULATION FIX ---
+        const DOWNPAYMENT_RATE = 0.20; 
+        const FEE_OF_DOWNPAYMENT_RATE = 0.10; 
+        // ----------------------------
+        
+        // 1. Identify completed bookings that generate fees
+        const feeGeneratingBookings = getters.allBookings.filter(
+            b => b.paymentStatus === 'completed' || b.paymentStatus === 'returned'
+        );
+
+        const owedFeesMap = new Map(); // Key: `${ownerId}-${month}-${year}`
+
+        for (const booking of feeGeneratingBookings) {
+            const ownerId = booking.ownerId || booking.vehicleOwnerId;
+            
+            // CRITICAL GUARD: Skip this booking if data is unusable
+            if (!ownerId || !booking.totalCost || Number(booking.totalCost) <= 0) {
+                continue; 
+            }
+            
+            // FIX: Convert totalCost (which is often a string) to a number for arithmetic
+            const totalCostNumeric = Number(booking.totalCost); 
+
+            const endDate = booking.endDate?.seconds 
+                            ? DateTime.fromSeconds(booking.endDate.seconds) 
+                            : DateTime.fromISO(booking.endDate);
+            
+            // CRITICAL GUARD: Skip if date is invalid or missing
+            if (!endDate.isValid) continue;
+
+            // --- TWO-STEP FEE CALCULATION ---
+            const downpayment = totalCostNumeric * DOWNPAYMENT_RATE;
+            const totalFee = downpayment * FEE_OF_DOWNPAYMENT_RATE;
+            
+            if (totalFee <= 0) continue;
+
+            const monthYearKey = `${ownerId}-${endDate.month}-${endDate.year}`;
+            
+            if (owedFeesMap.has(monthYearKey)) {
+                owedFeesMap.get(monthYearKey).amount += totalFee;
+            } else {
+                const hostUser = state.allUsers.find(u => u.uid === ownerId || u.id === ownerId);
+
+                owedFeesMap.set(monthYearKey, {
+                    id: `CALC_${monthYearKey}`, 
+                    ownerId: ownerId,
+                    hostName: hostUser ? (hostUser.name || hostUser.fullName || ownerId) : 'Unknown Host',
+                    hostEmail: hostUser ? hostUser.email : 'N/A',
+                    month: endDate.toFormat('MMMM'),
+                    year: endDate.year,
+                    amount: totalFee,
+                    status: 'calculated', // Use 'calculated' status
+                    referenceNumber: 'N/A - Calculated',
+                });
+            }
+        }
+
+        // 2. Cross-reference with existing reported fees in 'platform_fees'
+        const existingFeeKeys = new Set(
+            state.allPlatformFees.map(fee => 
+                `${fee.ownerId}-${DateTime.fromFormat(fee.month, 'MMMM').month}-${fee.year}`
+            )
+        );
+        
+        const finalUnpaidCalculations = [];
+        owedFeesMap.forEach((fee, key) => {
+            // Only include if no fee record (paid or pending) already exists
+            if (!existingFeeKeys.has(key)) {
+                finalUnpaidCalculations.push(fee);
+            }
+        });
+
+        return finalUnpaidCalculations;
+    },
 
     notifications: (state) => state.notifications,
     unreadNotificationsCount: (state) => {
@@ -892,7 +986,6 @@ export default createStore({
         : [];
       const filters = state.vehicleFilters;
 
-      // --- (1) APPLY ASSET TYPE FILTER FIRST ---
       if (filters.assetType === 'motorcycle') {
         vehicles = vehicles.filter(v => v.assetType === 'motorcycle');
       } else if (filters.assetType === 'vehicle') {
@@ -935,8 +1028,8 @@ export default createStore({
         vehicles = vehicles.filter((v) => v.year === parseInt(filters.year));
       }
       if (filters.location) {
-         const locLower = filters.location.toLowerCase();
-         vehicles = vehicles.filter(v =>
+          const locLower = filters.location.toLowerCase();
+          vehicles = vehicles.filter(v =>
             (v.location?.city?.toLowerCase().includes(locLower)) ||
             (v.location?.barangay?.toLowerCase().includes(locLower)) ||
             (v.location?.region?.toLowerCase().includes(locLower))
@@ -964,25 +1057,25 @@ export default createStore({
                     }
                     const isOverlappingUnavailable = vehicle.availability.some(
                         (range) => {
-                           try {
-                                const blockedStart = DateTime.fromISO(range.start).startOf('day');
-                                const blockedEnd = DateTime.fromISO(range.end).endOf('day');
-                                if (!blockedStart.isValid || !blockedEnd.isValid) return false;
-                                const blockedInterval = Interval.fromDateTimes(blockedStart, blockedEnd);
-                                return requestedInterval.overlaps(blockedInterval);
-                           } catch(e) {
-                               console.warn("Error parsing availability range during filter:", range, e);
-                               return false;
-                           }
+                            try {
+                                 const blockedStart = DateTime.fromISO(range.start).startOf('day');
+                                 const blockedEnd = DateTime.fromISO(range.end).endOf('day');
+                                 if (!blockedStart.isValid || !blockedEnd.isValid) return false;
+                                 const blockedInterval = Interval.fromDateTimes(blockedStart, blockedEnd);
+                                 return requestedInterval.overlaps(blockedInterval);
+                            } catch(e) {
+                                 console.warn("Error parsing availability range during filter:", range, e);
+                                 return false;
+                            }
                         }
                     );
                     return !isOverlappingUnavailable;
                 });
             } else {
-                 console.warn("[Vuex Getter] Invalid date range provided for availability filter.");
+                  console.warn("[Vuex Getter] Invalid date range provided for availability filter.");
             }
         } catch(e) {
-             console.error("[Vuex Getter] Error during availability filtering:", e);
+              console.error("[Vuex Getter] Error during availability filtering:", e);
         }
       }
       
@@ -997,9 +1090,6 @@ export default createStore({
             valA = (valA || '').toLowerCase();
             valB = (valB || '').toLowerCase();
           }
-          if (valA === null || valA === undefined) valA = sortOrder === 1 ? Infinity : -Infinity;
-          if (valB === null || valB === undefined) valB = sortOrder === 1 ? Infinity : -Infinity;
-          
           if (valA < valB) {
             return -1 * sortOrder;
           }

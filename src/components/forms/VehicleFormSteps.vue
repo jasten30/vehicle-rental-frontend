@@ -5,15 +5,20 @@
         @submit.prevent="currentStep === 9 ? submitForm() : null"
         class="vehicle-form"
       >
-        <FormStepSlider :currentStep="currentStep" :totalSteps="stepComponents.length" @start-over="startOver" />
+        <FormStepSlider 
+          :currentStep="currentStep" 
+          :totalSteps="stepComponents.length" 
+          @start-over="startOver" 
+        />
 
         <VehicleLocation
           v-if="currentStep === 1"
           key="step1"
           v-model:address="localVehicle.location"
           @next="nextStep"
-          @cancel="$emit('cancel')"
+          @cancel="handleCancel"
         />
+
         <VehicleCOR
           v-if="currentStep === 2"
           key="step2"
@@ -21,6 +26,7 @@
           @next="nextStep"
           @prev="prevStep"
         />
+
         <VehicleOR
           v-if="currentStep === 3"
           key="step3"
@@ -45,6 +51,7 @@
           @next="nextStep"
           @prev="prevStep"
         />
+
         <VehiclePricing
           v-if="currentStep === 6"
           key="step6"
@@ -53,6 +60,7 @@
           @next="nextStep"
           @prev="prevStep"
         />
+
         <VehicleSafety
           v-if="currentStep === 7"
           key="step7"
@@ -60,6 +68,7 @@
           @next="nextStep"
           @prev="prevStep"
         />
+
         <VehiclePhotos
           v-if="currentStep === 8"
           key="step8"
@@ -69,6 +78,7 @@
           @next="nextStep"
           @prev="prevStep"
         />
+
         <SubmitListing
           v-if="currentStep === 9"
           key="step9"
@@ -97,9 +107,6 @@ import VehicleSafety from "@/components/forms/VehicleSafety.vue";
 import VehiclePhotos from "@/components/forms/VehiclePhotos.vue";
 import SubmitListing from "@/components/forms/SubmitListing.vue";
 
-// ======================================================
-//  UPDATED DEFAULT STATE
-// ======================================================
 const defaultVehicleState = {
   location: {
     country: "Philippines",
@@ -119,7 +126,7 @@ const defaultVehicleState = {
     orNumber: "",
     dateIssued: "",
     orImageUrl: "",
-    orImage: "", // Added for consistency with SubmitListing
+    orImage: "",
   },
   make: "",
   model: "",
@@ -128,9 +135,6 @@ const defaultVehicleState = {
   vehicleType: "",
   transmission: "",
   fuelType: "",
-  
-  // *** THIS IS THE CRITICAL CHANGE ***
-  // 'features' is now an object of booleans
   features: {
     seatbeltsAndAirbags: false,
     abs: false,
@@ -152,7 +156,6 @@ const defaultVehicleState = {
     roofBox: false,
     petFriendly: false,
   },
-
   pricing: {
     marketValue: null,
     condition: "",
@@ -198,34 +201,29 @@ export default {
       default: false,
     },
   },
-  
-  // ======================================================
-  //  THIS IS THE CORRECTED DATA FUNCTION
-  // ======================================================
+  emits: ["success", "error", "start-over", "cancel"],
+
   data() {
     const initial = this.initialVehicle || {};
     // Start with defaults, then overwrite with any initial data
     const local = { ...defaultVehicleState, ...initial };
 
-    // CRITICAL: Safely merge nested objects and arrays
-    // This prevents 'null' from initialVehicle from breaking child components.
+    // Safely merge nested objects to avoid null pointers
     local.location = { ...defaultVehicleState.location, ...(initial.location || {}) };
     local.cor = { ...defaultVehicleState.cor, ...(initial.cor || {}) };
     local.or = { ...defaultVehicleState.or, ...(initial.or || {}) };
     local.pricing = { ...defaultVehicleState.pricing, ...(initial.pricing || {}) };
     local.safety = { ...defaultVehicleState.safety, ...(initial.safety || {}) };
-    
-    // This line specifically fixes your features bug by merging objects
-    local.features = { ...defaultVehicleState.features, ...(initial.features || {}) }; 
+    local.features = { ...defaultVehicleState.features, ...(initial.features || {}) };
 
-    local.exteriorPhotos = initial.exteriorPhotos || []; // Guarantees this is an array
-    local.interiorPhotos = initial.interiorPhotos || []; // Guarantees this is an array
+    local.exteriorPhotos = initial.exteriorPhotos || [];
+    local.interiorPhotos = initial.interiorPhotos || [];
     local.profilePhotoUrl = initial.profilePhotoUrl || "";
 
     return {
       currentStep: 1,
       isSubmitting: false,
-      localVehicle: local, // Use the safely merged 'local' object
+      localVehicle: local,
       stepComponents: [
         "VehicleLocation",
         "VehicleCOR",
@@ -239,10 +237,16 @@ export default {
       ],
     };
   },
-  
-  computed: {},
   methods: {
     ...mapActions(['addVehicle']),
+    
+    // --- FIX: Direct Redirect Handler ---
+    handleCancel() {
+      if (confirm("Are you sure you want to cancel? Any unsaved progress will be lost.")) {
+        this.$router.push({ name: 'OwnerVehicles' });
+      }
+    },
+
     nextStep() {
       if (this.currentStep < this.stepComponents.length) {
         this.currentStep++;
@@ -261,15 +265,13 @@ export default {
       this.$emit("start-over");
     },
     updateLocalVehicle(updatedData) {
-      // This listener is for VehicleDetails (Step 4)
       this.localVehicle = { ...this.localVehicle, ...updatedData };
     },
     async submitForm() {
       this.isSubmitting = true;
       this.$emit("error", "");
       try {
-        
-        // Minor Fix: Sync orImageUrl to orImage for SubmitListing
+        // Sync orImageUrl to orImage for SubmitListing consistency
         if (this.localVehicle.or.orImageUrl) {
             this.localVehicle.or.orImage = this.localVehicle.or.orImageUrl;
         }

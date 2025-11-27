@@ -16,23 +16,59 @@
     </header>
 
     <div class="control-bar">
-      <div class="tabs-wrapper">
-        <button
-          v-for="filter in statusFilters"
-          :key="filter.value"
-          class="filter-tab"
-          :class="{ active: activeFilter === filter.value }"
-          @click="activeFilter = filter.value"
+      <div class="back-button-wrapper" v-if="activeFilter === 'platform_fees'">
+        <button 
+          class="button secondary-btn back-btn"
+          @click="activeFilter = 'all'; feeStatusFilter = 'all'"
+          title="Back to All Booking Records"
         >
-          {{ filter.label }}
+          <i class="bi bi-arrow-left"></i> Back to Bookings
         </button>
+      </div>
+
+      <div class="tabs-wrapper">
+        <template v-if="activeFilter !== 'platform_fees'">
+          <button
+            v-for="filter in statusFilters"
+            :key="filter.value"
+            class="filter-tab"
+            :class="{ active: activeFilter === filter.value }"
+            @click="activeFilter = filter.value"
+          >
+            {{ filter.label }}
+          </button>
+        </template>
+
+        <template v-else>
+          <button
+            class="filter-tab"
+            :class="{ active: feeStatusFilter === 'all' }"
+            @click="feeStatusFilter = 'all'"
+          >
+            All Fees
+          </button>
+          <button
+            class="filter-tab status-warning"
+            :class="{ active: feeStatusFilter === 'pending' }"
+            @click="feeStatusFilter = 'pending'"
+          >
+            Unpaid (Pending)
+          </button>
+          <button
+            class="filter-tab status-success"
+            :class="{ active: feeStatusFilter === 'verified' }"
+            @click="feeStatusFilter = 'verified'"
+          >
+            Paid (Verified)
+          </button>
+        </template>
 
         <div class="divider"></div>
 
         <button
           class="filter-tab fee-tab"
           :class="{ active: activeFilter === 'platform_fees' }"
-          @click="activeFilter = 'platform_fees'"
+          @click="activeFilter = 'platform_fees'; feeStatusFilter = 'all';"
         >
           <i class="bi bi-cash-coin"></i> Platform Fees
         </button>
@@ -70,6 +106,7 @@
       </div>
 
       <div v-else class="list-container">
+        
         <template v-if="activeFilter === 'platform_fees'">
           <div class="list-header fee-grid desktop-only">
             <div class="col">Period</div>
@@ -86,18 +123,18 @@
             class="list-item fee-grid"
           >
             <div class="mobile-top mobile-only">
-              <span class="period"
-                ><strong>{{ fee.month }} {{ fee.year }}</strong></span
-              >
+              <span class="period">
+                <strong>{{ fee.month }} {{ fee.year }}</strong>
+              </span>
               <span
                 :class="[
                   'status-badge',
                   fee.status === 'verified'
                     ? 'status-success'
-                    : 'status-warning',
+                    : (fee.status === 'calculated' ? 'status-danger' : 'status-warning'),
                 ]"
               >
-                {{ fee.status === 'verified' ? 'Verified' : 'Pending' }}
+                {{ fee.status === 'verified' ? 'Verified' : (fee.status === 'calculated' ? 'Unpaid' : 'Pending') }}
               </span>
             </div>
 
@@ -134,21 +171,40 @@
                   'status-badge',
                   fee.status === 'verified'
                     ? 'status-success'
-                    : 'status-warning',
+                    : (fee.status === 'calculated' ? 'status-danger' : 'status-warning'),
                 ]"
               >
-                {{ fee.status === 'verified' ? 'Verified' : 'Pending Review' }}
+                {{ fee.status === 'verified' ? 'Verified' : (fee.status === 'calculated' ? 'Unpaid (Calculated)' : 'Pending Review') }}
               </span>
             </div>
 
             <div class="col actions-cell">
-              <button
-                v-if="fee.status !== 'verified'"
-                @click="verifyFeePayment(fee.id)"
-                class="button primary-btn small-btn"
-              >
-                Verify
-              </button>
+              <div v-if="fee.status !== 'verified'" class="action-buttons-group">
+                <button
+                  @click="handleNotifyOwner(fee)"
+                  class="button secondary-btn small-btn"
+                  title="Send Payment Reminder / Request"
+                >
+                  <i class="bi bi-bell"></i>
+                </button>
+
+                <button
+                  v-if="fee.status === 'pending'" 
+                  @click="verifyFeePayment(fee.id)"
+                  class="button primary-btn small-btn"
+                >
+                  Verify
+                </button>
+                <button
+                  v-else-if="fee.status === 'calculated'"
+                  @click="viewBooking({ id: fee.id, ownerId: fee.ownerId })"
+                  class="button primary-btn small-btn"
+                  title="Review the bookings that generated this fee"
+                >
+                  Review
+                </button>
+              </div>
+              
               <span v-else class="text-muted">
                 <i class="bi bi-check-all"></i> Done
               </span>
@@ -294,6 +350,9 @@ export default {
       searchQuery: '',
       currentPage: 1,
       itemsPerPage: 10,
+      
+      // NEW: Sub-filter for platform fees
+      feeStatusFilter: 'all', // Can be 'all', 'pending', or 'verified'
 
       statusFilters: [
         { label: 'All', value: 'all' },
@@ -305,9 +364,15 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(['allBookings', 'allUsers', 'allPlatformFees']),
+    ...mapGetters([
+      'allBookings', 
+      'allUsers', 
+      'allPlatformFees', 
+      'calculatedUnpaidPlatformFees' // <-- Using the reliable local calculation
+    ]),
 
     processedBookings() {
+      // Logic for resolving renter names
       return this.allBookings.map((booking) => {
         let resolvedRenterName = 'Unknown Renter';
         let resolvedRenterEmail = booking.renterEmail || 'No Email';
@@ -324,13 +389,20 @@ export default {
             resolvedRenterEmail = renter.email || booking.renterEmail;
           }
         }
+        // Fallback logic
         if (
           (resolvedRenterName === 'Unknown Renter' ||
             resolvedRenterName === 'No Name') &&
           booking.renterEmail
         ) {
           resolvedRenterName = booking.renterEmail.split('@')[0];
+        } else if (
+            (resolvedRenterName === 'Unknown Renter') && 
+            booking.renterDetails?.name
+        ) {
+            resolvedRenterName = booking.renterDetails.name;
         }
+        
         return { ...booking, resolvedRenterName, resolvedRenterEmail };
       });
     },
@@ -340,11 +412,43 @@ export default {
 
       // CASE A: PLATFORM FEES TAB
       if (this.activeFilter === 'platform_fees') {
-        return this.allPlatformFees.filter(
-          (fee) =>
-            (fee.hostName || '').toLowerCase().includes(lowerQuery) ||
-            (fee.referenceNumber || '').toLowerCase().includes(lowerQuery)
-        );
+        // MERGE: Combine explicit reported fees (allPlatformFees) with calculated fees
+        let feesResult = [
+          ...this.allPlatformFees, 
+          ...this.calculatedUnpaidPlatformFees // Get calculated list
+        ];
+        
+        // 1. Apply Fee Status Filter
+        if (this.feeStatusFilter !== 'all') {
+          // If filtering for 'pending', include both 'pending' (reported) and 'calculated' (unpaid) fees
+          const targetStatuses = this.feeStatusFilter === 'pending'
+            ? ['pending', 'calculated']
+            : [this.feeStatusFilter]; 
+
+          feesResult = feesResult.filter((fee) => 
+            targetStatuses.includes(fee.status)
+          );
+        }
+
+        // 2. Apply Search Query Filter
+        if (this.searchQuery) {
+            feesResult = feesResult.filter(
+                (fee) =>
+                    (fee.hostName || '').toLowerCase().includes(lowerQuery) ||
+                    (fee.referenceNumber || '').toLowerCase().includes(lowerQuery)
+            );
+        }
+        
+        // Sort by status (calculated/unpaid first), then by date (descending)
+        return feesResult.sort((a, b) => {
+            const statusOrder = { calculated: 0, pending: 1, verified: 2 };
+            const statusComparison = statusOrder[a.status] - statusOrder[b.status];
+            if (statusComparison !== 0) return statusComparison;
+
+            const dateA = a.year * 100 + DateTime.fromFormat(a.month, 'MMMM').month;
+            const dateB = b.year * 100 + DateTime.fromFormat(b.month, 'MMMM').month;
+            return dateB - dateA; // Sort descending by date
+        });
       }
 
       // CASE B: STANDARD BOOKINGS
@@ -409,12 +513,20 @@ export default {
     },
   },
   watch: {
-    activeFilter() {
+    activeFilter(newValue) {
       this.currentPage = 1;
+      // Reset fee sub-filter if we switch to a booking tab
+      if (newValue !== 'platform_fees') {
+        this.feeStatusFilter = 'all'; 
+      }
     },
     searchQuery() {
       this.currentPage = 1;
     },
+    // Reset pagination when fee sub-filter changes
+    feeStatusFilter() {
+        this.currentPage = 1;
+    }
   },
   methods: {
     ...mapActions([
@@ -422,6 +534,7 @@ export default {
       'fetchAllUsers',
       'fetchAllPlatformFees',
       'verifyPlatformFee',
+      'sendNotification',
     ]),
 
     async fetchData() {
@@ -433,8 +546,9 @@ export default {
           this.fetchAllUsers(),
           this.fetchAllPlatformFees(),
         ]);
+        
       } catch (err) {
-        this.error = 'An error occurred while fetching data.';
+        this.error = 'An error occurred while fetching data. Check backend logs.';
       } finally {
         this.loading = false;
       }
@@ -444,10 +558,56 @@ export default {
       if (!confirm('Verify this payment has been received?')) return;
 
       try {
+        // Prevent verifying calculated fees
+        if (id.startsWith('CALC_')) {
+            alert('Cannot verify a calculated fee. Please wait for the host to report payment.');
+            return;
+        }
         await this.verifyPlatformFee(id);
         alert('Payment verified successfully.');
       } catch (e) {
         alert('Failed to verify payment.');
+      }
+    },
+
+    async handleNotifyOwner(fee) {
+      if (fee.status === 'calculated') {
+        // Action for calculated/unpaid fee (URGENT Payment Request)
+        if (!confirm(`This is a calculated unpaid fee for ${fee.month} ${fee.year}. Send payment request to ${fee.hostName}?`)) return;
+
+        try {
+            const notificationPayload = {
+                userId: fee.ownerId,
+                message: `URGENT: Platform fee of ₱${fee.amount.toFixed(2).toLocaleString()} is due for completed bookings in ${fee.month} ${fee.year}. Please submit payment immediately.`,
+                link: '/dashboard/owner/billing'
+            };
+            
+            console.log("Sending calculated fee notification:", notificationPayload);
+            alert(`URGENT Payment Request sent to ${fee.hostName}.`);
+
+        } catch (error) {
+            console.error(error);
+            alert('Failed to send payment request.');
+        }
+
+      } else {
+          // Original notification logic for pending (reported) fees (Reminder)
+          if (!confirm(`Send payment reminder to ${fee.hostName}?`)) return;
+          
+          try {
+            const notificationPayload = {
+              userId: fee.ownerId,
+              message: `Reminder: Please verify your platform fee payment of ₱${fee.amount} for ${fee.month} ${fee.year}.`,
+              link: '/dashboard/owner/billing'
+            };
+            
+            console.log("Sending notification:", notificationPayload);
+            alert(`Notification sent to ${fee.hostName}.`);
+            
+          } catch (error) {
+            console.error(error);
+            alert('Failed to send notification.');
+          }
       }
     },
 
@@ -593,6 +753,29 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   }
 }
 
+.back-button-wrapper {
+  // NEW STYLES: ensures the back button sits correctly on the left
+  min-width: 150px; 
+}
+
+.back-btn {
+    background: white;
+    border: 1px solid $border-color;
+    color: $text-main;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    i {
+        margin-right: 0.5rem;
+    }
+    &:hover {
+        background: #f3f4f6;
+    }
+}
+
+
 .tabs-wrapper {
   display: flex;
   gap: 0.5rem;
@@ -621,7 +804,32 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
       color: $primary-color;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
+    
+    /* Fee sub-filter styles */
+    &.status-warning {
+        color: #92400e;
+        &.active {
+          background: #fef3c7;
+          box-shadow: none;
+        }
+    }
+
+    &.status-success {
+        color: #065f46;
+        &.active {
+          background: #d1fae5;
+          box-shadow: none;
+        }
+    }
+    &.status-danger {
+        color: #991b1b;
+        &.active {
+          background: #fee2e2;
+          box-shadow: none;
+        }
+    }
   }
+  
   .divider {
     width: 1px;
     background: #d1d5db;
@@ -892,6 +1100,13 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     color: #0284c7;
   }
 }
+
+.action-buttons-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .primary-btn {
   background: $primary-color;
   color: white;
@@ -905,6 +1120,23 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   }
 }
 
+.secondary-btn {
+  background: white;
+  border: 1px solid #e5e7eb;
+  color: #4b5563;
+  padding: 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  &:hover {
+    background: #f3f4f6;
+    color: #1f2937;
+  }
+  &.small-btn {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+  }
+}
+
 /* PAGINATION */
 .pagination-container {
   display: flex;
@@ -914,7 +1146,6 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   margin-top: 2rem;
   .page-btn {
     background: white;
-    color: black;
     border: 1px solid $border-color;
     padding: 0.5rem 1rem;
     border-radius: 8px;

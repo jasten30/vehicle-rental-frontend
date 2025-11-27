@@ -94,7 +94,7 @@
                     <button @click="editVehicle(vehicle.id)" class="action-btn edit" title="Edit">
                       <i class="bi bi-pencil"></i>
                     </button>
-                    <button @click="deleteVehicle(vehicle.id)" class="action-btn delete" title="Delete">
+                    <button @click="handleDeleteVehicle(vehicle.id)" class="action-btn delete" title="Delete">
                       <i class="bi bi-trash3"></i>
                     </button>
                   </div>
@@ -139,7 +139,7 @@
                 <button @click="editVehicle(vehicle.id)" class="btn-icon edit">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button @click="deleteVehicle(vehicle.id)" class="btn-icon delete">
+                <button @click="handleDeleteVehicle(vehicle.id)" class="btn-icon delete">
                   <i class="bi bi-trash3"></i>
                 </button>
               </div>
@@ -184,7 +184,6 @@ export default {
       const today = DateTime.now().startOf('day');
 
       let vehiclesWithStatus = this.allVehicles.map(vehicle => {
-        // 1. Status Logic
         let dynamicStatus = 'available';
         const vehicleBookings = this.allBookings.filter(b => b.vehicleId === vehicle.id);
 
@@ -210,7 +209,6 @@ export default {
             }
         }
 
-        // 2. Owner Name & Email Logic (FIXED)
         let resolvedOwnerName = 'Unknown Owner';
         let resolvedOwnerEmail = 'No Email';
 
@@ -235,7 +233,7 @@ export default {
           (v) =>
             v.make?.toLowerCase().includes(lowerQuery) ||
             v.model?.toLowerCase().includes(lowerQuery) ||
-            v.resolvedOwnerEmail?.toLowerCase().includes(lowerQuery) || // Search by resolved email
+            v.resolvedOwnerEmail?.toLowerCase().includes(lowerQuery) ||
             v.resolvedOwnerName?.toLowerCase().includes(lowerQuery)
         );
       }
@@ -281,16 +279,22 @@ export default {
     editVehicle(vehicleId) {
       this.$router.push({ name: 'EditVehicle', params: { vehicleId } });
     },
-    async deleteVehicle(vehicleId) {
-      if (confirm('Permanently delete this vehicle?')) {
+
+    // --- DELETE LOGIC ---
+    async handleDeleteVehicle(vehicleId) {
+      if (confirm('Are you sure you want to permanently delete this vehicle? This action cannot be undone.')) {
         try {
             await this.deleteVehicle(vehicleId);
+            alert('Vehicle deleted successfully.');
+            // Refresh data after delete
             await this.fetchData();
         } catch(error) {
-            alert('Failed to delete vehicle.');
+            console.error("Vehicle deletion error:", error);
+            alert('Failed to delete vehicle. Please check the console for details.');
         }
       }
     },
+
     nextPage() {
       if (this.currentPage < this.totalPages) this.currentPage++;
     },
@@ -387,7 +391,7 @@ $card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.
   background: $bg-color;
   padding: 0.25rem;
   border-radius: 12px;
-  overflow-x: auto;
+  overflow-x: auto; // Horizontal scroll on small screens
   
   .filter-tab {
     border: none;
@@ -602,10 +606,10 @@ $card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.
   text-transform: uppercase;
   letter-spacing: 0.5px;
 
-  &.status-success { background: #d1fae5; color: #065f46; }
-  &.status-booked { background: #e0f2fe; color: #075985; }
-  &.status-warning { background: #fef3c7; color: #92400e; }
-  &.status-returned { background: #e0e7ff; color: #3730a3; }
+  &.status-success { background: #d1fae5; color: #065f46; } // Available
+  &.status-booked { background: #e0f2fe; color: #075985; } // On Trip
+  &.status-warning { background: #fef3c7; color: #92400e; } // Pending
+  &.status-returned { background: #e0e7ff; color: #3730a3; } // Completed
   &.status-default { background: #f3f4f6; color: #4b5563; }
 }
 

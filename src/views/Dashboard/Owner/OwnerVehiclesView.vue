@@ -1,23 +1,32 @@
 <template>
   <div class="owner-vehicles-container">
     <h2 class="section-title">My Listings</h2>
-    
+
+    <div v-if="isSuspended" class="suspension-banner">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>
+        <strong>Account Suspended:</strong> You cannot list new vehicles at this
+        time. You may still manage or remove your existing listings.
+      </span>
+    </div>
+
     <transition name="fade" mode="out-in">
-      <!-- Loading State -->
       <div v-if="loading" key="loading" class="loading-message">
         <p>Loading your vehicle listings...</p>
         <div class="spinner"></div>
       </div>
-      
-      <!-- Error State -->
-      <div v-else-if="errorMessage" key="error" class="error-message error-card">
+
+      <div
+        v-else-if="errorMessage"
+        key="error"
+        class="error-message error-card"
+      >
         <p>{{ errorMessage }}</p>
         <button @click="fetchOwnerVehicles" class="button primary-button">
           Retry Load Vehicles
         </button>
       </div>
-      
-      <!-- No Vehicles State -->
+
       <div
         v-else-if="!vehicles || vehicles.length === 0"
         key="empty"
@@ -27,146 +36,156 @@
         <div class="message-text">
           You haven't listed any vehicles yet. Let's get your first asset online!
         </div>
-        <!-- This button now opens the modal -->
-        <button @click="openChoiceModal" class="button primary-button">
-          Add New Listing
+
+        <button
+          @click="openChoiceModal"
+          class="button primary-button"
+          :disabled="isSuspended"
+          :title="isSuspended ? 'Account suspended' : 'Add Listing'"
+        >
+          <span v-if="isSuspended">
+            <i class="bi bi-slash-circle"></i> Listing Disabled
+          </span>
+          <span v-else>Add New Listing</span>
         </button>
       </div>
-      
-      <!-- Vehicle List State -->
+
       <div v-else key="list" class="vehicle-list-wrapper">
         <transition-group name="list-fade" tag="div" class="vehicle-list">
-            <div v-for="(vehicle, index) in vehicles" :key="vehicle.id" class="vehicle-card" :style="{'--i': index}">
-              <div class="image-wrapper">
-                <img
-                  :src="getVehicleImageUrl(vehicle)"
-                  :alt="`${vehicle.make} ${vehicle.model}`"
-                  class="vehicle-image"
-                  @error="
-                    $event.target.src =
-                      'https://placehold.co/400x200/e2e8f0/666666?text=No+Image'
-                  "
-                />
-                <span :class="['status-badge', vehicle.status ? vehicle.status.toLowerCase() : 'pending']">
-                  {{ vehicle.status || 'Draft' }}
-                </span>
-              </div>
-              
-              <div class="vehicle-details">
-                <h3 class="vehicle-title">
-                  {{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})
-                </h3>
-                <p class="detail-row">
-                  <i class="bi bi-cash"></i> 
-                  <strong>Rate:</strong> ₱{{ vehicle.rentalPricePerDay ? vehicle.rentalPricePerDay.toLocaleString() : 'N/A' }}/day
-                </p>
-                <p class="detail-row">
-                  <i class="bi bi-geo-alt-fill"></i> 
-                  <strong>Location:</strong> {{ formatLocation(vehicle.location) }}
-                </p>
-                <p class="detail-row license-plate-detail">
-                  <i class="bi bi-key-fill"></i> 
-                  <strong>Plate:</strong> {{ vehicle.cor?.plateNumber || 'N/A' }}
-                </p>
-              </div>
-              
-              <div class="vehicle-actions">
-                <button
-                  @click="editVehicle(vehicle.id)"
-                  class="button secondary-button icon-button"
-                  title="Edit Listing"
-                >
-                  <i class="bi bi-pencil-square"></i> Edit
-                </button>
-                <button
-                  @click="deleteVehicle(vehicle.id)"
-                  class="button cancel-button icon-button"
-                  title="Delete Listing"
-                >
-                  <i class="bi bi-trash-fill"></i> Delete
-                </button>
-              </div>
+          <div
+            v-for="(vehicle, index) in vehicles"
+            :key="vehicle.id"
+            class="vehicle-card"
+            :style="{ '--i': index }"
+          >
+            <div class="image-wrapper">
+              <img
+                :src="getVehicleImageUrl(vehicle)"
+                :alt="`${vehicle.make} ${vehicle.model}`"
+                class="vehicle-image"
+                @error="
+                  $event.target.src =
+                    'https://placehold.co/400x200/e2e8f0/666666?text=No+Image'
+                "
+              />
+              <span
+                :class="[
+                  'status-badge',
+                  vehicle.status ? vehicle.status.toLowerCase() : 'pending',
+                ]"
+              >
+                {{ vehicle.status || 'Draft' }}
+              </span>
             </div>
+
+            <div class="vehicle-details">
+              <h3 class="vehicle-title">
+                {{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})
+              </h3>
+              <p class="detail-row">
+                <i class="bi bi-cash"></i>
+                <strong>Rate:</strong> ₱{{
+                  vehicle.rentalPricePerDay
+                    ? vehicle.rentalPricePerDay.toLocaleString()
+                    : 'N/A'
+                }}/day
+              </p>
+              <p class="detail-row">
+                <i class="bi bi-geo-alt-fill"></i>
+                <strong>Location:</strong>
+                {{ formatLocation(vehicle.location) }}
+              </p>
+              <p class="detail-row license-plate-detail">
+                <i class="bi bi-key-fill"></i>
+                <strong>Plate:</strong>
+                {{ vehicle.cor?.plateNumber || 'N/A' }}
+              </p>
+            </div>
+
+            <div class="vehicle-actions">
+              <button
+                @click="editVehicle(vehicle.id)"
+                class="button secondary-button icon-button"
+                title="Edit Listing"
+              >
+                <i class="bi bi-pencil-square"></i> Edit
+              </button>
+              <button
+                @click="deleteVehicle(vehicle.id)"
+                class="button cancel-button icon-button"
+                title="Delete Listing"
+              >
+                <i class="bi bi-trash-fill"></i> Delete
+              </button>
+            </div>
+          </div>
         </transition-group>
-        
-        <!-- This button also opens the modal -->
+
         <button
           @click="openChoiceModal"
           class="button primary-button add-new-button"
+          :disabled="isSuspended"
+          :title="isSuspended ? 'Account suspended' : 'Add Listing'"
         >
-          <i class="bi bi-plus-circle"></i> Add New Listing
+          <i v-if="!isSuspended" class="bi bi-plus-circle"></i>
+          {{ isSuspended ? 'Adding Disabled' : 'Add New Listing' }}
         </button>
       </div>
     </transition>
 
-    <!-- Add the modal component to the template -->
     <VehicleTypeChoiceModal
       :show="isChoiceModalVisible"
       @close="isChoiceModalVisible = false"
       @navigate="handleTypeChoice"
     />
-
   </div>
 </template>
 
 <script>
-import { mapActions } from 'vuex';
-// Import the new modal
+import { mapActions, mapGetters } from 'vuex';
 import VehicleTypeChoiceModal from '@/components/modals/VehicleTypeChoiceModal.vue';
 
 export default {
   name: 'OwnerVehiclesView',
   components: {
-    VehicleTypeChoiceModal, // Register the modal
+    VehicleTypeChoiceModal,
   },
   data() {
     return {
       loading: true,
       errorMessage: null,
       vehicles: [],
-      isChoiceModalVisible: false, // Add state to control the modal
+      isChoiceModalVisible: false,
     };
+  },
+  computed: {
+    ...mapGetters(['user']),
+
+    isSuspended() {
+      // Check the user object from Vuex
+      return this.user?.isSuspended === true;
+    },
   },
   created() {
     this.fetchOwnerVehicles();
   },
   methods: {
-    ...mapActions(['getVehiclesByOwner']),
-
-    getVehicleImageUrl(vehicle) {
-      if (vehicle.profilePhotoUrl) {
-          return vehicle.profilePhotoUrl;
-      }
-      if (vehicle.exteriorPhotos && vehicle.exteriorPhotos.length > 0) {
-        return vehicle.exteriorPhotos[0];
-      }
-      return 'https://placehold.co/300x200/e2e8f0/666666?text=No+Image';
-    },
-
-    formatLocation(location) {
-      if (location) {
-          if (location.barangay && location.city) {
-            return `${location.barangay}, ${location.city}`;
-          }
-          if (location.city) {
-            return location.city;
-          }
-      }
-      if (typeof location === 'string') {
-        return location;
-      }
-      return 'Location not set';
-    },
+    // IMPORTANT: Include fetchUserProfile here
+    ...mapActions(['getVehiclesByOwner', 'deleteVehicle', 'fetchUserProfile']),
 
     async fetchOwnerVehicles() {
       this.loading = true;
       this.errorMessage = null;
       try {
+        // 1. Refresh User Profile FIRST to get latest suspension status
+        await this.fetchUserProfile();
+
+        // 2. Then fetch vehicles
         const fetchedVehicles = await this.getVehiclesByOwner();
         this.vehicles = fetchedVehicles;
       } catch (error) {
         console.error(
-          '[OwnerVehiclesView] Error fetching owner vehicles:',
+          '[OwnerVehiclesView] Error fetching owner data:',
           error
         );
         this.errorMessage =
@@ -175,13 +194,16 @@ export default {
         this.loading = false;
       }
     },
-    
-    // Updated method: Now just opens the modal
+
     openChoiceModal() {
+      // Double check before opening
+      if (this.isSuspended) {
+        alert('Your account is suspended. You cannot list new vehicles.');
+        return;
+      }
       this.isChoiceModalVisible = true;
     },
-    
-    // New method: Handles the 'navigate' event from the modal
+
     handleTypeChoice(routeName) {
       this.isChoiceModalVisible = false;
       this.$router.push({ name: routeName });
@@ -193,11 +215,37 @@ export default {
         params: { vehicleId: vehicleId },
       });
     },
-    deleteVehicle(vehicleId) {
-      console.log(
-        `[OwnerVehiclesView] Attempting to delete vehicle with ID: ${vehicleId}`
-      );
-      this.errorMessage = 'Delete functionality is not yet implemented.'; 
+
+    async deleteVehicle(vehicleId) {
+      if (confirm('Are you sure you want to delete this vehicle?')) {
+        try {
+          await this.deleteVehicle(vehicleId);
+          // Refresh list
+          this.fetchOwnerVehicles();
+        } catch (error) {
+          console.error(error);
+          alert('Failed to delete vehicle.');
+        }
+      }
+    },
+
+    // Helpers
+    getVehicleImageUrl(vehicle) {
+      if (vehicle.profilePhotoUrl) return vehicle.profilePhotoUrl;
+      if (vehicle.exteriorPhotos && vehicle.exteriorPhotos.length > 0) {
+        return vehicle.exteriorPhotos[0];
+      }
+      return 'https://placehold.co/300x200/e2e8f0/666666?text=No+Image';
+    },
+    formatLocation(location) {
+      if (location) {
+        if (location.barangay && location.city) {
+          return `${location.barangay}, ${location.city}`;
+        }
+        if (location.city) return location.city;
+      }
+      if (typeof location === 'string') return location;
+      return 'Location not set';
     },
   },
 };
@@ -206,7 +254,6 @@ export default {
 <style lang="scss" scoped>
 @import '../../../assets/styles/variables.scss';
 
-// All other styles remain the same
 .owner-vehicles-container {
   padding: 1.5rem;
   max-width: 1200px;
@@ -219,21 +266,43 @@ export default {
   margin-bottom: 2rem;
   text-align: center;
 }
-.empty-card, .error-card {
-    background-color: $card-background;
-    border-radius: $border-radius-lg;
-    box-shadow: $shadow-medium;
-    padding: 3rem 1.5rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.5rem;
+
+/* Suspension Banner */
+.suspension-banner {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 2rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+
+  i {
+    font-size: 1.2rem;
+  }
+}
+
+.empty-card,
+.error-card {
+  background-color: $card-background;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-medium;
+  padding: 3rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
 }
 .loading-message {
-    padding: 3rem;
-    text-align: center;
-    font-size: 1.2rem;
-    color: $text-color-medium;
+  padding: 3rem;
+  text-align: center;
+  font-size: 1.2rem;
+  color: $text-color-medium;
 }
 .error-message {
   color: $admin-color;
@@ -241,30 +310,34 @@ export default {
   border-radius: $border-radius-md;
 }
 .no-vehicles-message {
-    .icon-large {
-        font-size: 4rem;
-        color: $primary-color;
-    }
-    .message-text {
-        font-size: 1.1rem;
-        color: $text-color-dark;
-        margin-bottom: 0.5rem;
-        max-width: 400px;
-        text-align: center;
-    }
+  .icon-large {
+    font-size: 4rem;
+    color: $primary-color;
+  }
+  .message-text {
+    font-size: 1.1rem;
+    color: $text-color-dark;
+    margin-bottom: 0.5rem;
+    max-width: 400px;
+    text-align: center;
+  }
 }
 .spinner {
-    border: 4px solid $border-color-light;
-    border-top: 4px solid $primary-color;
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    animation: spin 1s linear infinite;
-    margin-top: 1rem;
+  border: 4px solid $border-color-light;
+  border-top: 4px solid $primary-color;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+  margin-top: 1rem;
 }
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 .vehicle-list-wrapper {
   display: flex;
@@ -276,6 +349,7 @@ export default {
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 2rem;
   width: 100%;
+  position: relative;
 }
 .vehicle-card {
   background-color: $card-background;
@@ -285,17 +359,17 @@ export default {
   display: flex;
   flex-direction: column;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  
+
   &:hover {
     transform: translateY(-5px);
     box-shadow: $shadow-large;
   }
 }
 .image-wrapper {
-    position: relative;
-    width: 100%;
-    height: 200px;
-    overflow: hidden;
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
 }
 .vehicle-image {
   width: 100%;
@@ -304,26 +378,32 @@ export default {
   border-bottom: 1px solid #e0e0e0;
 }
 .status-badge {
-    position: absolute;
-    top: 1rem;
-    left: 1rem;
-    padding: 0.3rem 0.8rem;
-    border-radius: $border-radius-pill;
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: white;
-    
-    &.active { background-color: $secondary-color; }
-    &.pending { background-color: #f59e0b; }
-    &.draft { background-color: $text-color-medium; }
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: $border-radius-pill;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: white;
+
+  &.active {
+    background-color: $secondary-color;
+  }
+  &.pending {
+    background-color: #f59e0b;
+  }
+  &.draft {
+    background-color: $text-color-medium;
+  }
 }
 .vehicle-details {
   padding: 1.25rem;
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  
+
   .vehicle-title {
     font-size: 1.3rem;
     font-weight: 700;
@@ -337,11 +417,11 @@ export default {
     margin-bottom: 0.5rem;
     display: flex;
     align-items: center;
-    
+
     i {
-        font-size: 1rem;
-        margin-right: 0.5rem;
-        color: $primary-color;
+      font-size: 1rem;
+      margin-right: 0.5rem;
+      color: $primary-color;
     }
     strong {
       font-weight: 600;
@@ -371,14 +451,25 @@ export default {
   border: 1px solid transparent;
 
   &.icon-button i {
-      margin-right: 0.5rem;
+    margin-right: 0.5rem;
+  }
+
+  /* Disabled Style */
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #e5e7eb !important;
+    color: #9ca3af !important;
+    border-color: #d1d5db !important;
+    transform: none !important;
+    box-shadow: none !important;
   }
 }
 .primary-button {
   background-color: $primary-color;
   color: white;
   border-color: $primary-color;
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: darken($primary-color, 10%);
     transform: translateY(-1px);
   }
@@ -387,7 +478,7 @@ export default {
   background-color: transparent;
   color: $primary-color;
   border-color: $primary-color;
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: lighten($primary-color, 45%);
     transform: translateY(-1px);
   }
@@ -407,13 +498,15 @@ export default {
   padding: 1rem 2rem;
   font-size: 1.1rem;
   i {
-      margin-right: 0.5rem;
+    margin-right: 0.5rem;
   }
 }
-.fade-enter-active, .fade-leave-active {
+.fade-enter-active,
+.fade-leave-active {
   transition: opacity 0.5s ease;
 }
-.fade-enter-from, .fade-leave-to {
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
 }
 .list-fade-enter-active {
@@ -422,7 +515,7 @@ export default {
 }
 .list-fade-leave-active {
   transition: all 0.5s ease-in;
-  position: absolute; 
+  position: absolute;
   width: 100%;
 }
 .list-fade-enter-from {
@@ -434,7 +527,6 @@ export default {
   transform: translateY(-30px) scale(0.98);
 }
 .vehicle-list {
-    position: relative; 
+  position: relative;
 }
 </style>
-
