@@ -1,7 +1,6 @@
 <template>
   <div class="owner-bookings-page">
     <div class="page-container">
-      
       <div class="header-section">
         <h1 class="page-title">My Bookings & Billing</h1>
         <div class="header-actions">
@@ -33,10 +32,7 @@
         <p>Loading data...</p>
       </div>
 
-      <div
-        v-else-if="loadingStatus === 'error'"
-        class="info-state error-state"
-      >
+      <div v-else-if="loadingStatus === 'error'" class="info-state error-state">
         <p>Failed to load data: {{ error }}</p>
         <button @click="refreshData" class="action-button retry-btn">
           Retry
@@ -44,7 +40,6 @@
       </div>
 
       <div v-else>
-        
         <section v-if="filteredNewRequests.length > 0" class="booking-section">
           <h2 class="section-title">New Requests</h2>
           <div class="requests-grid">
@@ -55,7 +50,7 @@
             >
               <div class="card-header">
                 <span class="renter-name">{{
-                  booking.renterDetails?.name || 'N/A'
+                  booking.renterDetails?.name || "N/A"
                 }}</span>
                 <span :class="getStatusBadgeClass(booking.paymentStatus)">
                   {{ formatStatus(booking.paymentStatus) }}
@@ -111,7 +106,7 @@
                   class="table-row"
                 >
                   <td class="table-data">
-                    {{ booking.renterDetails?.name || 'N/A' }}
+                    {{ booking.renterDetails?.name || "N/A" }}
                   </td>
                   <td class="table-data">
                     {{ booking.vehicleDetails?.make }}
@@ -122,9 +117,7 @@
                     {{ formatDate(booking.endDate) }}
                   </td>
                   <td class="table-data">
-                    <span
-                      :class="getStatusBadgeClass(booking.paymentStatus)"
-                    >
+                    <span :class="getStatusBadgeClass(booking.paymentStatus)">
                       {{ formatStatus(booking.paymentStatus) }}
                     </span>
                   </td>
@@ -177,9 +170,7 @@
                     {{ formatDate(booking.endDate) }}
                   </td>
                   <td class="table-data">
-                    <span
-                      :class="getStatusBadgeClass(booking.paymentStatus)"
-                    >
+                    <span :class="getStatusBadgeClass(booking.paymentStatus)">
                       {{ formatStatus(booking.paymentStatus) }}
                     </span>
                   </td>
@@ -242,10 +233,7 @@
             </div>
           </div>
 
-          <div
-            v-if="detailedFinancialsByMonth.length === 0"
-            class="info-state"
-          >
+          <div v-if="detailedFinancialsByMonth.length === 0" class="info-state">
             <p>No fee records found for {{ selectedFinancialYear }}.</p>
           </div>
 
@@ -266,9 +254,7 @@
                       <th class="table-header-cell">Ref</th>
                       <th class="table-header-cell">Vehicle</th>
                       <th class="table-header-cell">Date</th>
-                      <th class="table-header-cell text-right">
-                        Total Cost
-                      </th>
+                      <th class="table-header-cell text-right">Total Cost</th>
                       <th class="table-header-cell text-right text-danger">
                         Fee (10% of DP)
                       </th>
@@ -316,17 +302,23 @@
                           <span class="font-bold text-danger">
                             -{{ formatPrice(monthGroup.totalMonthlyFee) }}
                           </span>
-                          
-                          <span v-if="monthGroup.paymentStatus === 'verified'" class="status-paid">
+
+                          <span
+                            v-if="monthGroup.paymentStatus === 'verified'"
+                            class="status-paid"
+                          >
                             <i class="bi bi-check-circle-fill"></i> Paid
                           </span>
-                          <span v-else-if="monthGroup.paymentStatus === 'pending'" class="status-review">
+                          <span
+                            v-else-if="monthGroup.paymentStatus === 'pending'"
+                            class="status-review"
+                          >
                             <i class="bi bi-hourglass-split"></i> Pending
                           </span>
-                          
-                          <button 
+
+                          <button
                             v-else-if="monthGroup.totalMonthlyFee > 0"
-                            @click="openPlatformFeeModal(monthGroup)" 
+                            @click="openPlatformFeeModal(monthGroup)"
                             class="pay-fee-btn"
                           >
                             Pay Fee <i class="bi bi-arrow-right"></i>
@@ -348,7 +340,9 @@
                 Previous Month
               </button>
               <span class="page-info">
-                 {{ paginatedFinancialMonths[0]?.monthName }} ({{ financialCurrentPage }}/{{ totalFinancialPages }})
+                {{ paginatedFinancialMonths[0]?.monthName }} ({{
+                  financialCurrentPage
+                }}/{{ totalFinancialPages }})
               </span>
               <button
                 class="page-btn"
@@ -378,7 +372,7 @@
       @close="showFeeModal = false"
       @submit-payment="handleFeePayment"
     />
-    
+
     <PaymentModal
       v-if="isPaymentModalOpen"
       :is-open="isPaymentModalOpen"
@@ -393,58 +387,58 @@
 </template>
 
 <script>
-import { mapState, mapActions, mapGetters } from 'vuex';
-import { DateTime } from 'luxon';
-import PlatformFeePaymentModal from '@/components/modals/PlatformFeePaymentModal.vue';
-import PaymentModal from '@/components/modals/PaymentModal.vue';
-import adminQrCode from '@/assets/logo-header.jpg';
+import { mapState, mapActions, mapGetters } from "vuex";
+import { DateTime } from "luxon";
+import PlatformFeePaymentModal from "@/components/modals/PlatformFeePaymentModal.vue";
+import PaymentModal from "@/components/modals/PaymentModal.vue";
+import adminQrCode from "@/assets/logo-header.jpg";
 
 export default {
-  name: 'OwnerBillingView',
+  name: "OwnerBillingView",
   components: {
     PaymentModal,
     PlatformFeePaymentModal,
   },
   data() {
     return {
-      searchQuery: '',
+      searchQuery: "",
       pastCurrentPage: 1,
       pastItemsPerPage: 5,
       selectedFinancialYear: new Date().getFullYear(),
       financialCurrentPage: 1,
       financialItemsPerPage: 1,
-      
+
       showFeeModal: false,
       feeModalData: {
-        month: '',
+        month: "",
         year: null,
-        amount: 0
+        amount: 0,
       },
 
       isPaymentModalOpen: false,
       feeAmountDue: 0,
       feePaymentData: null,
-      
+
       adminDetails: {
-        name: 'RentCycle Platform',
-        email: 'admin@rentcycle.com',
+        name: "RentCycle Platform",
+        email: "admin@rentcycle.com",
         paymentMethods: {
-          qrCode: adminQrCode 
-        }
-      }
+          qrCode: adminQrCode,
+        },
+      },
     };
   },
   computed: {
-    ...mapState('owner', {
+    ...mapState("owner", {
       allBookings: (state) => state.ownerBookings,
       loadingStatus: (state) => state.ownerBookingsStatus,
       error: (state) => state.ownerBookingsError,
     }),
-    ...mapGetters(['myPlatformFees']),
+    ...mapGetters(["myPlatformFees"]),
 
     filteredNewRequests() {
       const baseRequests = this.allBookings
-        .filter((b) => b.paymentStatus === 'pending_owner_approval')
+        .filter((b) => b.paymentStatus === "pending_owner_approval")
         .sort(
           (a, b) => this.getJsDate(b.createdAt) - this.getJsDate(a.createdAt)
         );
@@ -458,12 +452,12 @@ export default {
 
     filteredUpcomingBookings() {
       const upcomingStatuses = [
-        'confirmed',
-        'downpayment_received',
-        'full_payment_received',
-        'pending_payment',
-        'downpayment_pending_verification',
-        'downpayment_verified',
+        "confirmed",
+        "downpayment_received",
+        "full_payment_received",
+        "pending_payment",
+        "downpayment_pending_verification",
+        "downpayment_verified",
       ];
       const baseBookings = this.allBookings
         .filter(
@@ -484,10 +478,10 @@ export default {
 
     filteredPastBookings() {
       const pastStatuses = [
-        'completed',
-        'returned',
-        'cancelled',
-        'declined_by_owner',
+        "completed",
+        "returned",
+        "cancelled",
+        "declined_by_owner",
       ];
       const baseBookings = this.allBookings
         .filter(
@@ -518,99 +512,159 @@ export default {
     availableYears() {
       const years = new Set();
       this.allBookings.forEach((b) => {
-        const date = this.getJsDate(b.createdAt || b.startDate);
+        // Use Start Date for year logic to be consistent
+        const date = this.getJsDate(b.startDate || b.createdAt);
         if (date) years.add(date.getFullYear());
       });
       years.add(new Date().getFullYear());
       return Array.from(years).sort((a, b) => b - a);
     },
 
+    // --- CRITICAL UPDATE: Matching Admin Store Logic ---
     detailedFinancialsByMonth() {
+      // 1. EXACT SAME STATUSES as Admin Store
       const feeApplicableStatuses = [
-        'confirmed',
-        'downpayment_received',
-        'full_payment_received',
-        'completed',
-        'returned',
-        'downpayment_verified',
+        "downpayment_verified",
+        "confirmed",
+        "active",
+        "completed",
+        "returned",
+        "cancelled_by_renter",
+        "cancelled",
+        "pending_verification", // Added to match Admin
+        "pending_payment", // Added to match Admin
+        "pending", // Added to match Admin
       ];
 
+      // 2. Filter bookings for the selected year
       const yearBookings = this.allBookings.filter((b) => {
-        const dateToUse = b.createdAt || b.startDate;
-        const date = this.getJsDate(dateToUse);
+        // Use START DATE (fallback to createdAt)
+        const dateToUse = b.startDate || b.createdAt;
+        let date = null;
 
-        if (!date) return false;
+        // Use Luxon logic here to match Admin
+        if (dateToUse) {
+          if (typeof dateToUse === "object" && dateToUse.seconds) {
+            date = DateTime.fromSeconds(dateToUse.seconds);
+          } else {
+            date = DateTime.fromISO(dateToUse);
+          }
+        }
+
+        if (!date || !date.isValid) return false;
 
         const isSameYear =
-          String(date.getFullYear()) === String(this.selectedFinancialYear);
-        const isFeeStatus = feeApplicableStatuses.includes(b.paymentStatus);
+          String(date.year) === String(this.selectedFinancialYear);
+
+        // Robust Status Check
+        const status = b.paymentStatus
+          ? b.paymentStatus.toLowerCase().trim()
+          : "";
+        const isFeeStatus = feeApplicableStatuses.includes(status);
 
         return isSameYear && isFeeStatus;
       });
 
+      // 3. Group by Month (using Start Date)
       const grouped = {};
       yearBookings.forEach((b) => {
-        const dateToUse = b.createdAt || b.startDate;
-        const date = this.getJsDate(dateToUse);
+        const dateToUse = b.startDate || b.createdAt;
+        let date = null;
+        if (typeof dateToUse === "object" && dateToUse.seconds) {
+          date = DateTime.fromSeconds(dateToUse.seconds);
+        } else {
+          date = DateTime.fromISO(dateToUse);
+        }
 
-        if (date) {
-          const monthIndex = date.getMonth();
+        if (date && date.isValid) {
+          // Month index 0-11
+          const monthIndex = date.month - 1;
           if (!grouped[monthIndex]) grouped[monthIndex] = [];
           grouped[monthIndex].push(b);
         }
       });
 
       const monthNames = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
       ];
 
       const result = Object.keys(grouped).map((monthIndex) => {
         const bookings = grouped[monthIndex];
         const monthName = monthNames[monthIndex];
-        
-        const financials = bookings.reduce((acc, b) => {
-           const gross = Number(b.totalCost) || 0;
-           const fee = this.calculateFee(gross);
-           acc.gross += gross;
-           acc.fee += fee;
-           return acc;
-        }, { gross: 0, fee: 0 });
 
-        const paymentRecord = this.myPlatformFees.find(
-            f => f.month === monthName && String(f.year) === String(this.selectedFinancialYear)
+        // 4. Calculate Totals (Summing)
+        const financials = bookings.reduce(
+          (acc, b) => {
+            const gross = Number(b.totalCost) || 0;
+            // Calculate fee: 2% of Total
+            const fee = gross * 0.2 * 0.1;
+
+            acc.gross += gross;
+            acc.fee += fee;
+            return acc;
+          },
+          { gross: 0, fee: 0 }
         );
-        const status = paymentRecord ? paymentRecord.status : 'unpaid';
+
+        // 5. Check Payment Status (from Admin DB records)
+        const paymentRecord = this.myPlatformFees.find(
+          (f) =>
+            f.month === monthName &&
+            String(f.year) === String(this.selectedFinancialYear)
+        );
+
+        // Logic: If in DB, use that status/amount. If not, it's 'unpaid' (calculated)
+        const finalFee = paymentRecord ? paymentRecord.amount : financials.fee;
+        const status = paymentRecord ? paymentRecord.status : "unpaid";
 
         return {
           monthName: monthName,
           monthIndex: parseInt(monthIndex),
           bookings: bookings.sort((a, b) => {
-            const dateA = this.getJsDate(a.createdAt || a.startDate);
-            const dateB = this.getJsDate(b.createdAt || b.startDate);
+            const dateA = this.getJsDate(a.startDate || a.createdAt);
+            const dateB = this.getJsDate(b.startDate || b.createdAt);
             return dateA - dateB;
           }),
-          totalMonthlyFee: financials.fee,
+          totalMonthlyFee: finalFee,
           totalMonthlyGross: financials.gross,
-          paymentStatus: status
+          paymentStatus: status,
         };
       });
 
-      return result.sort((a, b) => b.monthIndex - a.monthIndex);
+      // --- SORTING CHANGED HERE ---
+      // (a - b) means Ascending (Jan -> Dec)
+      return result.sort((a, b) => a.monthIndex - b.monthIndex);
     },
 
     totalFinancialPages() {
-      return Math.ceil(this.detailedFinancialsByMonth.length / this.financialItemsPerPage);
+      return Math.ceil(
+        this.detailedFinancialsByMonth.length / this.financialItemsPerPage
+      );
     },
     paginatedFinancialMonths() {
-      const start = (this.financialCurrentPage - 1) * this.financialItemsPerPage;
+      const start =
+        (this.financialCurrentPage - 1) * this.financialItemsPerPage;
       const end = start + this.financialItemsPerPage;
       return this.detailedFinancialsByMonth.slice(start, end);
     },
 
     totalYearlyFees() {
       return this.detailedFinancialsByMonth.reduce((sum, month) => {
-        if (month.paymentStatus === 'verified' || month.paymentStatus === 'pending') {
+        if (
+          month.paymentStatus === "verified" ||
+          month.paymentStatus === "pending"
+        ) {
           return sum;
         }
         return sum + month.totalMonthlyFee;
@@ -622,13 +676,13 @@ export default {
       this.pastCurrentPage = 1;
     },
     $route(to, _from) {
-      if (to.name === 'OwnerBilling') {
+      if (to.name === "OwnerBilling") {
         this.refreshData();
       }
     },
     selectedFinancialYear() {
       this.financialCurrentPage = 1;
-    }
+    },
   },
   async created() {
     await this.refreshData();
@@ -637,38 +691,39 @@ export default {
     }
   },
   methods: {
-    ...mapActions(['fetchOwnerPlatformFees', 'submitPlatformFee']), 
-    ...mapActions('owner', ['fetchOwnerBookings']),
+    ...mapActions(["fetchOwnerPlatformFees", "submitPlatformFee"]),
+    ...mapActions("owner", ["fetchOwnerBookings"]),
 
     async refreshData() {
       await Promise.all([
-          this.fetchOwnerBookings(),
-          this.fetchOwnerPlatformFees()
+        this.fetchOwnerBookings(),
+        this.fetchOwnerPlatformFees(),
       ]);
     },
-    
+
     openPlatformFeeModal(monthData) {
       this.feeModalData = {
         month: monthData.monthName,
         year: this.selectedFinancialYear,
-        amount: monthData.totalMonthlyFee
+        amount: monthData.totalMonthlyFee,
       };
       this.showFeeModal = true;
     },
 
     async handleFeePayment(payload) {
       try {
-        await this.$store.dispatch('submitPlatformFee', {
+        await this.$store.dispatch("submitPlatformFee", {
           month: payload.month,
           year: payload.year,
           amount: payload.amount,
-          referenceNumber: payload.referenceNumber
+          referenceNumber: payload.referenceNumber,
         });
 
-        alert(`Payment submitted successfully! The admin will review it shortly.`);
+        alert(
+          `Payment submitted successfully! The admin will review it shortly.`
+        );
         this.showFeeModal = false;
         await this.refreshData();
-
       } catch (error) {
         console.error("Fee payment error:", error);
         alert("Failed to submit payment. Please try again.");
@@ -677,10 +732,10 @@ export default {
 
     getJsDate(val) {
       if (!val) return null;
-      if (typeof val === 'object' && val.seconds) {
+      if (typeof val === "object" && val.seconds) {
         return new Date(val.seconds * 1000);
       }
-      if (typeof val === 'object' && val._seconds) {
+      if (typeof val === "object" && val._seconds) {
         return new Date(val._seconds * 1000);
       }
       const d = new Date(val);
@@ -688,16 +743,10 @@ export default {
     },
 
     matchesSearch(booking, query) {
-      const renterName = (
-        booking.renterDetails?.username || ''
-      ).toLowerCase();
-      const vehicleMake = (
-        booking.vehicleDetails?.make || ''
-      ).toLowerCase();
-      const vehicleModel = (
-        booking.vehicleDetails?.model || ''
-      ).toLowerCase();
-      const bookingId = (booking.id || '').toLowerCase();
+      const renterName = (booking.renterDetails?.username || "").toLowerCase();
+      const vehicleMake = (booking.vehicleDetails?.make || "").toLowerCase();
+      const vehicleModel = (booking.vehicleDetails?.model || "").toLowerCase();
+      const bookingId = (booking.id || "").toLowerCase();
       return (
         renterName.includes(query) ||
         vehicleMake.includes(query) ||
@@ -707,61 +756,60 @@ export default {
     },
     viewBookingDetails(bookingId) {
       this.$router.push({
-        name: 'BookingDetails',
+        name: "BookingDetails",
         params: { bookingId: bookingId },
       });
     },
     formatDate(dateVal) {
       const d = this.getJsDate(dateVal);
-      if (!d) return 'N/A';
+      if (!d) return "N/A";
       return DateTime.fromJSDate(d).toLocaleString(DateTime.DATE_SHORT);
     },
     formatPrice(price) {
-      return price ? `₱${Number(price).toFixed(2)}` : '₱0.00';
+      return price ? `₱${Number(price).toFixed(2)}` : "₱0.00";
     },
     formatStatus(status) {
-      if (!status) return 'N/A';
-      return status
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, (c) => c.toUpperCase());
+      if (!status) return "N/A";
+      return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
     },
     getStatusBadgeClass(status) {
       switch (status) {
-        case 'pending_owner_approval':
-          return 'status-badge status-new';
-        case 'confirmed':
-        case 'downpayment_received':
-        case 'full_payment_received':
-        case 'downpayment_verified':
-          return 'status-badge status-confirmed';
-        case 'pending_payment':
-        case 'downpayment_pending_verification':
-          return 'status-badge status-pending';
-        case 'completed':
-        case 'returned':
-          return 'status-badge status-completed';
-        case 'cancelled':
-        case 'declined_by_owner':
-          return 'status-badge status-cancelled';
+        case "pending_owner_approval":
+          return "status-badge status-new";
+        case "confirmed":
+        case "downpayment_received":
+        case "full_payment_received":
+        case "downpayment_verified":
+          return "status-badge status-confirmed";
+        case "pending_payment":
+        case "downpayment_pending_verification":
+          return "status-badge status-pending";
+        case "completed":
+        case "returned":
+          return "status-badge status-completed";
+        case "cancelled":
+        case "declined_by_owner":
+          return "status-badge status-cancelled";
         default:
-          return 'status-badge status-default';
+          return "status-badge status-default";
       }
     },
     calculateFee(totalCost) {
       if (!totalCost) return 0;
+      // Fixed Calculation: Total * 20% * 10%
       const downpayment = totalCost * 0.2;
       return downpayment * 0.1;
     },
     handleFeePaymentSubmitted() {
       this.isPaymentModalOpen = false;
-      alert('Payment submitted.');
-    }
+      alert("Payment submitted.");
+    },
   },
 };
 </script>
 
 <style lang="scss" scoped>
-@import '@/assets/styles/variables.scss';
+@import "@/assets/styles/variables.scss";
 
 /* --- Layout --- */
 .owner-bookings-page {
@@ -792,7 +840,7 @@ export default {
   align-items: center;
   gap: 0.5rem;
   width: 100%;
-  
+
   @media (min-width: 768px) {
     width: auto;
     justify-content: flex-end;
@@ -803,7 +851,7 @@ export default {
   font-weight: 700;
   color: #1f2937;
   margin: 0;
-  
+
   @media (min-width: 768px) {
     font-size: 1.875rem;
   }
@@ -821,7 +869,9 @@ export default {
   border: 1px solid #d1d5db;
   background-color: #ffffff;
   font-size: 0.9rem;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  transition:
+    box-shadow 0.2s,
+    border-color 0.2s;
   &:focus {
     outline: none;
     border-color: #3b82f6;
@@ -897,7 +947,7 @@ export default {
   display: grid;
   grid-template-columns: 1fr; /* 1 column on mobile */
   gap: 1.5rem;
-  
+
   @media (min-width: 768px) {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   }
@@ -905,14 +955,18 @@ export default {
 .request-card {
   background-color: #ffffff;
   border-radius: 0.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -1px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  transition:
+    transform 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out;
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    box-shadow:
+      0 10px 15px -3px rgba(0, 0, 0, 0.1),
       0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
 }
@@ -966,16 +1020,17 @@ export default {
   overflow-x: auto; /* Enable horizontal scrolling on small screens */
   background-color: #ffffff;
   border-radius: 0.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 .bookings-table {
   min-width: 100%;
   border-collapse: collapse;
-  
+
   /* Ensure min-width to trigger scroll on mobile if needed */
   @media (max-width: 640px) {
-    min-width: 800px; 
+    min-width: 800px;
   }
 }
 .table-header {
@@ -1017,12 +1072,30 @@ export default {
   font-size: 0.75rem;
   line-height: 1;
 }
-.status-new { background-color: #e0f2fe; color: #0284c7; }
-.status-confirmed { background-color: #d1fae5; color: #065f46; }
-.status-pending { background-color: #fef3c7; color: #92400e; }
-.status-completed { background-color: #e5e7eb; color: #374151; }
-.status-cancelled { background-color: #fee2e2; color: #991b1b; }
-.status-default { background-color: #f3f4f6; color: #374151; }
+.status-new {
+  background-color: #e0f2fe;
+  color: #0284c7;
+}
+.status-confirmed {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+.status-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+.status-completed {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+.status-cancelled {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+.status-default {
+  background-color: #f3f4f6;
+  color: #374151;
+}
 
 /* --- Buttons --- */
 .action-button {
@@ -1140,13 +1213,29 @@ export default {
 }
 
 /* Financials Specific */
-.font-mono { font-family: monospace; font-size: 0.8rem; color: #6b7280; }
-.text-right { text-align: right; }
-.text-danger { color: #dc2626; }
-.text-success { color: #16a34a; }
-.text-gray { color: #4b5563; }
-.bg-danger-light { background-color: #fef2f2; }
-.bg-success-light { background-color: #ecfdf5; }
+.font-mono {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+.text-right {
+  text-align: right;
+}
+.text-danger {
+  color: #dc2626;
+}
+.text-success {
+  color: #16a34a;
+}
+.text-gray {
+  color: #4b5563;
+}
+.bg-danger-light {
+  background-color: #fef2f2;
+}
+.bg-success-light {
+  background-color: #ecfdf5;
+}
 
 .subtotal-row td {
   border-top: 2px solid #e5e7eb;

@@ -17,12 +17,43 @@
 
     <div class="control-bar">
       <div class="back-button-wrapper" v-if="activeFilter === 'platform_fees'">
-        <button 
+        <button
           class="button secondary-btn back-btn"
-          @click="activeFilter = 'all'; feeStatusFilter = 'all'"
+          @click="
+            activeFilter = 'all';
+            feeStatusFilter = 'all';
+          "
           title="Back to All Booking Records"
         >
           <i class="bi bi-arrow-left"></i> Back to Bookings
+        </button>
+      </div>
+
+      <div
+        class="reminder-wrapper"
+        v-if="
+          activeFilter === 'platform_fees' &&
+          calculatedUnpaidPlatformFees.length > 0
+        "
+      >
+        <button
+          @click="handleBulkReminders"
+          class="button primary-btn"
+          :class="{ 'urgent-pulse': isNearEndOfMonth() }"
+          :title="
+            isNearEndOfMonth()
+              ? 'Urgent: Send end of month reminders'
+              : 'Send payment reminders'
+          "
+        >
+          <i class="bi bi-megaphone"></i>
+          <span class="btn-text">
+            {{
+              isNearEndOfMonth()
+                ? "Send End-of-Month Reminders"
+                : "Send Reminders"
+            }}
+          </span>
         </button>
       </div>
 
@@ -68,7 +99,10 @@
         <button
           class="filter-tab fee-tab"
           :class="{ active: activeFilter === 'platform_fees' }"
-          @click="activeFilter = 'platform_fees'; feeStatusFilter = 'all';"
+          @click="
+            activeFilter = 'platform_fees';
+            feeStatusFilter = 'all';
+          "
         >
           <i class="bi bi-cash-coin"></i> Platform Fees
         </button>
@@ -97,16 +131,12 @@
         <button @click="fetchData" class="button primary-btn">Retry</button>
       </div>
 
-      <div
-        v-else-if="paginatedList.length === 0"
-        class="state-container empty"
-      >
+      <div v-else-if="paginatedList.length === 0" class="state-container empty">
         <i class="bi bi-inbox"></i>
         <p>No records found.</p>
       </div>
 
       <div v-else class="list-container">
-        
         <template v-if="activeFilter === 'platform_fees'">
           <div class="list-header fee-grid desktop-only">
             <div class="col">Period</div>
@@ -131,10 +161,18 @@
                   'status-badge',
                   fee.status === 'verified'
                     ? 'status-success'
-                    : (fee.status === 'calculated' ? 'status-danger' : 'status-warning'),
+                    : fee.status === 'calculated'
+                      ? 'status-danger'
+                      : 'status-warning',
                 ]"
               >
-                {{ fee.status === 'verified' ? 'Verified' : (fee.status === 'calculated' ? 'Unpaid' : 'Pending') }}
+                {{
+                  fee.status === "verified"
+                    ? "Verified"
+                    : fee.status === "calculated"
+                      ? "Unpaid"
+                      : "Pending"
+                }}
               </span>
             </div>
 
@@ -161,7 +199,7 @@
             <div class="col amount-cell text-success">
               <span class="label-mobile">Amount:</span>
               +₱{{
-                fee.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })
+                fee.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })
               }}
             </div>
 
@@ -171,15 +209,26 @@
                   'status-badge',
                   fee.status === 'verified'
                     ? 'status-success'
-                    : (fee.status === 'calculated' ? 'status-danger' : 'status-warning'),
+                    : fee.status === 'calculated'
+                      ? 'status-danger'
+                      : 'status-warning',
                 ]"
               >
-                {{ fee.status === 'verified' ? 'Verified' : (fee.status === 'calculated' ? 'Unpaid (Calculated)' : 'Pending Review') }}
+                {{
+                  fee.status === "verified"
+                    ? "Verified"
+                    : fee.status === "calculated"
+                      ? "Unpaid (Calculated)"
+                      : "Pending Review"
+                }}
               </span>
             </div>
 
             <div class="col actions-cell">
-              <div v-if="fee.status !== 'verified'" class="action-buttons-group">
+              <div
+                v-if="fee.status !== 'verified'"
+                class="action-buttons-group"
+              >
                 <button
                   @click="handleNotifyOwner(fee)"
                   class="button secondary-btn small-btn"
@@ -189,22 +238,23 @@
                 </button>
 
                 <button
-                  v-if="fee.status === 'pending'" 
+                  v-if="fee.status === 'pending'"
                   @click="verifyFeePayment(fee.id)"
                   class="button primary-btn small-btn"
                 >
                   Verify
                 </button>
+
                 <button
                   v-else-if="fee.status === 'calculated'"
-                  @click="viewBooking({ id: fee.id, ownerId: fee.ownerId })"
+                  @click="filterByFeeSource(fee)"
                   class="button primary-btn small-btn"
-                  title="Review the bookings that generated this fee"
+                  title="Filter booking list to see this owner's transactions"
                 >
                   Review
                 </button>
               </div>
-              
+
               <span v-else class="text-muted">
                 <i class="bi bi-check-all"></i> Done
               </span>
@@ -229,14 +279,9 @@
             class="list-item booking-grid"
           >
             <div class="mobile-top mobile-only">
-              <span class="id-text"
-                >#{{ booking.id.substring(0, 8) }}</span
-              >
+              <span class="id-text">#{{ booking.id.substring(0, 8) }}</span>
               <span
-                :class="[
-                  'status-badge',
-                  getStatusClass(booking.paymentStatus),
-                ]"
+                :class="['status-badge', getStatusClass(booking.paymentStatus)]"
               >
                 {{ formatStatus(booking.paymentStatus) }}
               </span>
@@ -271,18 +316,13 @@
             <div class="col price-cell">
               <span class="label-mobile">Total:</span>
               ₱{{
-                booking.totalCost
-                  ? booking.totalCost.toLocaleString()
-                  : '0'
+                booking.totalCost ? booking.totalCost.toLocaleString() : "0"
               }}
             </div>
 
             <div class="col status-cell desktop-only">
               <span
-                :class="[
-                  'status-badge',
-                  getStatusClass(booking.paymentStatus),
-                ]"
+                :class="['status-badge', getStatusClass(booking.paymentStatus)]"
               >
                 {{ formatStatus(booking.paymentStatus) }}
               </span>
@@ -331,12 +371,12 @@
 </template>
 
 <script>
-import { mapGetters, mapActions } from 'vuex';
-import { DateTime } from 'luxon';
-import AdminBookingDetailsModal from '@/components/admin/AdminBookingDetailsModal.vue';
+import { mapGetters, mapActions } from "vuex";
+import { DateTime } from "luxon";
+import AdminBookingDetailsModal from "@/components/admin/AdminBookingDetailsModal.vue";
 
 export default {
-  name: 'AdminBookingsView',
+  name: "AdminBookingsView",
   components: {
     AdminBookingDetailsModal,
   },
@@ -346,36 +386,35 @@ export default {
       error: null,
       isModalOpen: false,
       selectedBooking: null,
-      activeFilter: 'all',
-      searchQuery: '',
+      activeFilter: "all",
+      searchQuery: "",
       currentPage: 1,
       itemsPerPage: 10,
-      
-      // NEW: Sub-filter for platform fees
-      feeStatusFilter: 'all', // Can be 'all', 'pending', or 'verified'
 
+      // Fee Filter State
+      feeStatusFilter: "all",
       statusFilters: [
-        { label: 'All', value: 'all' },
-        { label: 'Pending', value: 'pending' },
-        { label: 'Confirmed', value: 'confirmed' },
-        { label: 'Completed', value: 'completed' },
-        { label: 'Cancelled', value: 'cancelled' },
+        { label: "All", value: "all" },
+        { label: "Pending", value: "pending" },
+        { label: "Confirmed", value: "confirmed" },
+        { label: "Completed", value: "completed" },
+        { label: "Cancelled", value: "cancelled" },
       ],
     };
   },
   computed: {
     ...mapGetters([
-      'allBookings', 
-      'allUsers', 
-      'allPlatformFees', 
-      'calculatedUnpaidPlatformFees' // <-- Using the reliable local calculation
+      "allBookings",
+      "allUsers",
+      "allPlatformFees",
+      "calculatedUnpaidPlatformFees",
     ]),
 
     processedBookings() {
       // Logic for resolving renter names
       return this.allBookings.map((booking) => {
-        let resolvedRenterName = 'Unknown Renter';
-        let resolvedRenterEmail = booking.renterEmail || 'No Email';
+        let resolvedRenterName = "Unknown Renter";
+        let resolvedRenterEmail = booking.renterEmail || "No Email";
 
         if (this.allUsers && this.allUsers.length > 0) {
           const targetId = booking.renterId || booking.userId;
@@ -385,24 +424,25 @@ export default {
               (booking.renterEmail && u.email === booking.renterEmail)
           );
           if (renter) {
-            resolvedRenterName = renter.name || renter.fullName || 'No Name';
+            resolvedRenterName = renter.name || renter.fullName || "No Name";
             resolvedRenterEmail = renter.email || booking.renterEmail;
           }
         }
+
         // Fallback logic
         if (
-          (resolvedRenterName === 'Unknown Renter' ||
-            resolvedRenterName === 'No Name') &&
+          (resolvedRenterName === "Unknown Renter" ||
+            resolvedRenterName === "No Name") &&
           booking.renterEmail
         ) {
-          resolvedRenterName = booking.renterEmail.split('@')[0];
+          resolvedRenterName = booking.renterEmail.split("@")[0];
         } else if (
-            (resolvedRenterName === 'Unknown Renter') && 
-            booking.renterDetails?.name
+          resolvedRenterName === "Unknown Renter" &&
+          booking.renterDetails?.name
         ) {
-            resolvedRenterName = booking.renterDetails.name;
+          resolvedRenterName = booking.renterDetails.name;
         }
-        
+
         return { ...booking, resolvedRenterName, resolvedRenterEmail };
       });
     },
@@ -411,70 +451,74 @@ export default {
       const lowerQuery = this.searchQuery.toLowerCase();
 
       // CASE A: PLATFORM FEES TAB
-      if (this.activeFilter === 'platform_fees') {
+      if (this.activeFilter === "platform_fees") {
         // MERGE: Combine explicit reported fees (allPlatformFees) with calculated fees
         let feesResult = [
-          ...this.allPlatformFees, 
-          ...this.calculatedUnpaidPlatformFees // Get calculated list
+          ...this.allPlatformFees,
+          ...this.calculatedUnpaidPlatformFees, // Get calculated list
         ];
-        
-        // 1. Apply Fee Status Filter
-        if (this.feeStatusFilter !== 'all') {
-          // If filtering for 'pending', include both 'pending' (reported) and 'calculated' (unpaid) fees
-          const targetStatuses = this.feeStatusFilter === 'pending'
-            ? ['pending', 'calculated']
-            : [this.feeStatusFilter]; 
 
-          feesResult = feesResult.filter((fee) => 
+        // 1. Apply Fee Status Filter
+        if (this.feeStatusFilter !== "all") {
+          // If filtering for 'pending', include both 'pending' (reported) and 'calculated' (unpaid) fees
+          const targetStatuses =
+            this.feeStatusFilter === "pending"
+              ? ["pending", "calculated"]
+              : [this.feeStatusFilter];
+
+          feesResult = feesResult.filter((fee) =>
             targetStatuses.includes(fee.status)
           );
         }
 
         // 2. Apply Search Query Filter
         if (this.searchQuery) {
-            feesResult = feesResult.filter(
-                (fee) =>
-                    (fee.hostName || '').toLowerCase().includes(lowerQuery) ||
-                    (fee.referenceNumber || '').toLowerCase().includes(lowerQuery)
-            );
+          feesResult = feesResult.filter(
+            (fee) =>
+              (fee.hostName || "").toLowerCase().includes(lowerQuery) ||
+              (fee.referenceNumber || "").toLowerCase().includes(lowerQuery)
+          );
         }
-        
+
         // Sort by status (calculated/unpaid first), then by date (descending)
         return feesResult.sort((a, b) => {
-            const statusOrder = { calculated: 0, pending: 1, verified: 2 };
-            const statusComparison = statusOrder[a.status] - statusOrder[b.status];
-            if (statusComparison !== 0) return statusComparison;
+          const statusOrder = { calculated: 0, pending: 1, verified: 2 };
+          const statusComparison =
+            statusOrder[a.status] - statusOrder[b.status];
+          if (statusComparison !== 0) return statusComparison;
 
-            const dateA = a.year * 100 + DateTime.fromFormat(a.month, 'MMMM').month;
-            const dateB = b.year * 100 + DateTime.fromFormat(b.month, 'MMMM').month;
-            return dateB - dateA; // Sort descending by date
+          const dateA =
+            a.year * 100 + DateTime.fromFormat(a.month, "MMMM").month;
+          const dateB =
+            b.year * 100 + DateTime.fromFormat(b.month, "MMMM").month;
+          return dateB - dateA; // Sort descending by date
         });
       }
 
       // CASE B: STANDARD BOOKINGS
       let result = this.processedBookings;
 
-      if (this.activeFilter !== 'all') {
-        if (this.activeFilter === 'pending') {
+      if (this.activeFilter !== "all") {
+        if (this.activeFilter === "pending") {
           const pendingStatuses = [
-            'pending_owner_approval',
-            'pending_payment',
-            'downpayment_pending_verification',
+            "pending_owner_approval",
+            "pending_payment",
+            "downpayment_pending_verification",
           ];
           result = result.filter((b) =>
             pendingStatuses.includes(b.paymentStatus)
           );
-        } else if (this.activeFilter === 'cancelled') {
+        } else if (this.activeFilter === "cancelled") {
           const cancelledStatuses = [
-            'cancelled',
-            'declined_by_owner',
-            'cancelled_by_renter',
+            "cancelled",
+            "declined_by_owner",
+            "cancelled_by_renter",
           ];
           result = result.filter((b) =>
             cancelledStatuses.includes(b.paymentStatus)
           );
-        } else if (this.activeFilter === 'completed') {
-          const completedStatuses = ['completed', 'returned'];
+        } else if (this.activeFilter === "completed") {
+          const completedStatuses = ["completed", "returned"];
           result = result.filter((b) =>
             completedStatuses.includes(b.paymentStatus)
           );
@@ -516,8 +560,8 @@ export default {
     activeFilter(newValue) {
       this.currentPage = 1;
       // Reset fee sub-filter if we switch to a booking tab
-      if (newValue !== 'platform_fees') {
-        this.feeStatusFilter = 'all'; 
+      if (newValue !== "platform_fees") {
+        this.feeStatusFilter = "all";
       }
     },
     searchQuery() {
@@ -525,17 +569,57 @@ export default {
     },
     // Reset pagination when fee sub-filter changes
     feeStatusFilter() {
-        this.currentPage = 1;
-    }
+      this.currentPage = 1;
+    },
   },
   methods: {
     ...mapActions([
-      'fetchAllBookings',
-      'fetchAllUsers',
-      'fetchAllPlatformFees',
-      'verifyPlatformFee',
-      'sendNotification',
+      "fetchAllBookings",
+      "fetchAllUsers",
+      "fetchAllPlatformFees",
+      "verifyPlatformFee",
+      "sendNotification",
+      "sendBulkFeeReminders", // <--- Ensure this is here
     ]),
+
+    // --- FIX FOR YOUR ERROR: isNearEndOfMonth ---
+    isNearEndOfMonth() {
+      const now = DateTime.now();
+      const endOfMonth = now.endOf("month");
+      // Calculate difference in days between Now and End of Month
+      const daysLeft = endOfMonth.diff(now, "days").days;
+
+      // Return true if 5 days or less left (and not already past)
+      return daysLeft <= 5 && daysLeft >= -1;
+    },
+
+    async handleBulkReminders() {
+      // 1. Confirmation
+      if (
+        !confirm(
+          "Are you sure you want to send payment reminders to ALL owners with unpaid fees?"
+        )
+      )
+        return;
+
+      this.loading = true;
+      try {
+        // 2. Call the store action
+        const count = await this.sendBulkFeeReminders();
+
+        // 3. Success Message
+        if (count > 0) {
+          alert(`Success! Reminders sent to ${count} owners.`);
+        } else {
+          alert("No unpaid owners found to notify.");
+        }
+      } catch (e) {
+        console.error(e);
+        alert("Failed to send reminders. Check console for details.");
+      } finally {
+        this.loading = false;
+      }
+    },
 
     async fetchData() {
       this.loading = true;
@@ -546,68 +630,81 @@ export default {
           this.fetchAllUsers(),
           this.fetchAllPlatformFees(),
         ]);
-        
       } catch (err) {
-        this.error = 'An error occurred while fetching data. Check backend logs.';
+        this.error =
+          "An error occurred while fetching data. Check backend logs.";
       } finally {
         this.loading = false;
       }
     },
 
     async verifyFeePayment(id) {
-      if (!confirm('Verify this payment has been received?')) return;
+      if (!confirm("Verify this payment has been received?")) return;
 
       try {
         // Prevent verifying calculated fees
-        if (id.startsWith('CALC_')) {
-            alert('Cannot verify a calculated fee. Please wait for the host to report payment.');
-            return;
+        if (id.startsWith("CALC_")) {
+          alert(
+            "Cannot verify a calculated fee. Please wait for the host to report payment."
+          );
+          return;
         }
         await this.verifyPlatformFee(id);
-        alert('Payment verified successfully.');
+        alert("Payment verified successfully.");
       } catch (e) {
-        alert('Failed to verify payment.');
+        alert("Failed to verify payment.");
       }
     },
 
+    // Used for the "Review" button logic
+    filterByFeeSource(fee) {
+      this.searchQuery = fee.hostName;
+      this.activeFilter = "all";
+      this.feeStatusFilter = "all";
+      this.currentPage = 1;
+    },
+
     async handleNotifyOwner(fee) {
-      if (fee.status === 'calculated') {
+      if (fee.status === "calculated") {
         // Action for calculated/unpaid fee (URGENT Payment Request)
-        if (!confirm(`This is a calculated unpaid fee for ${fee.month} ${fee.year}. Send payment request to ${fee.hostName}?`)) return;
+        if (
+          !confirm(
+            `This is a calculated unpaid fee for ${fee.month} ${fee.year}. Send payment request to ${fee.hostName}?`
+          )
+        )
+          return;
 
         try {
-            const notificationPayload = {
-                userId: fee.ownerId,
-                message: `URGENT: Platform fee of ₱${fee.amount.toFixed(2).toLocaleString()} is due for completed bookings in ${fee.month} ${fee.year}. Please submit payment immediately.`,
-                link: '/dashboard/owner/billing'
-            };
-            
-            console.log("Sending calculated fee notification:", notificationPayload);
-            alert(`URGENT Payment Request sent to ${fee.hostName}.`);
+          const notificationPayload = {
+            userId: fee.ownerId,
+            message: `URGENT: Platform fee of ₱${fee.amount.toFixed(2).toLocaleString()} is due for completed bookings in ${fee.month} ${fee.year}. Please submit payment immediately.`,
+            link: "/dashboard/owner/billing",
+            type: "payment_request",
+          };
 
+          await this.sendNotification(notificationPayload);
+          alert(`URGENT Payment Request sent to ${fee.hostName}.`);
         } catch (error) {
-            console.error(error);
-            alert('Failed to send payment request.');
+          console.error(error);
+          alert("Failed to send payment request.");
         }
-
       } else {
-          // Original notification logic for pending (reported) fees (Reminder)
-          if (!confirm(`Send payment reminder to ${fee.hostName}?`)) return;
-          
-          try {
-            const notificationPayload = {
-              userId: fee.ownerId,
-              message: `Reminder: Please verify your platform fee payment of ₱${fee.amount} for ${fee.month} ${fee.year}.`,
-              link: '/dashboard/owner/billing'
-            };
-            
-            console.log("Sending notification:", notificationPayload);
-            alert(`Notification sent to ${fee.hostName}.`);
-            
-          } catch (error) {
-            console.error(error);
-            alert('Failed to send notification.');
-          }
+        // Original notification logic for pending (reported) fees (Reminder)
+        if (!confirm(`Send payment reminder to ${fee.hostName}?`)) return;
+
+        try {
+          const notificationPayload = {
+            userId: fee.ownerId,
+            message: `Reminder: Please verify your platform fee payment of ₱${fee.amount} for ${fee.month} ${fee.year}.`,
+            link: "/dashboard/owner/billing",
+          };
+
+          await this.sendNotification(notificationPayload);
+          alert(`Notification sent to ${fee.hostName}.`);
+        } catch (error) {
+          console.error(error);
+          alert("Failed to send notification.");
+        }
       }
     },
 
@@ -619,48 +716,68 @@ export default {
     },
 
     formatDate(dateString) {
-      if (!dateString) return 'N/A';
-      if (typeof dateString === 'object' && dateString.seconds) {
+      if (!dateString) return "N/A";
+      if (typeof dateString === "object" && dateString.seconds) {
         return DateTime.fromSeconds(dateString.seconds).toFormat(
-          'MMM dd, yyyy'
+          "MMM dd, yyyy"
         );
       }
-      return DateTime.fromISO(dateString).toFormat('MMM dd, yyyy');
+      return DateTime.fromISO(dateString).toFormat("MMM dd, yyyy");
     },
     formatStatus(status) {
-      if (!status) return 'Unknown';
-      return status.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+      if (!status) return "Unknown";
+      return status.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
     },
     getInitials(name) {
-      if (!name) return '?';
+      if (!name) return "?";
       return name
-        .split(' ')
+        .split(" ")
         .slice(0, 2)
         .map((n) => n[0])
-        .join('')
+        .join("")
         .toUpperCase();
     },
     getStatusClass(status) {
       switch (status) {
-        case 'confirmed':
-        case 'completed':
-        case 'returned':
-        case 'paid':
-        case 'downpayment_verified':
-          return 'status-success';
-        case 'pending_owner_approval':
-        case 'pending_payment':
-        case 'downpayment_pending_verification':
-          return 'status-warning';
-        case 'cancelled':
-        case 'declined_by_owner':
-          return 'status-danger';
+        case "confirmed":
+        case "completed":
+        case "returned":
+        case "paid":
+        case "downpayment_verified":
+          return "status-success";
+        case "pending_owner_approval":
+        case "pending_payment":
+        case "downpayment_pending_verification":
+          return "status-warning";
+        case "cancelled":
+        case "declined_by_owner":
+        case "cancelled_by_renter":
+          return "status-danger";
         default:
-          return 'status-default';
+          return "status-default";
       }
     },
+
+    // View Booking: Enriched with profile data for the Modal
     viewBooking(booking) {
-      this.selectedBooking = booking;
+      // Find profiles
+      const renter = this.allUsers.find(
+        (u) =>
+          u.uid === booking.renterId ||
+          u.id === booking.renterId ||
+          u.uid === booking.userId
+      );
+      const owner = this.allUsers.find(
+        (u) => u.uid === booking.ownerId || u.id === booking.ownerId
+      );
+
+      this.selectedBooking = {
+        ...booking,
+        renterProfile: renter || {},
+        ownerProfile: owner || {},
+        resolvedRenterName: booking.resolvedRenterName,
+      };
+
       this.isModalOpen = true;
     },
   },
@@ -671,14 +788,17 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '@/assets/styles/variables.scss';
+@import "@/assets/styles/variables.scss";
 
+/* --- Variables --- */
 $bg-color: #f8f9fa;
 $text-main: #1f2937;
 $text-light: #6b7280;
 $border-color: #e5e7eb;
 $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+$primary-color: #10b981; /* Fallback if variable missing */
 
+/* --- Main Container --- */
 .admin-page-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -690,51 +810,75 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   }
 }
 
-/* HEADER */
+/* --- Header --- */
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1rem;
   }
 
-  .section-title {
-    font-size: 2rem;
-    font-weight: 800;
-    margin: 0 0 0.5rem 0;
-  }
-  .section-subtitle {
-    color: $text-light;
-    margin: 0;
-    font-size: 1rem;
-  }
-
-  .header-stats .stat-item {
-    background: white;
-    padding: 0.5rem 1.5rem;
-    border-radius: 12px;
-    box-shadow: $card-shadow;
-    text-align: center;
-    .stat-val {
-      display: block;
+  .header-content {
+    .section-title {
+      font-size: 1.75rem;
       font-weight: 800;
-      font-size: 1.5rem;
-      color: $primary-color;
+      margin: 0 0 0.5rem 0;
+      line-height: 1.2;
+
+      @media (min-width: 768px) {
+        font-size: 2rem;
+      }
     }
-    .stat-label {
-      font-size: 0.75rem;
-      text-transform: uppercase;
+    .section-subtitle {
       color: $text-light;
+      margin: 0;
+      font-size: 0.9rem;
+      line-height: 1.4;
+
+      @media (min-width: 768px) {
+        font-size: 1rem;
+      }
+    }
+  }
+
+  .header-stats {
+    @media (max-width: 768px) {
+      width: 100%;
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    .stat-item {
+      background: white;
+      padding: 0.5rem 1.5rem;
+      border-radius: 12px;
+      box-shadow: $card-shadow;
+      text-align: center;
+      min-width: 100px;
+
+      .stat-val {
+        display: block;
+        font-weight: 800;
+        font-size: 1.5rem;
+        color: $primary-color;
+      }
+      .stat-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: $text-light;
+        font-weight: 600;
+      }
     }
   }
 }
 
-/* CONTROL BAR */
+/* --- Control Bar --- */
 .control-bar {
   display: flex;
   justify-content: space-between;
@@ -754,11 +898,13 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .back-button-wrapper {
-  // NEW STYLES: ensures the back button sits correctly on the left
-  min-width: 150px; 
-}
+  min-width: fit-content;
 
-.back-btn {
+  @media (max-width: 992px) {
+    width: 100%;
+  }
+
+  .back-btn {
     background: white;
     border: 1px solid $border-color;
     color: $text-main;
@@ -767,14 +913,23 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s;
+    width: 100%; /* Full width on mobile when wrapped */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    @media (min-width: 992px) {
+      width: auto;
+    }
+
     i {
-        margin-right: 0.5rem;
+      margin-right: 0.5rem;
     }
     &:hover {
-        background: #f3f4f6;
+      background: #f3f4f6;
     }
+  }
 }
-
 
 .tabs-wrapper {
   display: flex;
@@ -782,19 +937,35 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   background: $bg-color;
   padding: 0.25rem;
   border-radius: 12px;
+
+  /* Horizontal Scroll for Mobile */
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+  scrollbar-width: none; /* Firefox */
+  &::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+
+  flex-grow: 1;
+  max-width: 100%; /* Ensure it doesn't overflow parent */
 
   .filter-tab {
     border: none;
     background: none;
-    padding: 0.6rem 1.2rem;
-    font-size: 0.9rem;
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: $text-light;
     border-radius: 8px;
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.2s;
+    flex-shrink: 0; /* Prevent tabs from squishing */
+
+    @media (min-width: 768px) {
+      padding: 0.6rem 1.2rem;
+      font-size: 0.9rem;
+    }
 
     &:hover {
       color: $text-main;
@@ -804,36 +975,36 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
       color: $primary-color;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
-    
+
     /* Fee sub-filter styles */
     &.status-warning {
-        color: #92400e;
-        &.active {
-          background: #fef3c7;
-          box-shadow: none;
-        }
+      color: #92400e;
+      &.active {
+        background: #fef3c7;
+        box-shadow: none;
+      }
     }
-
     &.status-success {
-        color: #065f46;
-        &.active {
-          background: #d1fae5;
-          box-shadow: none;
-        }
+      color: #065f46;
+      &.active {
+        background: #d1fae5;
+        box-shadow: none;
+      }
     }
     &.status-danger {
-        color: #991b1b;
-        &.active {
-          background: #fee2e2;
-          box-shadow: none;
-        }
+      color: #991b1b;
+      &.active {
+        background: #fee2e2;
+        box-shadow: none;
+      }
     }
   }
-  
+
   .divider {
     width: 1px;
     background: #d1d5db;
-    margin: 0 0.5rem;
+    margin: 0 0.25rem;
+    flex-shrink: 0;
   }
   .fee-tab {
     color: #059669;
@@ -845,10 +1016,11 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 
 .search-wrapper {
   position: relative;
-  flex-grow: 1;
-  max-width: 300px;
-  @media (max-width: 992px) {
-    max-width: 100%;
+  width: 100%;
+
+  @media (min-width: 993px) {
+    flex-grow: 1;
+    max-width: 300px;
   }
 
   .search-icon {
@@ -865,20 +1037,22 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     border-radius: 12px;
     outline: none;
     transition: border 0.2s;
+    font-size: 0.95rem;
+
     &:focus {
       border-color: $primary-color;
     }
   }
 }
 
-/* LIST LAYOUT (Replaces Table) */
+/* --- List Container --- */
 .list-container {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-/* Desktop Header Row */
+/* Header Row (Desktop) */
 .list-header {
   display: grid;
   padding: 1rem 1.5rem;
@@ -890,43 +1064,55 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   font-size: 0.75rem;
   letter-spacing: 0.05em;
   box-shadow: $card-shadow;
+  align-items: center;
+  gap: 1rem;
 
   @media (max-width: 991px) {
     display: none;
   }
 
+  /* Define Min/Max widths for better scaling */
   &.booking-grid {
-    grid-template-columns: 0.8fr 1.5fr 1.2fr 1.5fr 1fr 1fr 0.5fr;
+    grid-template-columns:
+      minmax(60px, 0.5fr) minmax(180px, 1.5fr) minmax(120px, 1.2fr)
+      minmax(150px, 1.5fr) 1fr 1fr 0.5fr;
   }
   &.fee-grid {
-    grid-template-columns: 1fr 2fr 1.5fr 1fr 1fr 0.5fr;
+    grid-template-columns:
+      minmax(100px, 1fr) minmax(200px, 2fr) minmax(120px, 1.5fr)
+      1fr 1fr 0.5fr;
   }
   .col.right {
     text-align: right;
   }
 }
 
-/* List Items */
+/* List Items (Rows/Cards) */
 .list-item {
   background: white;
   border-radius: 16px;
   box-shadow: $card-shadow;
   padding: 1rem 1.5rem;
-  display: grid;
+  display: grid; /* Default to grid */
   align-items: center;
   transition: transform 0.2s;
+  gap: 1rem;
 
   &:hover {
     transform: translateY(-2px);
   }
 
-  /* DESKTOP GRID */
+  /* --- DESKTOP VIEW --- */
   @media (min-width: 992px) {
     &.booking-grid {
-      grid-template-columns: 0.8fr 1.5fr 1.2fr 1.5fr 1fr 1fr 0.5fr;
+      grid-template-columns:
+        minmax(60px, 0.5fr) minmax(180px, 1.5fr) minmax(120px, 1.2fr)
+        minmax(150px, 1.5fr) 1fr 1fr 0.5fr;
     }
     &.fee-grid {
-      grid-template-columns: 1fr 2fr 1.5fr 1fr 1fr 0.5fr;
+      grid-template-columns:
+        minmax(100px, 1fr) minmax(200px, 2fr) minmax(120px, 1.5fr)
+        1fr 1fr 0.5fr;
     }
 
     .mobile-top,
@@ -938,13 +1124,15 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
       display: flex;
       align-items: center;
       overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
     .actions-cell {
       justify-content: flex-end;
     }
   }
 
-  /* MOBILE CARD STACK */
+  /* --- MOBILE/TABLET VIEW (Card Stack) --- */
   @media (max-width: 991px) {
     display: flex;
     flex-direction: column;
@@ -962,15 +1150,17 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
       align-items: center;
       border-bottom: 1px solid $border-color;
       padding-bottom: 0.8rem;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.25rem;
 
       .id-text {
-        font-family: 'Roboto Mono', monospace;
+        font-family: "Roboto Mono", monospace;
         color: $primary-color;
         font-weight: 700;
+        font-size: 1rem;
       }
       .period {
         font-weight: 700;
+        font-size: 1rem;
       }
     }
 
@@ -978,14 +1168,27 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
       width: 100%;
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: center; /* Changed from flex-start to align nice vertically */
+      gap: 1rem;
+
+      /* Allow text wrapping on mobile */
+      .email,
+      .vehicle-name,
+      .name {
+        white-space: normal;
+        text-align: right;
+        word-break: break-word;
+        max-width: 60%;
+      }
     }
 
     .label-mobile {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: $text-light;
       text-transform: uppercase;
-      font-weight: 600;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      flex-shrink: 0; /* Prevent label from shrinking */
     }
 
     .actions-cell {
@@ -993,26 +1196,44 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
       border-top: 1px solid $border-color;
       padding-top: 1rem;
       justify-content: flex-end;
+      width: 100%;
+    }
+
+    /* Specific Mobile adjustments for User Info */
+    .user-cell {
+      align-items: flex-start;
+      .user-info {
+        width: 100%;
+        justify-content: space-between;
+
+        .user-text {
+          align-items: flex-end;
+          text-align: right;
+        }
+      }
     }
   }
 }
 
-/* COMPONENT STYLES */
+/* --- Component Utilities --- */
 .id-cell {
-  font-family: 'Roboto Mono', monospace;
+  font-family: "Roboto Mono", monospace;
   color: $primary-color;
   font-weight: 600;
   font-size: 0.85rem;
 }
+
 .user-info-cell {
   display: flex;
   align-items: center;
   gap: 1rem;
-  .user-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
   .user-avatar {
     width: 36px;
     height: 36px;
@@ -1024,39 +1245,53 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     justify-content: center;
     font-weight: 700;
     font-size: 0.8rem;
+    flex-shrink: 0;
+
     &.host {
       background-color: #7c3aed;
     }
   }
+
   .user-text {
     display: flex;
     flex-direction: column;
+    overflow: hidden; /* Prevent spill */
+
     .name {
       font-weight: 600;
       font-size: 0.9rem;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
     }
     .email {
       font-size: 0.8rem;
       color: $text-light;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
     }
   }
 }
+
 .date-range {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: $text-light;
+  flex-wrap: wrap; /* Allow dates to stack on very small screens */
 }
+
 .price-cell {
   font-weight: 700;
-  font-family: monospace;
+  font-family: "Roboto Mono", monospace;
 }
 .text-success {
   color: #10b981;
 }
 .font-mono {
-  font-family: monospace;
+  font-family: "Roboto Mono", monospace;
 }
 
 .status-badge {
@@ -1066,6 +1301,7 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   font-weight: 700;
   text-transform: uppercase;
   white-space: nowrap;
+
   &.status-success {
     background: #d1fae5;
     color: #065f46;
@@ -1084,9 +1320,10 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   }
 }
 
+/* --- Buttons --- */
 .action-btn {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   border: none;
   background: transparent;
@@ -1095,6 +1332,8 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s;
+
   &:hover {
     background: #e0f2fe;
     color: #0284c7;
@@ -1115,6 +1354,13 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: darken(#10b981, 5%);
+  }
+
   &.small-btn {
     font-size: 0.8rem;
   }
@@ -1127,6 +1373,9 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   padding: 0.5rem;
   border-radius: 8px;
   cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+
   &:hover {
     background: #f3f4f6;
     color: #1f2937;
@@ -1137,25 +1386,33 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   }
 }
 
-/* PAGINATION */
+/* --- Pagination --- */
 .pagination-container {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 1rem;
   margin-top: 2rem;
+  flex-wrap: wrap; /* Stack on mobile if needed */
+
   .page-btn {
     background: white;
     border: 1px solid $border-color;
     padding: 0.5rem 1rem;
     border-radius: 8px;
     cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
     &:hover:not(:disabled) {
       border-color: $primary-color;
       color: $primary-color;
     }
     &:disabled {
       opacity: 0.5;
+      cursor: not-allowed;
     }
   }
   .page-info {
@@ -1164,7 +1421,7 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   }
 }
 
-/* STATE CONTAINERS */
+/* --- States --- */
 .state-container {
   text-align: center;
   padding: 4rem 2rem;
@@ -1172,6 +1429,7 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   background: white;
   border-radius: 16px;
   box-shadow: $card-shadow;
+
   i {
     font-size: 2.5rem;
     margin-bottom: 1rem;
@@ -1183,6 +1441,7 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     opacity: 1;
   }
 }
+
 .spinner {
   margin: 0 auto 1rem;
   width: 2rem;
@@ -1192,9 +1451,29 @@ $card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   border-top-color: $primary-color;
   animation: spin 1s ease-in-out infinite;
 }
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+// Animation for End of Month Urgency
+.urgent-pulse {
+  background-color: #ef4444 !important; /* Red */
+  border-color: #ef4444 !important;
+  animation: pulse-animation 2s infinite;
+}
+
+@keyframes pulse-animation {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
   }
 }
 </style>

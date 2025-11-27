@@ -1,15 +1,17 @@
 import { createStore } from 'vuex';
-import api from '@/views/services/api'; 
+import api from '@/views/services/api';
 import router from '../router';
-import { DateTime, Interval } from 'luxon'; 
+import { DateTime, Interval } from 'luxon';
 import {
   getAuth,
   onAuthStateChanged,
   signOut,
-  signInWithEmailAndPassword, 
+  signInWithEmailAndPassword,
 } from 'firebase/auth';
 import owner from './modules/owner';
-import { setAuthToken } from '@/views/services/api'; 
+import { setAuthToken } from '@/views/services/api';
+import { collection, getDocs, doc, setDoc, addDoc, updateDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { db } from '@/firebase/config';
 
 export default createStore({
   state: {
@@ -21,9 +23,9 @@ export default createStore({
     vehicle: null,
     allBookings: [],
     allUsers: [],
-    allPlatformFees: [], 
+    allPlatformFees: [],
     myPlatformFees: [],
-    allHostStatements: [], 
+    allHostStatements: [],
     vehicleFilters: {
       make: '',
       model: '',
@@ -35,7 +37,7 @@ export default createStore({
       availabilityEndDate: null,
       vehicleType: '',
       seats: null,
-      assetType: null, 
+      assetType: null,
     },
     vehicleSort: {
       key: 'rentalPricePerDay',
@@ -160,15 +162,30 @@ export default createStore({
     // --- PLATFORM FEES ACTIONS ---
     async fetchAllPlatformFees({ commit }) {
       try {
-        const response = await api.getAllPlatformFees();
-        commit('SET_ALL_PLATFORM_FEES', response.data);
+        const feesRef = collection(db, 'platform_fees');
+        const q = query(feesRef, orderBy('submittedAt', 'desc'));
+
+        const querySnapshot = await getDocs(q);
+
+        const fees = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            // Handle timestamps safely
+            submittedAt: data.submittedAt?.toDate ? data.submittedAt.toDate() : data.submittedAt,
+            verifiedAt: data.verifiedAt?.toDate ? data.verifiedAt.toDate() : data.verifiedAt,
+          };
+        });
+
+        commit('SET_ALL_PLATFORM_FEES', fees);
       } catch (error) {
         console.error('[Vuex] Failed to fetch platform fees:', error);
       }
     },
     async fetchAllHostStatements({ commit }) {
         try {
-            const response = await api.getAllHostMonthlyStatements(); 
+            const response = await api.getAllHostMonthlyStatements();
             commit('SET_ALL_HOST_STATEMENTS', response.data);
         } catch (error) {
             console.error('[Vuex] Failed to fetch host statements:', error);
@@ -185,20 +202,67 @@ export default createStore({
       }
     },
 
-    async submitPlatformFee({ _commit }, payload) {
+    async submitPlatformFee({ state, commit }, payload) {
       try {
-        await api.submitPlatformFeePayment(payload);
-        return true; 
+        const user = state.user;
+        if (!user) throw new Error("User not identified");
+
+        // Create a unique ID so they can't pay twice for the same month
+        // Example ID: "uid123_November_2025"
+        const docId = `${user.uid}_${payload.month}_${payload.year}`;
+        const feeRef = doc(db, 'platform_fees', docId);
+
+        const paymentData = {
+          id: docId,
+          ownerId: user.uid,
+          // Fallback to user data if payload is missing specific details
+          hostName: user.name || user.fullName || 'Unknown Host',
+          hostEmail: user.email,
+          month: payload.month,
+          year: payload.year,
+          amount: payload.amount,
+          referenceNumber: payload.referenceNumber, // The GCash/Bank Ref
+          status: 'pending', // <--- IMPORTANT: Starts as 'pending'
+          submittedAt: serverTimestamp(),
+          verifiedAt: null
+        };
+
+        // Write to Firestore
+        await setDoc(feeRef, paymentData);
+
+        // Update local state owner list immediately (Optional but good for UI)
+        // This makes the "Unpaid" button turn to "Pending" instantly
+        const currentFees = state.myPlatformFees || [];
+        // Check if it exists locally to replace or add
+        const index = currentFees.findIndex(f => f.id === docId);
+        if (index !== -1) {
+            currentFees[index] = paymentData;
+        } else {
+            currentFees.push(paymentData);
+        }
+        commit('SET_MY_PLATFORM_FEES', [...currentFees]);
+
+        return true;
       } catch (error) {
         console.error('[Vuex] Failed to submit fee payment:', error);
         throw error;
       }
     },
 
+    // 2. ADMIN: Verifies the payment
     async verifyPlatformFee({ commit }, feeId) {
       try {
-        await api.verifyPlatformFee(feeId);
+        const feeRef = doc(db, 'platform_fees', feeId);
+
+        // Update status in Database
+        await updateDoc(feeRef, {
+          status: 'verified',
+          verifiedAt: serverTimestamp()
+        });
+
+        // Update local state (Admin List) immediately
         commit('UPDATE_FEE_STATUS', { feeId, status: 'verified' });
+
       } catch (error) {
         console.error('[Vuex] Failed to verify fee:', error);
         throw error;
@@ -279,10 +343,10 @@ export default createStore({
             try {
               const authToken = await user.getIdToken();
               setAuthToken(authToken);
-              
+
               const response = await api.getUserProfile();
               const userRole = response.data.role || 'renter';
-              
+
               commit('SET_AUTH_STATE', {
                 user: response.data,
                 userRole,
@@ -306,7 +370,7 @@ export default createStore({
     async login({ commit, _dispatch }, { email, password }) {
       try {
         const auth = getAuth();
-        
+
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
@@ -339,7 +403,11 @@ export default createStore({
 
     async fetchAllBookings({ commit }, params = {}) {
       try {
-        const response = await api.getAllBookings(params);
+        const finalParams = { limit: 1000, ...params };
+
+        const response = await api.getAllBookings(finalParams);
+
+        // ... existing logic ...
         commit('SET_ALL_BOOKINGS', response.data);
         return response.data;
       } catch (error) {
@@ -608,9 +676,9 @@ export default createStore({
     },
     async sendMessage({ _commit }, payload) {
       try {
-        await api.sendMessage(payload.chatId, { 
-          text: payload.text, 
-          imageBase64: payload.imageBase64 
+        await api.sendMessage(payload.chatId, {
+          text: payload.text,
+          imageBase64: payload.imageBase64
         });
       } catch (error) {
         console.error('[Vuex] Failed to send message:', error);
@@ -695,16 +763,16 @@ export default createStore({
     },
     async cancelBooking({ commit }, bookingId) {
       try {
-        await api.cancelBooking(bookingId); 
+        await api.cancelBooking(bookingId);
         commit('UPDATE_BOOKING_STATUS', { bookingId, newStatus: 'cancelled_by_renter' });
       } catch (error) {
         console.error('[Vuex] Failed to cancel booking:', error);
-        throw error; 
+        throw error;
       }
     },
-    async submitBookingReport({ _commit }, reportData) { 
+    async submitBookingReport({ _commit }, reportData) {
         try {
-          await api.submitBookingReport(reportData); 
+          await api.submitBookingReport(reportData);
         } catch (error) {
           console.error('[Vuex] Failed to submit booking report:', error);
           throw error;
@@ -712,20 +780,20 @@ export default createStore({
     },
     async fetchBookingReports({ _commit }) {
         try {
-          const response = await api.getBookingReports(); 
+          const response = await api.getBookingReports();
           if (response && Array.isArray(response.data)) {
-              return response.data; 
+              return response.data;
           } else {
               console.error("[Vuex] Invalid response structure from getBookingReports API:", response);
-              return []; 
+              return [];
           }
         } catch (error) {
           console.error('[Vuex] Failed to fetch booking reports:', error);
-          throw error; 
+          throw error;
         }
     },
 
-    async resolveBookingReport({ _commit }, reportId) { 
+    async resolveBookingReport({ _commit }, reportId) {
         try {
             await api.resolveBookingReport(reportId);
         } catch (error) {
@@ -770,12 +838,12 @@ export default createStore({
       try {
         const response = await api.downloadBookingContract(bookingId);
         const contentDisposition = response.headers['content-disposition'];
-        let filename = `BookingContract-${bookingId}.txt`; 
+        let filename = `BookingContract-${bookingId}.txt`;
         if (contentDisposition) {
             const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
             if (filenameMatch && filenameMatch.length === 2) filename = filenameMatch[1];
         }
-        return { data: response.data, filename: filename }; 
+        return { data: response.data, filename: filename };
       } catch (error) {
         console.error('[Vuex] Failed to download contract:', error);
         throw error;
@@ -794,7 +862,7 @@ export default createStore({
       if (!getters.isAuthenticated) {
         return;
       }
-      
+
       const currentFavorites = getters.userFavorites;
       let optimisticFavorites;
 
@@ -814,6 +882,74 @@ export default createStore({
         alert("Failed to update favorites. Please try again.");
       }
     },
+    async sendBulkFeeReminders({ getters, dispatch }) {
+      try {
+        // 1. Get all Calculated (Unpaid) fees
+        const unpaidFees = getters.calculatedUnpaidPlatformFees;
+
+        if (unpaidFees.length === 0) return 0;
+
+        // 2. Group by Owner (So we don't spam an owner if they have 2 pending months)
+        // We use a Set to get unique Owner IDs
+        const uniqueOwnerIds = [...new Set(unpaidFees.map(fee => fee.ownerId))];
+
+        let count = 0;
+
+        // 3. Loop and Send
+        for (const ownerId of uniqueOwnerIds) {
+          // Get the total amount owed by this owner
+          const totalOwed = unpaidFees
+            .filter(f => f.ownerId === ownerId)
+            .reduce((sum, f) => sum + f.amount, 0);
+
+          // Find host name for the alert/log
+          const feeRef = unpaidFees.find(f => f.ownerId === ownerId);
+          const hostName = feeRef ? feeRef.hostName : 'Host';
+
+          // Send the notification
+          const notificationPayload = {
+            userId: ownerId,
+            message: `End of Month Reminder: You have pending platform fees totaling ₱${totalOwed.toLocaleString()}. Please verify your payments in the Billing tab.`,
+            link: '/dashboard/earnings',
+            type: 'payment_reminder'
+          };
+
+          await dispatch('sendNotification', notificationPayload);
+          count++;
+          console.log(`Reminder sent to ${hostName}`);
+        }
+
+        return count; // Return number of owners notified
+      } catch (error) {
+        console.error('Failed to send bulk reminders:', error);
+        throw error;
+      }
+    },
+    async sendNotification({ _commit }, payload) {
+      try {
+        // 1. Validation: Ensure we have a target user and a message
+        if (!payload.userId || !payload.message) {
+            console.warn("[Vuex] sendNotification called without userId or message");
+            return;
+        }
+
+        // 2. Save to Firestore 'notifications' collection
+        await addDoc(collection(db, 'notifications'), {
+          userId: payload.userId,
+          title: payload.title || 'Notification',
+          message: payload.message,
+          link: payload.link || null,
+          type: payload.type || 'system',
+          isRead: false,
+          createdAt: serverTimestamp()
+        });
+
+        // Success! (No need to return anything usually, unless UI needs it)
+      } catch (error) {
+        console.error('[Vuex] Failed to send notification:', error);
+        // We catch the error here so the bulk loop doesn't crash if one fails
+      }
+    },
     setVehicleFilter({ commit }, payload) {
       commit('SET_VEHICLE_FILTER', payload);
     },
@@ -826,7 +962,7 @@ export default createStore({
 
     async forgotPassword({ _commit }, email) {
       try {
-        await api.forgotPassword(email); 
+        await api.forgotPassword(email);
       } catch (error) {
         console.error('[Vuex] Forgot Password failed:', error);
         throw error;
@@ -836,7 +972,7 @@ export default createStore({
     async getPublicVehiclesByOwner({ _commit }, userId) {
       try {
         const response = await api.getPublicVehiclesByOwner(userId);
-        return response.data; 
+        return response.data;
       } catch (error) {
         console.error('[Vuex] Failed to fetch public vehicles:', error);
         throw error;
@@ -845,7 +981,7 @@ export default createStore({
     async getReviewsForHost({ _commit }, hostId) {
       try {
         const response = await api.getReviewsForHost(hostId);
-        return response.data; 
+        return response.data;
       } catch (error) {
         console.error('[Vuex] Failed to fetch host reviews:', error);
         throw error;
@@ -881,83 +1017,100 @@ export default createStore({
 
     allPlatformFees: (state) => state.allPlatformFees,
     myPlatformFees: (state) => state.myPlatformFees,
-    
+
     allHostStatements: (state) => state.allHostStatements,
-    
+
     calculatedUnpaidPlatformFees: (state, getters) => {
-        // --- CORE CALCULATION FIX ---
-        const DOWNPAYMENT_RATE = 0.20; 
-        const FEE_OF_DOWNPAYMENT_RATE = 0.10; 
-        // ----------------------------
-        
-        // 1. Identify completed bookings that generate fees
-        const feeGeneratingBookings = getters.allBookings.filter(
-            b => b.paymentStatus === 'completed' || b.paymentStatus === 'returned'
-        );
+      // 1. SETTINGS
+      const DOWNPAYMENT_RATE = 0.20;
+      const FEE_OF_DOWNPAYMENT_RATE = 0.10;
 
-        const owedFeesMap = new Map(); // Key: `${ownerId}-${month}-${year}`
+      // 2. STATUS LIST (All Lowercase)
+      // We will convert the actual booking status to lowercase before comparing.
+      const billableStatuses = [
+        'downpayment_verified',
+        'confirmed',
+        'active',
+        'completed',
+        'returned',
+        'cancelled_by_renter',
+        'cancelled',
+        'pending_verification',
+        'pending',
+        'pending_payment'
+      ];
 
-        for (const booking of feeGeneratingBookings) {
-            const ownerId = booking.ownerId || booking.vehicleOwnerId;
-            
-            // CRITICAL GUARD: Skip this booking if data is unusable
-            if (!ownerId || !booking.totalCost || Number(booking.totalCost) <= 0) {
-                continue; 
-            }
-            
-            // FIX: Convert totalCost (which is often a string) to a number for arithmetic
-            const totalCostNumeric = Number(booking.totalCost); 
+      const owedFeesMap = new Map();
 
-            const endDate = booking.endDate?.seconds 
-                            ? DateTime.fromSeconds(booking.endDate.seconds) 
-                            : DateTime.fromISO(booking.endDate);
-            
-            // CRITICAL GUARD: Skip if date is invalid or missing
-            if (!endDate.isValid) continue;
+      getters.allBookings.forEach(booking => {
+        // Validation
+        if (!booking.totalCost || Number(booking.totalCost) <= 0) return;
+        if (!booking.paymentStatus) return;
 
-            // --- TWO-STEP FEE CALCULATION ---
-            const downpayment = totalCostNumeric * DOWNPAYMENT_RATE;
-            const totalFee = downpayment * FEE_OF_DOWNPAYMENT_RATE;
-            
-            if (totalFee <= 0) continue;
+        // --- ROBUST CHECK: Lowercase & Trim ---
+        const cleanStatus = booking.paymentStatus.toLowerCase().trim();
 
-            const monthYearKey = `${ownerId}-${endDate.month}-${endDate.year}`;
-            
-            if (owedFeesMap.has(monthYearKey)) {
-                owedFeesMap.get(monthYearKey).amount += totalFee;
-            } else {
-                const hostUser = state.allUsers.find(u => u.uid === ownerId || u.id === ownerId);
+        if (!billableStatuses.includes(cleanStatus)) return;
+        // --------------------------------------
 
-                owedFeesMap.set(monthYearKey, {
-                    id: `CALC_${monthYearKey}`, 
-                    ownerId: ownerId,
-                    hostName: hostUser ? (hostUser.name || hostUser.fullName || ownerId) : 'Unknown Host',
-                    hostEmail: hostUser ? hostUser.email : 'N/A',
-                    month: endDate.toFormat('MMMM'),
-                    year: endDate.year,
-                    amount: totalFee,
-                    status: 'calculated', // Use 'calculated' status
-                    referenceNumber: 'N/A - Calculated',
-                });
-            }
+        const ownerId = booking.ownerId || booking.vehicleOwnerId;
+        if (!ownerId) return;
+
+        // Date Logic (Luxon)
+        let dateObj = null;
+        const rawDate = booking.startDate || booking.createdAt;
+
+        if (rawDate) {
+           if (typeof rawDate === 'object' && rawDate.seconds) {
+             dateObj = DateTime.fromSeconds(rawDate.seconds);
+           } else {
+             dateObj = DateTime.fromISO(rawDate);
+           }
         }
 
-        // 2. Cross-reference with existing reported fees in 'platform_fees'
-        const existingFeeKeys = new Set(
-            state.allPlatformFees.map(fee => 
-                `${fee.ownerId}-${DateTime.fromFormat(fee.month, 'MMMM').month}-${fee.year}`
-            )
-        );
-        
-        const finalUnpaidCalculations = [];
-        owedFeesMap.forEach((fee, key) => {
-            // Only include if no fee record (paid or pending) already exists
-            if (!existingFeeKeys.has(key)) {
-                finalUnpaidCalculations.push(fee);
-            }
-        });
+        if (!dateObj || !dateObj.isValid) return;
 
-        return finalUnpaidCalculations;
+        // The Math
+        const totalCostNumeric = Number(booking.totalCost);
+        const downpayment = totalCostNumeric * DOWNPAYMENT_RATE;
+        const totalFee = downpayment * FEE_OF_DOWNPAYMENT_RATE;
+
+        // Aggregation
+        const monthName = dateObj.toFormat('MMMM');
+        const year = dateObj.year;
+        const key = `${ownerId}_${monthName}_${year}`;
+
+        if (owedFeesMap.has(key)) {
+            owedFeesMap.get(key).amount += totalFee;
+        } else {
+            const hostUser = state.allUsers.find(u => u.uid === ownerId || u.id === ownerId);
+            owedFeesMap.set(key, {
+                id: `CALC_${key}`,
+                ownerId: ownerId,
+                hostName: hostUser ? (hostUser.name || hostUser.fullName || ownerId) : 'Unknown Host',
+                hostEmail: hostUser ? hostUser.email : 'N/A',
+                month: monthName,
+                year: year,
+                amount: totalFee,
+                status: 'calculated',
+                referenceNumber: 'N/A - Calculated',
+            });
+        }
+      });
+
+      // Remove duplicates (If DB record exists)
+      const existingFeeKeys = new Set(
+        state.allPlatformFees.map(fee => `${fee.ownerId}_${fee.month}_${fee.year}`)
+      );
+
+      const finalUnpaidCalculations = [];
+      owedFeesMap.forEach((fee, key) => {
+        if (!existingFeeKeys.has(key)) {
+            finalUnpaidCalculations.push(fee);
+        }
+      });
+
+      return finalUnpaidCalculations;
     },
 
     notifications: (state) => state.notifications,
@@ -979,7 +1132,7 @@ export default createStore({
     vehicleSort: (state) => state.vehicleSort,
     userChats: (state) => state.userChats,
     userFavorites: (state) => state.user?.favorites || [],
-    
+
     filteredAndSortedVehicles: (state, _getters) => {
       let vehicles = Array.isArray(state.allVehicles)
         ? [...state.allVehicles]
@@ -1006,7 +1159,7 @@ export default createStore({
             return false;
           }
           const vehicleSeats = parseInt(v.seatingCapacity, 10);
-          if (seatsFilterValue === 7) { 
+          if (seatsFilterValue === 7) {
             return vehicleSeats >= 7;
           } else {
             return vehicleSeats === seatsFilterValue;
@@ -1078,10 +1231,10 @@ export default createStore({
               console.error("[Vuex Getter] Error during availability filtering:", e);
         }
       }
-      
+
       const sortKey = state.vehicleSort.key;
       const sortOrder = state.vehicleSort.order === 'desc' ? -1 : 1;
-      
+
       if (sortKey) {
         vehicles.sort((a, b) => {
           let valA = a[sortKey];
