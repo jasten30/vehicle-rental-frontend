@@ -34,7 +34,8 @@
       >
         <i class="bi bi-car-front-fill icon-large"></i>
         <div class="message-text">
-          You haven't listed any vehicles yet. Let's get your first asset online!
+          You haven't listed any vehicles yet. Let's get your first asset
+          online!
         </div>
 
         <button
@@ -74,7 +75,7 @@
                   vehicle.status ? vehicle.status.toLowerCase() : 'pending',
                 ]"
               >
-                {{ vehicle.status || 'Draft' }}
+                {{ vehicle.status || "Draft" }}
               </span>
             </div>
 
@@ -87,7 +88,7 @@
                 <strong>Rate:</strong> ₱{{
                   vehicle.rentalPricePerDay
                     ? vehicle.rentalPricePerDay.toLocaleString()
-                    : 'N/A'
+                    : "N/A"
                 }}/day
               </p>
               <p class="detail-row">
@@ -98,7 +99,7 @@
               <p class="detail-row license-plate-detail">
                 <i class="bi bi-key-fill"></i>
                 <strong>Plate:</strong>
-                {{ vehicle.cor?.plateNumber || 'N/A' }}
+                {{ vehicle.cor?.plateNumber || "N/A" }}
               </p>
             </div>
 
@@ -128,7 +129,7 @@
           :title="isSuspended ? 'Account suspended' : 'Add Listing'"
         >
           <i v-if="!isSuspended" class="bi bi-plus-circle"></i>
-          {{ isSuspended ? 'Adding Disabled' : 'Add New Listing' }}
+          {{ isSuspended ? "Adding Disabled" : "Add New Listing" }}
         </button>
       </div>
     </transition>
@@ -142,11 +143,12 @@
 </template>
 
 <script>
-import { mapActions, mapGetters } from 'vuex';
-import VehicleTypeChoiceModal from '@/components/modals/VehicleTypeChoiceModal.vue';
+import { mapActions, mapGetters, mapState } from "vuex";
+import { DateTime } from "luxon";
+import VehicleTypeChoiceModal from "@/components/modals/VehicleTypeChoiceModal.vue";
 
 export default {
-  name: 'OwnerVehiclesView',
+  name: "OwnerVehiclesView",
   components: {
     VehicleTypeChoiceModal,
   },
@@ -159,46 +161,54 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(['user']),
+    ...mapGetters(["user"]),
+
+    // We need bookings to check if a vehicle is "On Trip" before deleting
+    ...mapState("owner", {
+      ownerBookings: (state) => state.ownerBookings || [],
+    }),
 
     isSuspended() {
-      // Check the user object from Vuex
       return this.user?.isSuspended === true;
     },
   },
   created() {
-    this.fetchOwnerVehicles();
+    this.loadPageData();
   },
   methods: {
-    // IMPORTANT: Include fetchUserProfile here
-    ...mapActions(['getVehiclesByOwner', 'deleteVehicle', 'fetchUserProfile']),
+    // 1. ALIAS THE DELETE ACTION (Fixes the infinite loop crash)
+    ...mapActions({
+      getVehiclesByOwner: "getVehiclesByOwner",
+      deleteVehicleAction: "deleteVehicle", // <--- Renamed to avoid conflict
+      fetchUserProfile: "fetchUserProfile",
+    }),
+    // Map the booking action to check for active trips
+    ...mapActions("owner", ["fetchOwnerBookings"]),
 
-    async fetchOwnerVehicles() {
+    async loadPageData() {
       this.loading = true;
       this.errorMessage = null;
       try {
-        // 1. Refresh User Profile FIRST to get latest suspension status
-        await this.fetchUserProfile();
-
-        // 2. Then fetch vehicles
-        const fetchedVehicles = await this.getVehiclesByOwner();
-        this.vehicles = fetchedVehicles;
+        await Promise.all([
+          this.fetchUserProfile(), // 1. Check suspension status
+          this.getVehiclesByOwner(), // 2. Get vehicles
+          this.fetchOwnerBookings(), // 3. Get bookings (for safety check)
+        ]).then((results) => {
+          // results[1] is the output of getVehiclesByOwner
+          this.vehicles = results[1];
+        });
       } catch (error) {
-        console.error(
-          '[OwnerVehiclesView] Error fetching owner data:',
-          error
-        );
+        console.error("[OwnerVehiclesView] Error fetching data:", error);
         this.errorMessage =
-          'Failed to load your vehicle listings. Please try again.';
+          "Failed to load your vehicle listings. Please try again.";
       } finally {
         this.loading = false;
       }
     },
 
     openChoiceModal() {
-      // Double check before opening
       if (this.isSuspended) {
-        alert('Your account is suspended. You cannot list new vehicles.');
+        alert("Your account is suspended. You cannot list new vehicles.");
         return;
       }
       this.isChoiceModalVisible = true;
@@ -211,20 +221,62 @@ export default {
 
     editVehicle(vehicleId) {
       this.$router.push({
-        name: 'EditVehicle',
+        name: "EditVehicle",
         params: { vehicleId: vehicleId },
       });
     },
 
+    // --- UPDATED DELETE LOGIC ---
     async deleteVehicle(vehicleId) {
-      if (confirm('Are you sure you want to delete this vehicle?')) {
+      // 1. SAFEGUARD: Check if vehicle is currently on a trip
+      const hasActiveTrip = this.ownerBookings.some((b) => {
+        if (b.vehicleId !== vehicleId) return false; // Ignore other vehicles
+
+        // Check if status implies the car is out or committed
+        const activeStatuses = [
+          "confirmed",
+          "active",
+          "pending_payment",
+          "downpayment_verified",
+        ];
+        if (!activeStatuses.includes(b.paymentStatus)) return false;
+
+        // Check Date Overlap (Is it happening today or in future?)
+        const today = DateTime.now().startOf("day");
+        const end =
+          b.endDate && b.endDate.seconds
+            ? DateTime.fromSeconds(b.endDate.seconds).startOf("day")
+            : DateTime.fromISO(b.endDate).startOf("day");
+
+        // If the booking hasn't ended yet, block delete
+        return end >= today;
+      });
+
+      if (hasActiveTrip) {
+        alert(
+          "Unable to delete: This vehicle has active or upcoming bookings. Please complete or cancel them first."
+        );
+        return;
+      }
+
+      // 2. CONFIRMATION
+      if (
+        confirm(
+          "Are you sure you want to permanently delete this vehicle? This cannot be undone."
+        )
+      ) {
         try {
-          await this.deleteVehicle(vehicleId);
-          // Refresh list
-          this.fetchOwnerVehicles();
+          // 3. CALL THE ALIASED ACTION
+          await this.deleteVehicleAction(vehicleId);
+
+          // 4. REFRESH
+          const updatedList = await this.getVehiclesByOwner();
+          this.vehicles = updatedList;
+
+          alert("Vehicle deleted successfully.");
         } catch (error) {
           console.error(error);
-          alert('Failed to delete vehicle.');
+          alert("Failed to delete vehicle. Please check console for details.");
         }
       }
     },
@@ -235,7 +287,7 @@ export default {
       if (vehicle.exteriorPhotos && vehicle.exteriorPhotos.length > 0) {
         return vehicle.exteriorPhotos[0];
       }
-      return 'https://placehold.co/300x200/e2e8f0/666666?text=No+Image';
+      return "https://placehold.co/300x200/e2e8f0/666666?text=No+Image";
     },
     formatLocation(location) {
       if (location) {
@@ -244,15 +296,15 @@ export default {
         }
         if (location.city) return location.city;
       }
-      if (typeof location === 'string') return location;
-      return 'Location not set';
+      if (typeof location === "string") return location;
+      return "Location not set";
     },
   },
 };
 </script>
 
 <style lang="scss" scoped>
-@import '../../../assets/styles/variables.scss';
+@import "../../../assets/styles/variables.scss";
 
 .owner-vehicles-container {
   padding: 1.5rem;
@@ -358,7 +410,9 @@ export default {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 
   &:hover {
     transform: translateY(-5px);
@@ -443,7 +497,9 @@ export default {
   border-radius: $border-radius-md;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
