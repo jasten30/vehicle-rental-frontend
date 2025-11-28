@@ -2,62 +2,99 @@
   <transition name="form-step-fade" appear>
     <div class="form-step-container">
       <h3>Address Details</h3>
-      <p class="step-info-text">Please provide the specific address and pin the exact location on the map below.</p>
-      
+      <p class="step-info-text">
+        Please provide the specific address and pin the exact location on the
+        map below.
+      </p>
+
       <div class="form-grid">
         <div class="form-group">
           <label for="country">Country</label>
-          <input type="text" id="country" value="Philippines" disabled class="disabled-input">
+          <input
+            type="text"
+            id="country"
+            value="Philippines"
+            disabled
+            class="disabled-input"
+          />
         </div>
 
         <div class="form-group">
           <label for="region">Region</label>
-          <input type="text" id="region" value="Region VII (Central Visayas)" disabled class="disabled-input">
+          <input
+            type="text"
+            id="region"
+            value="Region VII (Central Visayas)"
+            disabled
+            class="disabled-input"
+          />
         </div>
-        
+
         <div class="form-group">
           <label for="city">City/Municipality</label>
-          <select 
-            id="city" 
-            v-model="location.city" 
-            @change="resetBarangay" 
+          <select
+            id="city"
+            v-model="location.city"
+            @change="resetBarangay"
             required
           >
             <option value="" disabled>Select a City/Municipality</option>
-            <option v-for="cityName in cities" :key="cityName" :value="cityName">{{ cityName }}</option>
+            <option
+              v-for="cityName in cities"
+              :key="cityName"
+              :value="cityName"
+            >
+              {{ cityName }}
+            </option>
           </select>
         </div>
-        
+
         <div class="form-group">
           <label for="barangay">Barangay</label>
-          <select 
-            id="barangay" 
-            v-model="location.barangay" 
+          <select
+            id="barangay"
+            v-model="location.barangay"
             :disabled="!location.city"
             required
-            @change="emitUpdate" 
+            @change="emitUpdate"
           >
             <option value="" disabled>Select a Barangay</option>
-            <option v-for="barangayName in barangays" :key="barangayName" :value="barangayName">{{ barangayName }}</option>
+            <option
+              v-for="barangayName in barangays"
+              :key="barangayName"
+              :value="barangayName"
+            >
+              {{ barangayName }}
+            </option>
           </select>
         </div>
       </div>
-      
+
       <h4 class="map-heading">Pin Location on Map</h4>
       <p class="help-text">Click on the map to set the exact pick-up point.</p>
-      
+
       <div id="map"></div>
-      
-      <p v-if="location.latitude && location.longitude" class="coordinates-display">
-        Pinned at: {{ location.latitude.toFixed(6) }}, {{ location.longitude.toFixed(6) }}
+
+      <p
+        v-if="location.latitude && location.longitude"
+        class="coordinates-display"
+      >
+        Pinned at: {{ location.latitude.toFixed(6) }},
+        {{ location.longitude.toFixed(6) }}
       </p>
 
-      <div class="navigation-buttons">
-        <button type="button" @click="$emit('cancel')" class="nav-button secondary">Cancel</button>
-        <button 
-          type="button" 
-          @click="nextStep" 
-          class="nav-button primary" 
+      <div v-if="showNavigation" class="navigation-buttons">
+        <button
+          type="button"
+          @click="$emit('cancel')"
+          class="nav-button secondary"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          @click="nextStep"
+          class="nav-button primary"
           :disabled="!isValid"
         >
           Next
@@ -76,26 +113,34 @@
 
 <script>
 /* global L:readonly */
-
-import { cebuAddresses } from '@/assets/data/cebu-addresses';
+import { cebuAddresses } from "@/assets/data/cebu-addresses";
 
 export default {
-  name: 'VehicleLocation',
+  name: "VehicleLocation",
   props: {
     address: {
       type: Object,
       required: true,
-      default: () => ({ city: '', barangay: '', latitude: null, longitude: null }),
-    }
+      default: () => ({
+        city: "",
+        barangay: "",
+        latitude: null,
+        longitude: null,
+      }),
+    },
+    // NEW PROP: Controls visibility of buttons
+    showNavigation: {
+      type: Boolean,
+      default: true,
+    },
   },
-  emits: ['update:address', 'next', 'cancel'],
+  emits: ["update:address", "next", "cancel"],
   data() {
     return {
       cebuAddresses: cebuAddresses,
       map: null,
       marker: null,
       showToast: false,
-      // Use local computed property for v-model
     };
   },
   computed: {
@@ -104,8 +149,8 @@ export default {
         return this.address;
       },
       set(value) {
-        this.$emit('update:address', value);
-      }
+        this.$emit("update:address", value);
+      },
     },
     cities() {
       return Object.keys(this.cebuAddresses);
@@ -115,98 +160,99 @@ export default {
     },
     isValid() {
       const allFieldsSelected = this.location.city && this.location.barangay;
-      const locationPinned = this.location.latitude !== null && this.location.longitude !== null;
+      const locationPinned =
+        this.location.latitude !== null && this.location.longitude !== null;
       return allFieldsSelected && locationPinned;
     },
   },
   mounted() {
     this.$nextTick(() => {
-        this.initializeMap();
+      this.initializeMap();
     });
   },
   methods: {
     initializeMap() {
-      // Retry logic in case Leaflet loads slowly
       const tryInitializeMap = () => {
-        if (typeof L !== 'undefined' && document.getElementById('map')) {
-          const cebuCoordinates = [10.3157, 123.8854]; 
-          // Use stored coordinates if they exist, otherwise default to Cebu
-          const initialCoords = (this.location.latitude && this.location.longitude)
+        if (typeof L !== "undefined" && document.getElementById("map")) {
+          const cebuCoordinates = [10.3157, 123.8854];
+          const initialCoords =
+            this.location.latitude && this.location.longitude
               ? [this.location.latitude, this.location.longitude]
               : cebuCoordinates;
-          
-          const initialZoom = (this.location.latitude && this.location.longitude) ? 16 : 13;
 
-          this.map = L.map('map').setView(initialCoords, initialZoom);
-          
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-              maxZoom: 19,
-              attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          const initialZoom =
+            this.location.latitude && this.location.longitude ? 16 : 13;
+
+          this.map = L.map("map").setView(initialCoords, initialZoom);
+
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution:
+              '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
           }).addTo(this.map);
-          
-          // If location was already pinned, add the marker
+
           if (this.location.latitude && this.location.longitude) {
-              this.marker = L.marker(initialCoords).addTo(this.map);
+            this.marker = L.marker(initialCoords).addTo(this.map);
           }
-          
-          this.map.on('click', this.pinLocation);
+
+          this.map.on("click", this.pinLocation);
         } else {
-          setTimeout(tryInitializeMap, 100); // Check again in 100ms
+          setTimeout(tryInitializeMap, 100);
         }
       };
 
       tryInitializeMap();
     },
     resetBarangay() {
-      this.location.barangay = '';
-      this.emitUpdate(); // Emit change
+      this.location.barangay = "";
+      this.emitUpdate();
     },
     pinLocation(event) {
       const { lat, lng } = event.latlng;
-      
-      // Update local data, which triggers the 'set' computed property
+
       this.location = {
-          ...this.location,
-          latitude: lat,
-          longitude: lng
+        ...this.location,
+        latitude: lat,
+        longitude: lng,
       };
-      
+
       if (this.marker) {
         this.map.removeLayer(this.marker);
       }
-      
+
       this.marker = L.marker([lat, lng]).addTo(this.map);
-      this.map.setView([lat, lng], 16); // Zoom in on pinned location
-      
+      this.map.setView([lat, lng], 16);
+
       this.showToast = true;
       setTimeout(() => {
         this.showToast = false;
-      }, 2500); // 2.5 seconds
+      }, 2500);
     },
     emitUpdate() {
-        this.$emit('update:address', this.location);
+      this.$emit("update:address", this.location);
     },
     nextStep() {
       if (this.isValid) {
-          this.$emit('next');
+        this.$emit("next");
       }
-    }
+    },
   },
   beforeUnmount() {
     if (this.map) {
       this.map.remove();
     }
-  }
+  },
 };
 </script>
 
 <style lang="scss" scoped>
-@import '@/assets/styles/variables.scss';
+@import "@/assets/styles/variables.scss";
 
-/* --- Entrance Animation --- */
 .form-step-fade-enter-active,
 .form-step-fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 .form-step-fade-enter-from,
 .form-step-fade-leave-to {
@@ -234,16 +280,16 @@ h3 {
 
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr; // Single column on mobile
+  grid-template-columns: 1fr;
   gap: 1.25rem;
 
-  @media (min-width: 768px) { // Two columns on desktop
+  @media (min-width: 768px) {
     grid-template-columns: 1fr 1fr;
   }
 }
 
 .form-group {
-  margin-bottom: 0; // Removed margin, using grid-gap
+  margin-bottom: 0;
   label {
     display: block;
     font-weight: 600;
@@ -256,19 +302,21 @@ h3 {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid $border-color;
-    border-radius: $border-radius-md; // Use consistent radius
+    border-radius: $border-radius-md;
     font-size: 1rem;
     font-family: $font-family-base;
     box-sizing: border-box;
-    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    
+    transition:
+      border-color 0.2s ease-in-out,
+      box-shadow 0.2s ease-in-out;
+
     &:focus {
       outline: none;
       border-color: $primary-color;
       box-shadow: 0 0 0 3px lighten($primary-color, 40%);
     }
   }
-  
+
   .disabled-input {
     background-color: $background-light;
     cursor: not-allowed;
@@ -276,8 +324,8 @@ h3 {
   }
 
   select:disabled {
-      background-color: $background-light;
-      cursor: not-allowed;
+    background-color: $background-light;
+    cursor: not-allowed;
   }
 }
 
@@ -297,11 +345,11 @@ h3 {
 
 #map {
   width: 100%;
-  height: 350px; // Slightly shorter
+  height: 350px;
   border-radius: $border-radius-lg;
   border: 1px solid $border-color-light;
   margin-bottom: 1rem;
-  z-index: 1; // Ensure map is clickable
+  z-index: 1;
 }
 
 .coordinates-display {
@@ -311,7 +359,7 @@ h3 {
   text-align: center;
 }
 
-/* Updated Button Styles */
+/* Navigation Buttons */
 .navigation-buttons {
   display: flex;
   justify-content: flex-end;
@@ -355,16 +403,16 @@ h3 {
   }
 }
 
-/* Updated Toast Style */
+/* Toast Style */
 .toast {
   position: fixed;
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: $text-color-dark; /* Darker background */
+  background-color: $text-color-dark;
   color: white;
   padding: 0.75rem 1.25rem;
-  border-radius: $border-radius-pill; /* Pill shape */
+  border-radius: $border-radius-pill;
   box-shadow: $shadow-medium;
   z-index: 1001;
   font-size: 0.9rem;
@@ -377,7 +425,9 @@ h3 {
 /* Toast Animation */
 .toast-fade-enter-active,
 .toast-fade-leave-active {
-  transition: opacity 0.4s ease, transform 0.4s ease;
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
 }
 .toast-fade-enter-from,
 .toast-fade-leave-to {

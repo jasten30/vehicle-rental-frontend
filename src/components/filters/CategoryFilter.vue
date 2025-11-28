@@ -1,28 +1,36 @@
 <template>
-  <div class.="category-filter-container">
-    <!-- This is the button visible on the page -->
-    <button class="filter-trigger" :class="{ 'active': isActive || isApplied }" @click="$emit('toggle-dropdown')">
+  <div class="category-filter-container">
+    <button
+      class="filter-trigger"
+      :class="{ active: isActive || isApplied }"
+      @click="$emit('toggle-dropdown')"
+    >
       <span>{{ buttonLabel }}</span>
       <i class="bi" :class="isActive ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
     </button>
 
-    <!-- This is the dropdown panel -->
-    <div class="filter-dropdown-content" :class="{ 'active': isActive }">
+    <div class="filter-dropdown-content" :class="{ active: isActive }">
       <div class="dropdown-body">
-        <div class="category-grid">
+        <div class="category-options-list">
           <button
             v-for="cat in categories"
             :key="cat.value || 'all'"
-            class="category-button"
-            :class="{ 'active': localAssetType === cat.value }"
+            class="category-option-button"
+            :class="{ active: localAssetType === cat.value }"
             @click="selectCategory(cat.value)"
           >
-            <i :class="cat.icon"></i>
-            <span>{{ cat.name }}</span>
+            <div class="option-label">
+              <i :class="cat.icon"></i>
+              <span>{{ cat.name }}</span>
+            </div>
+
+            <i
+              v-if="localAssetType === cat.value"
+              class="bi bi-check-lg check-icon"
+            ></i>
           </button>
         </div>
       </div>
-      <!-- No footer needed, selection is instant -->
     </div>
   </div>
 </template>
@@ -34,12 +42,12 @@ export default {
     assetType: String,
     isActive: Boolean,
   },
-  emits: ['update:assetType', 'toggle-dropdown'],
+  emits: ["update:assetType", "toggle-dropdown"],
   data() {
     return {
       localAssetType: this.assetType,
       categories: [
-        { name: "All", value: null, icon: "bi bi-grid-fill" },
+        { name: "All Categories", value: null, icon: "bi bi-grid-fill" },
         { name: "Cars", value: "vehicle", icon: "bi bi-car-front-fill" },
         { name: "Motorcycles", value: "motorcycle", icon: "bi bi-bicycle" },
       ],
@@ -50,7 +58,7 @@ export default {
       return !!this.assetType;
     },
     buttonLabel() {
-      const cat = this.categories.find(c => c.value === this.assetType);
+      const cat = this.categories.find((c) => c.value === this.assetType);
       return cat ? cat.name : "Category";
     },
   },
@@ -62,68 +70,106 @@ export default {
       if (newVal) {
         this.localAssetType = this.assetType;
       }
-    }
+    },
   },
   methods: {
     selectCategory(type) {
       this.localAssetType = type;
-      this.$emit('update:assetType', type);
-      this.$emit('toggle-dropdown');
+      this.$emit("update:assetType", type);
+      this.$emit("toggle-dropdown");
     },
   },
 };
 </script>
 
 <style lang="scss" scoped>
-// Import the shared styles
-@import './_FilterDropdown.scss';
+@import "./_FilterDropdown.scss";
 
-// Local styles
+// Dropdown Dimensions
 .filter-dropdown-content {
-  width: 320px; // Set a specific width
+  width: 240px; // Cleaner, standard width
+  left: 0;
 }
 
-.category-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); // Three columns
-  gap: 0.75rem;
+// --- List Styling ---
+.dropdown-body {
+  padding: 0.5rem;
 }
 
-.category-button {
+.category-options-list {
   display: flex;
   flex-direction: column;
+  gap: 0.25rem;
+}
+
+.category-option-button {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
-  padding: 1rem 0.5rem;
-  border: 1px solid $border-color;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  background-color: transparent;
   border-radius: $border-radius-md;
-  background: #fff;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.9rem;
-  font-weight: 500;
+  text-align: left;
+  font-size: 0.95rem;
   color: $text-color-dark;
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 
-  i {
-    font-size: 1.75rem;
-    color: $primary-color;
-  }
+  // Left side (Icon + Text)
+  .option-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 
-  &:hover {
-    background: $background-light;
-    border-color: $text-color-dark;
-  }
-
-  &.active {
-    background: $primary-color;
-    border-color: $primary-color;
-    color: white;
-    font-weight: 600;
-    box-shadow: $shadow-light;
-    
     i {
-      color: white;
+      font-size: 1.1rem;
+      color: $text-color-medium;
+      transition: color 0.2s;
     }
+    span {
+      font-weight: 500;
+    }
+  }
+
+  // Hover State
+  &:hover {
+    background-color: $background-light;
+    .option-label i {
+      color: $text-color-dark;
+    }
+  }
+
+  // Active/Selected State
+  &.active {
+    background-color: lighten($primary-color, 45%);
+    color: $primary-color;
+
+    .option-label {
+      span {
+        font-weight: 700;
+      }
+      i {
+        color: $primary-color;
+      }
+    }
+
+    .check-icon {
+      font-size: 1.1rem;
+      color: $primary-color;
+    }
+  }
+}
+
+/* Trigger Button overrides (Optional, if you want specific width) */
+.filter-trigger {
+  &.active {
+    border-color: $primary-color;
+    background-color: lighten($primary-color, 48%);
+    color: $primary-color;
   }
 }
 </style>

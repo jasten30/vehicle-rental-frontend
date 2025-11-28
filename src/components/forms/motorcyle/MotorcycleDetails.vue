@@ -7,31 +7,59 @@
       </p>
 
       <div class="form-grid">
-        <!-- Make -->
         <div class="form-group">
           <label for="make">Make (e.g., Honda, Yamaha)</label>
-          <input id="make" type="text" v-model="localData.make" placeholder="Honda" />
+          <input
+            id="make"
+            type="text"
+            v-model="localData.make"
+            placeholder="Honda"
+          />
         </div>
 
-        <!-- Model -->
         <div class="form-group">
           <label for="model">Model (e.g., Click 150i)</label>
-          <input id="model" type="text" v-model="localData.model" placeholder="Click 150i" />
+          <input
+            id="model"
+            type="text"
+            v-model="localData.model"
+            placeholder="Click 150i"
+          />
         </div>
-        
-        <!-- Year -->
+
         <div class="form-group">
           <label for="year">Year</label>
-          <input id="year" type="number" v-model.number="localData.year" placeholder="2022" />
+          <input
+            id="year"
+            type="number"
+            v-model.number="localData.year"
+            placeholder="2022"
+          />
         </div>
 
-        <!-- License Plate -->
         <div class="form-group">
-          <label for="licensePlate">License Plate</label>
-          <input id="licensePlate" type="text" v-model="localData.licensePlate" placeholder="ABC 123" />
+          <label for="licensePlate">
+            License Plate
+            <span v-if="isEditMode" class="locked-badge">
+              <i class="bi bi-lock-fill"></i> Locked
+            </span>
+          </label>
+
+          <input
+            id="licensePlate"
+            type="text"
+            v-model="localData.licensePlate"
+            placeholder="ABC 123"
+            :disabled="isEditMode"
+            :class="{ 'input-locked': isEditMode }"
+            title="License plate cannot be changed after listing creation"
+          />
+
+          <small v-if="isEditMode" class="helper-text-warning">
+            To prevent fraud, license plates cannot be edited once created.
+          </small>
         </div>
 
-        <!-- Type -->
         <div class="form-group">
           <label for="motorcycleType">Type</label>
           <select id="motorcycleType" v-model="localData.motorcycleType">
@@ -45,19 +73,35 @@
           </select>
         </div>
 
-        <!-- Engine CC -->
         <div class="form-group">
           <label for="engineDisplacement">Engine (cc)</label>
-          <input id="engineDisplacement" type="number" v-model.number="localData.engineDisplacement" placeholder="150" />
+          <input
+            id="engineDisplacement"
+            type="number"
+            v-model.number="localData.engineDisplacement"
+            placeholder="150"
+          />
         </div>
       </div>
 
       <div v-if="error" class="error-message">{{ error }}</div>
 
-      <!-- Navigation Buttons -->
-      <div class="navigation-buttons">
-        <button type="button" @click="$emit('prev')" class="nav-button secondary">Cancel</button>
-        <button type="button" @click="handleNext" class="nav-button primary" :disabled="!isValid">Next</button>
+      <div v-if="showNavigation" class="navigation-buttons">
+        <button
+          type="button"
+          @click="$emit('prev')"
+          class="nav-button secondary"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          @click="handleNext"
+          class="nav-button primary"
+          :disabled="!isValid"
+        >
+          Next
+        </button>
       </div>
     </div>
   </transition>
@@ -71,6 +115,12 @@ export default {
       type: Object,
       required: true,
     },
+    // We use this to detect if we are in "Edit Mode"
+    // If showNavigation is false, it implies we are in the Edit View
+    showNavigation: {
+      type: Boolean,
+      default: true,
+    },
   },
   emits: ["update:modelValue", "next", "prev"],
   data() {
@@ -80,6 +130,9 @@ export default {
     };
   },
   computed: {
+    isEditMode() {
+      return !this.showNavigation;
+    },
     isValid() {
       // Basic validation
       return (
@@ -92,6 +145,21 @@ export default {
       );
     },
   },
+  watch: {
+    // Deep watch to ensure parent gets updates immediately in Edit Mode
+    localData: {
+      handler(newVal) {
+        this.$emit("update:modelValue", newVal);
+      },
+      deep: true,
+    },
+    modelValue(newVal) {
+      // Avoid infinite loops
+      if (JSON.stringify(newVal) !== JSON.stringify(this.localData)) {
+        this.localData = { ...newVal };
+      }
+    },
+  },
   methods: {
     handleNext() {
       if (this.isValid) {
@@ -102,24 +170,27 @@ export default {
       }
     },
   },
-  watch: {
-    // Update local data if prop changes (e.g., "start over")
-    modelValue(newVal) {
-      this.localData = { ...newVal };
-    },
-  },
 };
 </script>
 
 <style lang="scss" scoped>
-@import '@/assets/styles/variables.scss';
+@import "@/assets/styles/variables.scss";
 
-/* Basic form styles (you can centralize these) */
 .form-step-container {
   padding: 1rem 0;
 }
-h3 { font-size: 1.25rem; font-weight: 600; color: $text-color-dark; margin-bottom: 0.5rem; }
-.step-info-text { font-size: 0.95rem; color: $text-color-medium; margin-bottom: 2rem; line-height: 1.6; }
+h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: $text-color-dark;
+  margin-bottom: 0.5rem;
+}
+.step-info-text {
+  font-size: 0.95rem;
+  color: $text-color-medium;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
 
 .form-grid {
   display: grid;
@@ -135,13 +206,16 @@ h3 { font-size: 1.25rem; font-weight: 600; color: $text-color-dark; margin-botto
   display: flex;
   flex-direction: column;
   label {
-    display: block;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     font-weight: 600;
     margin-bottom: 0.5rem;
     color: $text-color-dark;
     font-size: 0.9rem;
   }
-  input, select {
+  input,
+  select {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid $border-color;
@@ -149,12 +223,42 @@ h3 { font-size: 1.25rem; font-weight: 600; color: $text-color-dark; margin-botto
     font-size: 1rem;
     font-family: $font-family-base;
     box-sizing: border-box;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
     &:focus {
       outline: none;
       border-color: $primary-color;
       box-shadow: 0 0 0 3px lighten($primary-color, 40%);
     }
+
+    /* Disabled State */
+    &:disabled {
+      background-color: #f3f4f6; /* Light gray */
+      color: #6b7280; /* Gray text */
+      cursor: not-allowed;
+      border-color: #e5e7eb;
+    }
+  }
+
+  /* Locked Styling */
+  .locked-badge {
+    font-size: 0.7rem;
+    background-color: #fee2e2;
+    color: #991b1b;
+    padding: 0.1rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .helper-text-warning {
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+    color: #ef4444;
+    font-style: italic;
   }
 }
 
@@ -187,10 +291,10 @@ h3 { font-size: 1.25rem; font-weight: 600; color: $text-color-dark; margin-botto
     &:hover:not(:disabled) {
       background-color: darken($primary-color, 10%);
     }
-     &:disabled {
-        background-color: lighten($primary-color, 20%);
-        cursor: not-allowed;
-     }
+    &:disabled {
+      background-color: lighten($primary-color, 20%);
+      cursor: not-allowed;
+    }
   }
   &.secondary {
     background-color: transparent;
@@ -203,10 +307,11 @@ h3 { font-size: 1.25rem; font-weight: 600; color: $text-color-dark; margin-botto
   }
 }
 
-/* --- Entrance Animation --- */
 .form-step-fade-enter-active,
 .form-step-fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 .form-step-fade-enter-from,
 .form-step-fade-leave-to {

@@ -59,6 +59,18 @@ export default createStore({
       const fee = state.allPlatformFees.find(f => f.id === feeId);
       if (fee) fee.status = status;
     },
+    UPDATE_VEHICLE_SUCCESS(state, updatedVehicle) {
+      // 1. Update the vehicle in the main list 'allVehicles'
+      const index = state.allVehicles.findIndex(v => v.id === updatedVehicle.id);
+      if (index !== -1) {
+        state.allVehicles[index] = { ...state.allVehicles[index], ...updatedVehicle };
+      }
+
+      // 2. Update the currently selected 'vehicle' if it matches the one being updated
+      if (state.vehicle && state.vehicle.id === updatedVehicle.id) {
+        state.vehicle = { ...state.vehicle, ...updatedVehicle };
+      }
+    },
     SET_ALL_HOST_STATEMENTS(state, statements) {
         state.allHostStatements = statements;
     },

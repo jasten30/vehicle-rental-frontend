@@ -2,13 +2,13 @@
   <div class="form-container">
     <div class="form-card">
       <form
-        @submit.prevent="currentStep === 9 ? submitForm() : null"
+        @submit.prevent="currentStep === finalStep ? submitForm() : null"
         class="vehicle-form"
       >
-        <FormStepSlider 
-          :currentStep="currentStep" 
-          :totalSteps="stepComponents.length" 
-          @start-over="startOver" 
+        <FormStepSlider
+          :currentStep="currentStep"
+          :totalSteps="finalStep"
+          @start-over="startOver"
         />
 
         <VehicleLocation
@@ -34,7 +34,7 @@
           @next="nextStep"
           @prev="prevStep"
         />
-        
+
         <VehicleDetails
           v-if="currentStep === 4"
           key="step4"
@@ -43,7 +43,7 @@
           @next="nextStep"
           @prev="prevStep"
         />
-        
+
         <VehicleFeatures
           v-if="currentStep === 5"
           key="step5"
@@ -52,9 +52,19 @@
           @prev="prevStep"
         />
 
+        <SubmitMotorcycle
+          v-if="currentStep === 6 && isMotorcycle"
+          key="step6-moto"
+          :motorcycle="localVehicle"
+          :is-edit-mode="isEditMode"
+          :busy="isSubmitting"
+          @submit="submitForm"
+          @prev="prevStep"
+        />
+
         <VehiclePricing
-          v-if="currentStep === 6"
-          key="step6"
+          v-if="currentStep === 6 && !isMotorcycle"
+          key="step6-car"
           v-model="localVehicle.pricing"
           :vehicleYear="localVehicle.year"
           @next="nextStep"
@@ -62,7 +72,7 @@
         />
 
         <VehicleSafety
-          v-if="currentStep === 7"
+          v-if="currentStep === 7 && !isMotorcycle"
           key="step7"
           v-model="localVehicle.safety"
           @next="nextStep"
@@ -70,7 +80,7 @@
         />
 
         <VehiclePhotos
-          v-if="currentStep === 8"
+          v-if="currentStep === 8 && !isMotorcycle"
           key="step8"
           v-model:profilePhotoUrl="localVehicle.profilePhotoUrl"
           v-model:exteriorPhotos="localVehicle.exteriorPhotos"
@@ -80,22 +90,22 @@
         />
 
         <SubmitListing
-          v-if="currentStep === 9"
-          key="step9"
+          v-if="currentStep === 9 && !isMotorcycle"
+          key="step9-car"
           :vehicle="localVehicle"
           :is-edit-mode="isEditMode"
+          :is-submitting="isSubmitting"
           @submit="submitForm"
           @prev="prevStep"
           @start-over="startOver"
         />
-        
       </form>
     </div>
   </div>
 </template>
 
 <script>
-import { mapActions } from 'vuex';
+import { mapActions } from "vuex";
 import VehicleLocation from "@/components/forms/VehicleLocation.vue";
 import VehicleDetails from "@/components/forms/VehicleDetails.vue";
 import VehicleFeatures from "@/components/forms/VehicleFeatures.vue";
@@ -106,8 +116,10 @@ import VehiclePricing from "@/components/forms/VehiclePricing.vue";
 import VehicleSafety from "@/components/forms/VehicleSafety.vue";
 import VehiclePhotos from "@/components/forms/VehiclePhotos.vue";
 import SubmitListing from "@/components/forms/SubmitListing.vue";
+import SubmitMotorcycle from "@/components/forms/motorcyle/SubmitMotorcycle.vue";
 
 const defaultVehicleState = {
+  assetType: "vehicle", // Default
   location: {
     country: "Philippines",
     region: "Region VII (Central Visayas)",
@@ -116,18 +128,8 @@ const defaultVehicleState = {
     latitude: null,
     longitude: null,
   },
-  cor: {
-    crNumber: "",
-    plateNumber: "",
-    dateIssued: "",
-    corImage: "",
-  },
-  or: {
-    orNumber: "",
-    dateIssued: "",
-    orImageUrl: "",
-    orImage: "",
-  },
+  cor: { crNumber: "", plateNumber: "", dateIssued: "", corImage: "" },
+  or: { orNumber: "", dateIssued: "", orImageUrl: "", orImage: "" },
   make: "",
   model: "",
   year: null,
@@ -190,40 +192,46 @@ export default {
     VehicleSafety,
     VehiclePhotos,
     SubmitListing,
+    SubmitMotorcycle,
   },
   props: {
-    initialVehicle: {
-      type: Object,
-      required: true,
-    },
-    isEditMode: {
-      type: Boolean,
-      default: false,
-    },
+    initialVehicle: { type: Object, required: true },
+    isEditMode: { type: Boolean, default: false },
   },
   emits: ["success", "error", "start-over", "cancel"],
 
   data() {
     const initial = this.initialVehicle || {};
-    // Start with defaults, then overwrite with any initial data
     const local = { ...defaultVehicleState, ...initial };
 
-    // Safely merge nested objects to avoid null pointers
-    local.location = { ...defaultVehicleState.location, ...(initial.location || {}) };
+    // Deep merge to handle nested objects safely
+    local.location = {
+      ...defaultVehicleState.location,
+      ...(initial.location || {}),
+    };
     local.cor = { ...defaultVehicleState.cor, ...(initial.cor || {}) };
     local.or = { ...defaultVehicleState.or, ...(initial.or || {}) };
-    local.pricing = { ...defaultVehicleState.pricing, ...(initial.pricing || {}) };
+    local.pricing = {
+      ...defaultVehicleState.pricing,
+      ...(initial.pricing || {}),
+    };
     local.safety = { ...defaultVehicleState.safety, ...(initial.safety || {}) };
-    local.features = { ...defaultVehicleState.features, ...(initial.features || {}) };
-
+    local.features = {
+      ...defaultVehicleState.features,
+      ...(initial.features || {}),
+    };
     local.exteriorPhotos = initial.exteriorPhotos || [];
     local.interiorPhotos = initial.interiorPhotos || [];
     local.profilePhotoUrl = initial.profilePhotoUrl || "";
+    // Ensure assetType is set
+    local.assetType = initial.assetType || "vehicle";
 
     return {
       currentStep: 1,
       isSubmitting: false,
       localVehicle: local,
+      // Note: stepComponents array is less relevant now since we use v-if logic in template,
+      // but you can keep it for the slider calculation if needed.
       stepComponents: [
         "VehicleLocation",
         "VehicleCOR",
@@ -237,18 +245,32 @@ export default {
       ],
     };
   },
+  computed: {
+    // Helper to check type
+    isMotorcycle() {
+      return this.localVehicle.assetType === "motorcycle";
+    },
+    // Dynamic Final Step based on type
+    finalStep() {
+      return this.isMotorcycle ? 6 : 9;
+    },
+  },
   methods: {
-    ...mapActions(['addVehicle']),
-    
-    // --- FIX: Direct Redirect Handler ---
+    ...mapActions(["addVehicle"]),
+
     handleCancel() {
-      if (confirm("Are you sure you want to cancel? Any unsaved progress will be lost.")) {
-        this.$router.push({ name: 'OwnerVehicles' });
+      if (
+        confirm(
+          "Are you sure you want to cancel? Any unsaved progress will be lost."
+        )
+      ) {
+        this.$router.push({ name: "OwnerVehicles" });
       }
     },
 
     nextStep() {
-      if (this.currentStep < this.stepComponents.length) {
+      // Logic: If we are at the final step, submit. Otherwise go next.
+      if (this.currentStep < this.finalStep) {
         this.currentStep++;
       } else {
         this.submitForm();
@@ -267,21 +289,23 @@ export default {
     updateLocalVehicle(updatedData) {
       this.localVehicle = { ...this.localVehicle, ...updatedData };
     },
+
     async submitForm() {
       this.isSubmitting = true;
       this.$emit("error", "");
+
       try {
-        // Sync orImageUrl to orImage for SubmitListing consistency
         if (this.localVehicle.or.orImageUrl) {
-            this.localVehicle.or.orImage = this.localVehicle.or.orImageUrl;
+          this.localVehicle.or.orImage = this.localVehicle.or.orImageUrl;
         }
 
         await this.addVehicle(this.localVehicle);
+
         this.$emit("success", "Your vehicle has been submitted!");
-        this.$router.push({ name: 'OwnerVehicles' });
+        this.$router.push({ name: "OwnerVehicles" });
       } catch (error) {
+        console.error("Submit Failed:", error);
         this.$emit("error", `Submission failed: ${error.message}`);
-      } finally {
         this.isSubmitting = false;
       }
     },

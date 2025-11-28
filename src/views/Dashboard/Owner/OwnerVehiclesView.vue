@@ -22,7 +22,7 @@
         class="error-message error-card"
       >
         <p>{{ errorMessage }}</p>
-        <button @click="fetchOwnerVehicles" class="button primary-button">
+        <button @click="loadPageData" class="button primary-button">
           Retry Load Vehicles
         </button>
       </div>
@@ -95,11 +95,6 @@
                 <i class="bi bi-geo-alt-fill"></i>
                 <strong>Location:</strong>
                 {{ formatLocation(vehicle.location) }}
-              </p>
-              <p class="detail-row license-plate-detail">
-                <i class="bi bi-key-fill"></i>
-                <strong>Plate:</strong>
-                {{ vehicle.cor?.plateNumber || "N/A" }}
               </p>
             </div>
 

@@ -18,18 +18,18 @@
 
 <script>
 export default {
-  name: 'BlogPostCard',
+  name: "BlogPostCard",
   props: {
     post: {
       type: Object,
       required: true,
-    }
-  }
-}
+    },
+  },
+};
 </script>
 
 <style lang="scss" scoped>
-@import '@/assets/styles/variables.scss';
+@import "@/assets/styles/variables.scss";
 
 .blog-post-card {
   display: flex;
@@ -113,7 +113,7 @@ export default {
   padding-top: 1rem;
   border-top: 1px solid $border-color-light;
   transition: all 0.2s ease;
-  
+
   i {
     font-size: 1.25rem;
     transition: transform 0.2s ease;

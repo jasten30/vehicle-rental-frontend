@@ -14,18 +14,18 @@
           class="feature-category"
         >
           <h4 class="category-title">{{ category }}</h4>
-          
+
           <div class="features-checkbox-group">
-            <label 
-              class="checkbox-item" 
+            <label
+              class="checkbox-item"
               v-for="feature in features"
               :key="feature.key"
             >
-              <input 
-                type="checkbox" 
-                :id="feature.key" 
+              <input
+                type="checkbox"
+                :id="feature.key"
                 v-model="localFeatures[feature.key]"
-              >
+              />
               <span class="checkmark"></span>
               <span class="checkbox-label">{{ feature.name }}</span>
             </label>
@@ -34,8 +34,16 @@
       </div>
 
       <div v-if="showNavigation" class="navigation-buttons">
-        <button type="button" @click="$emit('prev')" class="nav-button secondary">Previous</button>
-        <button type="button" @click="$emit('next')" class="nav-button primary">Next</button>
+        <button
+          type="button"
+          @click="$emit('prev')"
+          class="nav-button secondary"
+        >
+          Previous
+        </button>
+        <button type="button" @click="$emit('next')" class="nav-button primary">
+          Next
+        </button>
       </div>
     </div>
   </transition>
@@ -97,14 +105,14 @@ export default {
       },
       deep: true,
     },
-    
+
     // Watch for parent changes (e.g., form reset)
     modelValue(newVal) {
       // THIS CHECK PREVENTS THE INFINITE LOOP
       if (JSON.stringify(newVal) !== JSON.stringify(this.localFeatures)) {
         this.localFeatures = { ...newVal };
       }
-    }
+    },
   },
   methods: {
     // No other methods needed, v-model handles it all
@@ -118,7 +126,9 @@ export default {
 /* --- Entrance Animation --- */
 .form-step-fade-enter-active,
 .form-step-fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 .form-step-fade-enter-from,
 .form-step-fade-leave-to {
@@ -165,7 +175,7 @@ h3 {
   display: grid;
   grid-template-columns: 1fr;
   gap: 0.25rem;
-  
+
   @media (min-width: 576px) {
     grid-template-columns: 1fr 1fr; // 2 columns on larger screens
   }
@@ -181,7 +191,7 @@ h3 {
   cursor: pointer;
   border-radius: $border-radius-md;
   transition: background-color 0.2s ease;
-  
+
   &:hover {
     background-color: $background-light;
   }
@@ -240,7 +250,6 @@ h3 {
 }
 /* --- End New Checkbox Styles --- */
 
-
 .navigation-buttons {
   display: flex;
   justify-content: flex-end;
@@ -260,7 +269,7 @@ h3 {
   transition: all 0.2s ease-in-out;
   min-width: 100px;
   text-align: center;
-  
+
   &.primary {
     background-color: $primary-color;
     color: white;
