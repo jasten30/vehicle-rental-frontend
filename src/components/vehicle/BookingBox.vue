@@ -156,12 +156,10 @@ export default {
     }),
     ...mapGetters(["userRole"]),
 
-    // Check if Renter (Self) is suspended
     isRenterSuspended() {
       return this.currentUser?.isSuspended === true;
     },
 
-    // Consolidated check for disabling inputs
     isBookingDisabled() {
       return (
         this.isRenterSuspended || this.availabilityStatus === "owner_suspended"
@@ -190,9 +188,8 @@ export default {
           const dt = DateTime.fromISO(`${this.startDate}T${this.startTime}`, {
             zone: "local",
           });
-          return dt.isValid
-            ? dt.toISO({ includeOffset: true, suppressMilliseconds: false })
-            : null;
+          // FIX: Ensure we send a standard ISO string that backend (Luxon/Date) can definitely parse
+          return dt.isValid ? dt.toISO() : null;
         } catch (e) {
           console.error("Error creating pickupDateTimeISO:", e);
           return null;
@@ -204,12 +201,11 @@ export default {
     returnDateTimeISO() {
       if (this.endDate && this.startTime) {
         try {
+          // Note: Using start time for end date to keep 24h cycles (standard rental logic)
           const dt = DateTime.fromISO(`${this.endDate}T${this.startTime}`, {
             zone: "local",
           });
-          return dt.isValid
-            ? dt.toISO({ includeOffset: true, suppressMilliseconds: false })
-            : null;
+          return dt.isValid ? dt.toISO() : null;
         } catch (e) {
           console.error("Error creating returnDateTimeISO:", e);
           return null;
@@ -286,12 +282,19 @@ export default {
     },
 
     async checkAvailabilityAndCalculateCost() {
-      // 1. Stop if Renter is suspended (Client-side check)
+      // 1. SAFETY CHECK: Ensure Vehicle ID exists (Prevents 400 Error)
+      if (!this.vehicle || !this.vehicle.id) {
+        // console.warn("Vehicle ID not loaded yet, skipping check.");
+        return;
+      }
+
+      // 2. Stop if Renter is suspended
       if (this.isRenterSuspended) {
         this.resetCost();
         return;
       }
 
+      // 3. Stop if dates are missing
       if (!this.pickupDateTimeISO || !this.returnDateTimeISO) {
         this.resetCost();
         this.availabilityStatus = "";
@@ -308,7 +311,7 @@ export default {
         return;
       }
 
-      // Date Validation
+      // 4. Date Validity Check
       let start, end;
       try {
         start = DateTime.fromISO(this.pickupDateTimeISO);
@@ -324,9 +327,7 @@ export default {
         return;
       }
 
-      // -------------------------------------------------------
-      // [UPDATED] Client-side Overlap Check (with 3-Hour Buffer)
-      // -------------------------------------------------------
+      // 5. Client-side Overlap Check (with 3-Hour Buffer)
       const renterInterval = Interval.fromDateTimes(start, end);
 
       for (const blockedPeriod of this.unavailableDates) {
@@ -337,12 +338,10 @@ export default {
 
           if (!blockedStart.isValid || !blockedEnd.isValid) continue;
 
-          // --- THE FIX: Add 3 Hours Grace Period ---
-          // If the vehicle hasn't been returned yet, add the buffer.
+          // Add 3 Hours Grace Period Buffer
           if (blockedPeriod.status !== "returned") {
             blockedEnd = blockedEnd.plus({ hours: 3 });
           }
-          // -----------------------------------------
 
           const blockedInterval = Interval.fromDateTimes(
             blockedStart,
@@ -359,9 +358,8 @@ export default {
           continue;
         }
       }
-      // -------------------------------------------------------
 
-      // Backend Check
+      // 6. Backend API Check
       this.isLoadingAvailability = true;
       this.availabilityMessage = "Checking...";
       this.availabilityStatus = "checking";
@@ -387,19 +385,16 @@ export default {
           this.setUnavailable(response.message);
         }
       } catch (error) {
-        // FIX: Handle 403 Silently (No console.error for expected blocks)
         if (error.response && error.response.status === 403) {
           const msg = error.response.data?.message || "Booking unavailable.";
           this.availabilityMessage = msg;
 
-          // Determine if it is Owner or Renter suspension based on message content
           if (msg.includes("Owner") || msg.includes("unavailable")) {
             this.availabilityStatus = "owner_suspended";
           } else {
             this.availabilityStatus = "suspended";
           }
         } else {
-          // Only log unexpected errors
           console.error("[BookingBox] Availability check error:", error);
           this.setUnavailable("Could not check schedule.");
         }
@@ -470,7 +465,10 @@ export default {
     },
   },
   created() {
-    this.checkAvailabilityAndCalculateCost();
+    // Ensure vehicle is loaded before checking
+    if (this.vehicle && this.vehicle.id) {
+      this.checkAvailabilityAndCalculateCost();
+    }
   },
 };
 </script>

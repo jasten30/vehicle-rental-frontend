@@ -19,7 +19,6 @@
       <div v-for="app in applications" :key="app.id" class="application-card">
         <div class="card-header">
           <div class="user-info">
-            <!-- UPDATED: Use selfieImageUrl for the avatar preview -->
             <img
               :src="
                 app.selfieImageUrl ||
@@ -30,22 +29,19 @@
               @error="onImageError"
             />
             <div>
-              <!-- UPDATED: Use optional chaining to prevent errors if driversLicense is missing -->
               <h3 class="user-name">
-                {{ app.driversLicense?.firstName || "N/A" }}
-                {{ app.driversLicense?.lastName || "N/A" }}
+                {{ app.driversLicense?.firstName || "Unknown" }}
+                {{ app.driversLicense?.lastName || "" }}
               </h3>
               <p class="user-id">User ID: {{ app.userId }}</p>
             </div>
           </div>
-          <span class="app-status">{{ app.status }}</span>
+          <span class="app-status">{{ app.status || "Pending" }}</span>
         </div>
         <div class="card-body">
-          <!-- UPDATED: Use licenseNumber -->
           <h4 class="vehicle-info">
             License #: {{ app.driversLicense?.licenseNumber || "N/A" }}
           </h4>
-          <!-- UPDATED: Use 'submittedAt' (the correct field from your backend) -->
           <p class="plate-number">
             Submitted: {{ formatDate(app.submittedAt) }}
           </p>
@@ -69,7 +65,6 @@
       </div>
     </div>
 
-    <!-- Details Modal -->
     <div
       v-if="isModalOpen && selectedApplication"
       class="modal-overlay"
@@ -82,20 +77,14 @@
         </p>
 
         <div class="modal-content">
-          <!-- Driver's License Section -->
           <div class="detail-section">
-            <h4 class="detail-title">Driver's License</h4>
+            <h4 class="detail-title">Driver's License Info</h4>
             <div class="detail-grid">
               <div class="detail-group">
-                <label>First Name</label>
+                <label>Full Name</label>
                 <p>
-                  {{ selectedApplication.driversLicense?.firstName || "N/A" }}
-                </p>
-              </div>
-              <div class="detail-group">
-                <label>Last Name</label>
-                <p>
-                  {{ selectedApplication.driversLicense?.lastName || "N/A" }}
+                  {{ selectedApplication.driversLicense?.firstName }}
+                  {{ selectedApplication.driversLicense?.lastName }}
                 </p>
               </div>
               <div class="detail-group">
@@ -107,44 +96,61 @@
                 </p>
               </div>
             </div>
-            <div class="detail-group">
+
+            <div class="detail-group full-width">
               <label>License Image</label>
-              <img
-                :src="
-                  selectedApplication.driversLicense?.licenseImageUrl ||
-                  'https://placehold.co/400x200?text=No+Image'
-                "
-                alt="License"
-                class="document-image"
-                @error="onImageError"
-              />
+              <a
+                :href="selectedApplication.driversLicense?.licenseImageUrl"
+                target="_blank"
+                class="image-link"
+              >
+                <img
+                  :src="
+                    selectedApplication.driversLicense?.licenseImageUrl ||
+                    'https://placehold.co/400x200?text=No+Image'
+                  "
+                  alt="License Document"
+                  class="document-image"
+                  @error="onImageError"
+                />
+              </a>
             </div>
           </div>
 
-          <!-- Selfie Section -->
           <div class="detail-section">
             <h4 class="detail-title">Identity Verification</h4>
-            <div class="detail-group">
+            <div class="detail-group full-width">
               <label>Selfie with ID</label>
-              <img
-                :src="
-                  selectedApplication.selfieImageUrl ||
-                  'https://placehold.co/400x200?text=No+Image'
-                "
-                alt="Selfie with ID"
-                class="document-image"
-                @error="onImageError"
-              />
+              <a
+                :href="selectedApplication.selfieImageUrl"
+                target="_blank"
+                class="image-link"
+              >
+                <img
+                  :src="
+                    selectedApplication.selfieImageUrl ||
+                    'https://placehold.co/400x200?text=No+Image'
+                  "
+                  alt="Selfie with ID"
+                  class="document-image"
+                  @error="onImageError"
+                />
+              </a>
             </div>
           </div>
 
-          <!-- Payout Section -->
           <div class="detail-section">
             <h4 class="detail-title">Payout Details</h4>
             <div class="detail-grid">
               <div class="detail-group">
-                <label>Payout Method</label>
-                <p style="text-transform: uppercase">
+                <label>Method</label>
+                <p
+                  style="
+                    text-transform: uppercase;
+                    font-weight: bold;
+                    color: #10b981;
+                  "
+                >
                   {{ selectedApplication.payoutDetails?.payoutType || "N/A" }}
                 </p>
               </div>
@@ -162,42 +168,43 @@
                   }}
                 </p>
               </div>
-              <div
+
+              <template
                 v-if="selectedApplication.payoutDetails?.payoutType === 'bank'"
-                class="detail-group"
               >
-                <label>Bank Name</label>
-                <p>
-                  {{ selectedApplication.payoutDetails?.bankName || "N/A" }}
-                </p>
-              </div>
-              <div
-                v-if="selectedApplication.payoutDetails?.payoutType === 'bank'"
-                class="detail-group"
-              >
-                <label>Branch Name</label>
-                <p>
-                  {{ selectedApplication.payoutDetails?.branchName || "N/A" }}
-                </p>
-              </div>
+                <div class="detail-group">
+                  <label>Bank Name</label>
+                  <p>
+                    {{ selectedApplication.payoutDetails?.bankName || "N/A" }}
+                  </p>
+                </div>
+                <div class="detail-group">
+                  <label>Branch</label>
+                  <p>
+                    {{ selectedApplication.payoutDetails?.branchName || "N/A" }}
+                  </p>
+                </div>
+              </template>
             </div>
 
-            <!-- 👇 ADDED QR CODE DISPLAY BLOCK -->
             <div
               v-if="selectedApplication.payoutDetails?.qrCodeUrl"
-              class="detail-group"
-              style="margin-top: 1rem"
+              class="detail-group full-width"
+              style="margin-top: 1.5rem"
             >
-              <label
-                >Uploaded {{ selectedApplication.payoutDetails.payoutType }} QR
-                Code</label
+              <label>Payment QR Code</label>
+              <a
+                :href="selectedApplication.payoutDetails.qrCodeUrl"
+                target="_blank"
+                class="image-link"
               >
-              <img
-                :src="selectedApplication.payoutDetails.qrCodeUrl"
-                alt="QR Code"
-                class="document-image"
-                @error="onImageError"
-              />
+                <img
+                  :src="selectedApplication.payoutDetails.qrCodeUrl"
+                  alt="QR Code"
+                  class="document-image qr-image"
+                  @error="onImageError"
+                />
+              </a>
             </div>
           </div>
         </div>
@@ -231,47 +238,48 @@ export default {
       "approveHostApplication",
       "declineHostApplication",
     ]),
+
     async loadApplications() {
       this.loading = true;
       this.error = null;
       try {
-        // This action must be fetching the full application object
-        this.applications = await this.fetchHostApplications();
+        const response = await this.fetchHostApplications();
+        this.applications = Array.isArray(response)
+          ? response
+          : response.data || [];
       } catch (err) {
         this.error = "Failed to load host applications.";
-        console.error(err); // Log the actual error
+        console.error(err);
       } finally {
         this.loading = false;
       }
     },
+
     async handleApprove(applicationId, userId) {
-      if (
-        !confirm(
-          'Are you sure you want to approve this host? Their role will be changed to "owner".'
-        )
-      )
-        return;
+      if (!confirm("Are you sure you want to approve this host?")) return;
       try {
         await this.approveHostApplication({ applicationId, userId });
-        await this.loadApplications(); // Refresh the list
+        await this.loadApplications();
+        alert("Host approved successfully!");
       } catch (error) {
         alert("Failed to approve application.");
       }
     },
+
     async handleDecline(applicationId) {
       if (!confirm("Are you sure you want to decline this application?"))
         return;
       try {
         await this.declineHostApplication(applicationId);
+        await this.loadApplications();
         alert("Application declined successfully.");
       } catch (error) {
         console.error(error);
         alert("Failed to decline application.");
       }
-      // Refresh the list
-      await this.loadApplications();
     },
-    ils(app) {
+
+    viewDetails(app) {
       this.selectedApplication = app;
       this.isModalOpen = true;
     },
@@ -279,38 +287,29 @@ export default {
       this.isModalOpen = false;
       this.selectedApplication = null;
     },
-    // 👇 UPDATED: formatDate to correctly parse Firestore timestamps
+
     formatDate(timestamp) {
       if (!timestamp) return "N/A";
       try {
         let jsDate;
-        if (timestamp && typeof timestamp.toDate === "function") {
-          // Handle live Firestore Timestamp (from client-side subscription)
-          jsDate = timestamp.toDate();
-        } else if (timestamp && timestamp._seconds !== undefined) {
-          // Handle serialized Timestamp from backend API ({_seconds, _nanoseconds})
-          jsDate = new Date(
-            timestamp._seconds * 1000 + timestamp._nanoseconds / 1000000
-          );
-        } else if (typeof timestamp === "string") {
-          // Handle ISO string
-          jsDate = new Date(timestamp);
+        if (timestamp.seconds) {
+          jsDate = new Date(timestamp.seconds * 1000);
+        } else if (timestamp._seconds) {
+          jsDate = new Date(timestamp._seconds * 1000);
         } else {
-          throw new Error("Unknown timestamp format");
+          jsDate = new Date(timestamp);
         }
 
-        if (isNaN(jsDate.getTime())) {
-          console.warn("Could not parse date:", timestamp);
-          return "Invalid Date";
-        }
+        if (isNaN(jsDate.getTime())) return "Invalid Date";
+
         return DateTime.fromJSDate(jsDate).toFormat("LLL dd, yyyy");
       } catch (e) {
-        console.error("Error formatting date:", timestamp, e);
         return "Invalid Date";
       }
     },
+
     onImageError(event) {
-      event.target.src = "https://placehold.co/400x200?text=Image+Error";
+      event.target.src = "https://placehold.co/400x200?text=Image+Load+Error";
     },
   },
   created() {
@@ -348,30 +347,34 @@ export default {
   }
 }
 .error-state {
-  color: $admin-color;
-  background-color: lighten($admin-color, 45%);
-  border: 1px solid lighten($admin-color, 35%);
-  border-radius: $border-radius-md;
+  color: #b91c1c;
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
   padding: 2rem;
 }
+
+/* Grid Layout */
 .applications-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 1.5rem;
 }
 .application-card {
-  background-color: $card-background;
-  border-radius: $border-radius-lg;
-  box-shadow: $shadow-light;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
 }
+
+/* Card Header */
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   padding: 1rem;
-  border-bottom: 1px solid $border-color-light;
+  border-bottom: 1px solid #e5e7eb;
 }
 .user-info {
   display: flex;
@@ -383,28 +386,30 @@ export default {
   height: 50px;
   border-radius: 50%;
   object-fit: cover;
-  background-color: $background-light;
+  background-color: #f3f4f6;
 }
 .user-name {
   font-weight: 600;
   margin: 0;
-  color: $text-color-dark;
+  color: #1f2937;
 }
 .user-id {
   font-size: 0.8rem;
-  color: $text-color-medium;
+  color: #6b7280;
   margin: 0;
   font-family: monospace;
 }
 .app-status {
-  background-color: lighten($accent-color, 35%);
-  color: darken($accent-color, 20%);
+  background-color: #fef3c7;
+  color: #92400e;
   padding: 0.25rem 0.75rem;
-  border-radius: $border-radius-pill;
+  border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: capitalize;
 }
+
+/* Card Body */
 .card-body {
   padding: 1rem;
 }
@@ -414,58 +419,61 @@ export default {
   margin: 0;
 }
 .plate-number {
-  color: $text-color-medium;
+  color: #6b7280;
   margin: 0.25rem 0 0 0;
   font-size: 0.9rem;
 }
+
+/* Footer */
 .card-footer {
   margin-top: auto;
   display: flex;
   justify-content: space-between;
   padding: 1rem;
-  border-top: 1px solid $border-color-light;
+  border-top: 1px solid #e5e7eb;
   background-color: #f9fafb;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
 }
 .decision-buttons {
   display: flex;
   gap: 0.5rem;
 }
+
+/* Buttons */
 .button {
   padding: 0.5rem 1rem;
   border: 1px solid transparent;
-  border-radius: $border-radius-md;
+  border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
   font-size: 0.9rem;
   transition: all 0.2s ease;
-
-  &.primary {
-    background-color: $primary-color;
-    color: white;
-    border-color: $primary-color;
-    &:hover {
-      background-color: darken($primary-color, 8%);
-    }
+}
+.button.primary {
+  background-color: $primary-color;
+  color: white;
+  &:hover {
+    background-color: darken($primary-color, 8%);
   }
-  &.secondary {
-    background-color: #e5e7eb;
-    color: $text-color-dark;
-    border-color: #d1d5db;
-    &:hover {
-      background-color: darken(#e5e7eb, 5%);
-    }
+}
+.button.secondary {
+  background-color: #e5e7eb;
+  color: #1f2937;
+  border-color: #d1d5db;
+  &:hover {
+    background-color: darken(#e5e7eb, 5%);
   }
-  &.danger {
-    background-color: $admin-color;
-    color: white;
-    border-color: $admin-color;
-    &:hover {
-      background-color: darken($admin-color, 8%);
-    }
+}
+.button.danger {
+  background-color: #ef4444;
+  color: white;
+  &:hover {
+    background-color: darken(#ef4444, 8%);
   }
 }
 
-/* --- MODAL STYLES --- */
+/* Modal */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -482,36 +490,32 @@ export default {
 .modal-card {
   background: white;
   padding: 2rem;
-  border-radius: $border-radius-lg;
-  width: 90%;
+  border-radius: 12px;
+  width: 100%;
   max-width: 700px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: $shadow-large;
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 .modal-title {
   font-size: 1.5rem;
-  font-weight: 600;
+  font-weight: 700;
   margin: 0 0 0.5rem;
-  text-align: left;
 }
 .modal-subtitle {
   font-size: 1rem;
-  color: $text-color-medium;
+  color: #6b7280;
   margin: 0 0 2rem 0;
-  text-align: left;
-}
-.modal-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  text-align: left;
 }
 .detail-section {
-  border-bottom: 1px solid $border-color-light;
+  border-bottom: 1px solid #e5e7eb;
   padding-bottom: 1.5rem;
-  &:last-of-type {
+  margin-bottom: 1.5rem;
+  &:last-child {
     border-bottom: none;
+    margin-bottom: 0;
   }
 }
 .detail-title {
@@ -529,33 +533,49 @@ export default {
   label {
     font-weight: 600;
     font-size: 0.75rem;
-    color: $text-color-medium;
+    color: #6b7280;
     display: block;
     margin-bottom: 0.25rem;
     text-transform: uppercase;
   }
   p {
     margin: 0;
-    color: $text-color-dark;
+    color: #1f2937;
     font-size: 0.95rem;
     word-break: break-word;
   }
 }
-.document-image {
-  width: 100%;
-  max-width: 400px;
-  height: auto;
-  border-radius: $border-radius-md;
-  border: 1px solid $border-color;
-  margin-top: 0.5rem;
+.full-width {
+  grid-column: 1 / -1;
 }
 
+/* Image Styling */
+.document-image {
+  width: 100%;
+  max-width: 500px;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  margin-top: 0.5rem;
+  cursor: zoom-in;
+  transition: transform 0.2s;
+  &:hover {
+    transform: scale(1.02);
+  }
+}
+.qr-image {
+  max-width: 200px;
+}
+.image-link {
+  display: block;
+  text-decoration: none;
+}
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
   margin-top: 2rem;
   padding-top: 1.5rem;
-  border-top: 1px solid $border-color-light;
+  border-top: 1px solid #e5e7eb;
 }
 </style>

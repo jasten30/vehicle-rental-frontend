@@ -1398,6 +1398,7 @@ $primary-color: #10b981; /* Fallback if variable missing */
   .page-btn {
     background: white;
     border: 1px solid $border-color;
+    color: $primary-color;
     padding: 0.5rem 1rem;
     border-radius: 8px;
     cursor: pointer;

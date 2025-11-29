@@ -45,6 +45,9 @@ export default createStore({
     },
     allVehicles: [],
     userChats: [],
+    hostApplications: [],
+    driveApplications: [],
+    reports: [],
     notifications: [],
     isLoadingNotifications: false,
   },
@@ -70,6 +73,15 @@ export default createStore({
       if (state.vehicle && state.vehicle.id === updatedVehicle.id) {
         state.vehicle = { ...state.vehicle, ...updatedVehicle };
       }
+    },
+    SET_HOST_APPLICATIONS(state, apps) {
+        state.hostApplications = apps;
+    },
+    SET_DRIVE_APPLICATIONS(state, apps) {
+        state.driveApplications = apps;
+    },
+    SET_BOOKING_REPORTS(state, reports) {
+        state.reports = reports;
     },
     SET_ALL_HOST_STATEMENTS(state, statements) {
         state.allHostStatements = statements;
@@ -652,14 +664,16 @@ export default createStore({
         throw error;
       }
     },
-    async fetchHostApplications({ _commit }) {
-      try {
-        const response = await api.getHostApplications();
-        return response.data;
-      } catch (error) {
-        console.error('[Vuex] Failed to fetch host applications:', error);
-        throw error;
-      }
+    async fetchHostApplications({ commit }) {
+        try {
+            const response = await api.getHostApplications();
+            // Save to state so the Sidebar can see it
+            commit('SET_HOST_APPLICATIONS', response.data);
+            return response.data;
+        } catch (error) {
+            console.error('[Vuex] Failed to fetch host applications:', error);
+            throw error;
+        }
     },
     async approveHostApplication({ _commit }, { applicationId, userId }) {
       try {
@@ -705,14 +719,15 @@ export default createStore({
         console.error('Failed to mark chat as read:', error);
       }
     },
-    async fetchDriveApplications({ _commit }) {
-      try {
-        const response = await api.getDriveApplications();
-        return response.data;
-      } catch (error) {
-        console.error('[Vuex] Failed to fetch drive applications:', error);
-        throw error;
-      }
+    async fetchDriveApplications({ commit }) {
+        try {
+            const response = await api.getDriveApplications();
+            commit('SET_DRIVE_APPLICATIONS', response.data);
+            return response.data;
+        } catch (error) {
+            console.error('[Vuex] Failed to fetch drive applications:', error);
+            throw error;
+        }
     },
     async approveDriveApplication({ _commit }, { applicationId, userId }) {
       try {
@@ -790,18 +805,16 @@ export default createStore({
           throw error;
         }
     },
-    async fetchBookingReports({ _commit }) {
+    async fetchBookingReports({ commit }) {
         try {
-          const response = await api.getBookingReports();
-          if (response && Array.isArray(response.data)) {
-              return response.data;
-          } else {
-              console.error("[Vuex] Invalid response structure from getBookingReports API:", response);
-              return [];
-          }
+            const response = await api.getBookingReports();
+            // Ensure it's an array before committing
+            const reports = Array.isArray(response.data) ? response.data : [];
+            commit('SET_BOOKING_REPORTS', reports);
+            return reports;
         } catch (error) {
-          console.error('[Vuex] Failed to fetch booking reports:', error);
-          throw error;
+            console.error('[Vuex] Failed to fetch booking reports:', error);
+            throw error;
         }
     },
 
@@ -1110,6 +1123,8 @@ export default createStore({
         }
       });
 
+
+
       // Remove duplicates (If DB record exists)
       const existingFeeKeys = new Set(
         state.allPlatformFees.map(fee => `${fee.ownerId}_${fee.month}_${fee.year}`)
@@ -1266,6 +1281,24 @@ export default createStore({
       }
       return vehicles;
     },
+
+    // count pending host applications
+    pendingHostApplicationsCount: (state) => {
+        return state.hostApplications.filter(app => (app.status || '').toLowerCase() === 'pending').length;
+    },
+
+    pendingDriveApplicationsCount: (state) => {
+        return state.driveApplications.filter(app => (app.status || '').toLowerCase() === 'pending').length;
+    },
+
+    // Using your existing 'allVehicles' is fine for this one
+    pendingVehiclesCount: (state) => {
+        return state.allVehicles.filter(v => (v.status || '').toLowerCase() === 'pending').length;
+    },
+
+    unresolvedReportsCount: (state) => {
+        return state.reports.filter(r => (r.status || '').toLowerCase() !== 'resolved').length;
+    }
   },
   modules: {
     owner,
