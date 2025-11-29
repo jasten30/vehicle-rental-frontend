@@ -4,42 +4,52 @@
     <div v-if="!isApprovedToDrive" class="reminder-banner warning">
       <div class="banner-content">
         <i class="bi bi-exclamation-triangle-fill"></i>
-        <p>To book or list a vehicle, you need to be approved to drive. Complete your application now.</p>
+        <p>
+          To book or list a vehicle, you need to be approved to drive. Complete
+          your application now.
+        </p>
       </div>
-      <button @click="$emit('approve-to-drive')" class="action-button">Complete Application</button>
+      <button @click="$emit('approve-to-drive')" class="action-button">
+        Complete Application
+      </button>
     </div>
 
     <!-- Secondary reminder for email/phone, only shown if user is already approved to drive -->
-    <div v-if="(!isEmailVerified || !isMobileVerified) && isApprovedToDrive" class="reminder-banner info">
+    <div
+      v-if="(!isEmailVerified || !isMobileVerified) && isApprovedToDrive"
+      class="reminder-banner info"
+    >
       <div class="banner-content">
         <i class="bi bi-info-circle-fill"></i>
         <p>Complete your profile by verifying your email and mobile number.</p>
       </div>
-      <button @click="$emit('verify-now')" class="action-button">Verify Now</button>
+      <button @click="$emit('verify-now')" class="action-button">
+        Verify Now
+      </button>
     </div>
   </div>
 </template>
 
 <script>
 export default {
-  name: 'VerificationReminder',
+  name: "VerificationReminder",
   props: {
     isEmailVerified: Boolean,
     isMobileVerified: Boolean,
     isApprovedToDrive: Boolean,
   },
-  emits: ['verify-now', 'approve-to-drive'],
+  emits: ["verify-now", "approve-to-drive"],
 };
 </script>
 
 <style lang="scss" scoped>
-@import '@/assets/styles/variables.scss';
+@import "@/assets/styles/variables.scss";
 
 .reminders-container {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
 
 .reminder-banner {
@@ -49,6 +59,14 @@ export default {
   padding: 1rem 1.5rem;
   border-radius: $border-radius-lg;
   border: 1px solid;
+  gap: 1rem; /* Gap between text content and button */
+
+  /* Mobile: Stack vertically */
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
+  }
 
   &.info {
     background-color: #eff6ff;
@@ -64,44 +82,56 @@ export default {
 }
 
 .banner-content {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    
-    i {
-        font-size: 1.5rem;
-    }
+  display: flex;
+  align-items: flex-start; /* Align to top for multiline text */
+  gap: 1rem;
 
-    p {
-        margin: 0;
-        font-weight: 500;
-    }
+  i {
+    font-size: 1.5rem;
+    flex-shrink: 0; /* Prevent icon from squishing */
+    margin-top: 2px; /* Visual alignment with text */
+  }
+
+  p {
+    margin: 0;
+    font-weight: 500;
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
 }
 
 .action-button {
-    padding: 0.6rem 1.2rem;
-    border-radius: $border-radius-md;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    border: none;
-    white-space: nowrap;
+  padding: 0.6rem 1.2rem;
+  border-radius: $border-radius-md;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border: none;
+  white-space: nowrap;
+  font-size: 0.9rem;
 
-    .info & {
-        background-color: #3b82f6;
-        color: white;
-        &:hover {
-            background-color: darken(#3b82f6, 10%);
-        }
-    }
+  /* Mobile: Full width button */
+  @media (max-width: 768px) {
+    width: 100%;
+    text-align: center;
+    margin-top: 0.5rem;
+  }
 
-    .warning & {
-        background-color: #f59e0b;
-        color: white;
-         &:hover {
-            background-color: darken(#f59e0b, 10%);
-        }
+  /* Specific styles based on parent class */
+  .info & {
+    background-color: #3b82f6;
+    color: white;
+    &:hover {
+      background-color: darken(#3b82f6, 10%);
     }
+  }
+
+  .warning & {
+    background-color: #f59e0b;
+    color: white;
+    &:hover {
+      background-color: darken(#f59e0b, 10%);
+    }
+  }
 }
 </style>
-

@@ -10,7 +10,10 @@
       <div v-if="loading" class="info-state">
         <p>Loading conversations...</p>
       </div>
-      <div v-else-if="!sortedConversations || sortedConversations.length === 0" class="info-state">
+      <div
+        v-else-if="!sortedConversations || sortedConversations.length === 0"
+        class="info-state"
+      >
         <p>You have no messages yet.</p>
       </div>
       <div v-else class="conversations-scroll-area">
@@ -18,7 +21,9 @@
           v-for="chat in sortedConversations"
           :key="chat.id"
           class="conversation-item"
-          :class="{ active: selectedConversation && selectedConversation.id === chat.id }"
+          :class="{
+            active: selectedConversation && selectedConversation.id === chat.id,
+          }"
           @click="selectConversation(chat)"
         >
           <div v-if="chat.otherUserDetails" class="conversation-content">
@@ -34,14 +39,21 @@
               <p class="user-name" :class="{ 'unread-text': isUnread(chat) }">
                 {{ chat.otherUserDetails.name }}
               </p>
-              <p class="last-message" :class="{ 'unread-text': isUnread(chat) }">
+              <p
+                class="last-message"
+                :class="{ 'unread-text': isUnread(chat) }"
+              >
                 <!-- 👇 UPDATED: Added a check for 'user' before accessing 'user.uid' -->
-                <span v-if="user && chat.lastMessage.senderId === user.uid">You: </span>
+                <span v-if="user && chat.lastMessage.senderId === user.uid"
+                  >You:
+                </span>
                 {{ chat.lastMessage.text }}
               </p>
             </div>
             <div class="conversation-meta">
-              <span class="last-message-time">{{ formatLastMessageTime(chat.lastMessage.timestamp) }}</span>
+              <span class="last-message-time">{{
+                formatLastMessageTime(chat.lastMessage.timestamp)
+              }}</span>
               <div v-if="isUnread(chat)" class="unread-indicator"></div>
             </div>
           </div>
@@ -54,7 +66,7 @@
       <div v-if="selectedConversation" class="chat-content-window">
         <!-- UPDATED: Chat header now includes avatar -->
         <div class="chat-header">
-           <img
+          <img
             :src="
               selectedConversation.otherUserDetails.profilePhotoUrl ||
               'https://placehold.co/100x100/e2e8f0/666666?text=User'
@@ -64,8 +76,13 @@
           />
           <h3>{{ selectedConversation.otherUserDetails.name }}</h3>
           <!-- Optional: Add link to booking -->
-          <router-link :to="`/dashboard/my-bookings/${selectedConversation.id}`" class="booking-link" title="View Booking">
-             <i class="bi bi-file-text-fill"></i>
+          <router-link
+            v-if="selectedConversation.bookingId"
+            :to="`/dashboard/my-bookings/${selectedConversation.bookingId}`"
+            class="booking-link"
+            title="View Booking Details"
+          >
+            <i class="bi bi-file-text-fill"></i>
           </router-link>
         </div>
         <div class="message-area" ref="messageArea">
@@ -84,7 +101,7 @@
                 :src="message.imageUrl"
                 alt="Chat image"
                 class="chat-image"
-                @load="scrollToBottom" 
+                @load="scrollToBottom"
               />
             </div>
           </div>
@@ -109,7 +126,11 @@
               accept="image/png, image/jpeg"
               hidden
             />
-            <button @click="triggerFileInput" class="icon-button" title="Attach image">
+            <button
+              @click="triggerFileInput"
+              class="icon-button"
+              title="Attach image"
+            >
               <i class="bi bi-paperclip"></i>
             </button>
             <!-- END File Input Button -->
@@ -120,7 +141,11 @@
               type="text"
               placeholder="Type a message..."
             />
-            <button @click="handleSendMessage" class="send-button" :disabled="!canSendMessage">
+            <button
+              @click="handleSendMessage"
+              class="send-button"
+              :disabled="!canSendMessage"
+            >
               <i class="bi bi-send-fill"></i>
             </button>
           </div>
@@ -135,47 +160,53 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from 'vuex';
-import { db } from '@/firebase/config';
-import { collection, query, onSnapshot, orderBy } from 'firebase/firestore'; 
-import { DateTime } from 'luxon';
+import { mapActions, mapGetters, mapState } from "vuex";
+import { db } from "@/firebase/config";
+import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
+import { DateTime } from "luxon";
 
 export default {
-  name: 'ChatView',
+  name: "ChatView",
   data() {
     return {
       loading: true,
       selectedConversation: null,
       messages: [],
-      newMessage: '',
+      newMessage: "",
       messagesUnsubscribe: null,
       stagedImageBase64: null,
       stagedImagePreview: null,
     };
   },
   computed: {
-    ...mapGetters(['user']),
-    ...mapState(['userChats']),
+    ...mapGetters(["user"]),
+    ...mapState(["userChats"]),
     sortedConversations() {
-       if (!this.userChats || this.userChats.length === 0) return [];
-       return [...this.userChats].sort((a, b) => {
-         const timeA = a.lastMessage?.timestamp?._seconds || a.lastMessage?.timestamp?.seconds || 0;
-         const timeB = b.lastMessage?.timestamp?._seconds || b.lastMessage?.timestamp?.seconds || 0;
-         return timeB - timeA;
-       });
+      if (!this.userChats || this.userChats.length === 0) return [];
+      return [...this.userChats].sort((a, b) => {
+        const timeA =
+          a.lastMessage?.timestamp?._seconds ||
+          a.lastMessage?.timestamp?.seconds ||
+          0;
+        const timeB =
+          b.lastMessage?.timestamp?._seconds ||
+          b.lastMessage?.timestamp?.seconds ||
+          0;
+        return timeB - timeA;
+      });
     },
     canSendMessage() {
-      return this.newMessage.trim() !== '' || this.stagedImageBase64 !== null;
-    }
+      return this.newMessage.trim() !== "" || this.stagedImageBase64 !== null;
+    },
   },
   methods: {
-    ...mapActions(['fetchUserChats', 'sendMessage', 'markChatAsRead']),
+    ...mapActions(["fetchUserChats", "sendMessage", "markChatAsRead"]),
     async loadConversations() {
       this.loading = true;
       try {
         await this.fetchUserChats();
       } catch (error) {
-        console.error('Could not load conversations', error);
+        console.error("Could not load conversations", error);
       } finally {
         this.loading = false;
       }
@@ -183,7 +214,7 @@ export default {
     selectConversation(chat) {
       // Don't re-select if already selected
       if (this.selectedConversation?.id === chat.id) return;
-      
+
       this.selectedConversation = chat;
       this.fetchMessages(chat.id);
       if (this.isUnread(chat)) {
@@ -194,8 +225,8 @@ export default {
       if (this.messagesUnsubscribe) {
         this.messagesUnsubscribe();
       }
-      const messagesRef = collection(db, 'chats', chatId, 'messages');
-      const q = query(messagesRef, orderBy('timestamp'));
+      const messagesRef = collection(db, "chats", chatId, "messages");
+      const q = query(messagesRef, orderBy("timestamp"));
 
       this.messagesUnsubscribe = onSnapshot(q, (snapshot) => {
         this.messages = snapshot.docs.map((doc) => ({
@@ -213,18 +244,18 @@ export default {
         text: this.newMessage.trim(),
         imageBase64: this.stagedImageBase64,
       };
-      
-      this.newMessage = '';
+
+      this.newMessage = "";
       this.cancelImagePreview();
 
       try {
         await this.sendMessage(payload);
       } catch (error) {
-        alert('Could not send message.');
+        alert("Could not send message.");
         this.newMessage = payload.text;
       }
     },
-    
+
     triggerFileInput() {
       this.$refs.fileInput.click();
     },
@@ -232,13 +263,16 @@ export default {
       const file = event.target.files[0];
       if (!file) return;
 
-      if (!file.type.startsWith('image/png') && !file.type.startsWith('image/jpeg')) {
-          alert('Please select a valid image file (PNG or JPEG).');
-          return;
+      if (
+        !file.type.startsWith("image/png") &&
+        !file.type.startsWith("image/jpeg")
+      ) {
+        alert("Please select a valid image file (PNG or JPEG).");
+        return;
       }
       if (file.size > 5 * 1024 * 1024) {
-          alert('File is too large. Please select an image smaller than 5MB.');
-          return;
+        alert("File is too large. Please select an image smaller than 5MB.");
+        return;
       }
 
       this.stagedImagePreview = URL.createObjectURL(file);
@@ -248,9 +282,9 @@ export default {
         this.stagedImageBase64 = e.target.result;
       };
       reader.onerror = (e) => {
-          console.error("FileReader error:", e);
-          alert("Error reading file.");
-          this.cancelImagePreview();
+        console.error("FileReader error:", e);
+        alert("Error reading file.");
+        this.cancelImagePreview();
       };
       reader.readAsDataURL(file);
 
@@ -280,69 +314,73 @@ export default {
     },
 
     formatLastMessageTime(timestamp) {
-      if (!timestamp) return '';
-      
+      if (!timestamp) return "";
+
       let seconds;
       if (timestamp.seconds) {
         seconds = timestamp.seconds;
       } else if (timestamp._seconds) {
         seconds = timestamp._seconds;
-      } else if (typeof timestamp === 'number') {
+      } else if (typeof timestamp === "number") {
         seconds = timestamp;
       } else {
         console.warn("Invalid timestamp format received:", timestamp);
-        return '';
+        return "";
       }
 
       const dt = DateTime.fromSeconds(seconds);
       const now = DateTime.now();
-      
-      if (dt.hasSame(now, 'day')) {
-        return dt.toFormat('h:mm a');
+
+      if (dt.hasSame(now, "day")) {
+        return dt.toFormat("h:mm a");
       }
-      if (dt.hasSame(now.minus({ days: 1 }), 'day')) {
-        return 'Yesterday';
+      if (dt.hasSame(now.minus({ days: 1 }), "day")) {
+        return "Yesterday";
       }
-      if (now.diff(dt, 'weeks').weeks < 1) {
-         return dt.toFormat('ccc');
+      if (now.diff(dt, "weeks").weeks < 1) {
+        return dt.toFormat("ccc");
       }
-      return dt.toFormat('LLL dd');
+      return dt.toFormat("LLL dd");
     },
-    
+
     formatMessageTimestamp(timestamp) {
-      if (!timestamp) return '';
+      if (!timestamp) return "";
       let seconds;
       if (timestamp.seconds) {
         seconds = timestamp.seconds;
       } else if (timestamp._seconds) {
         seconds = timestamp._seconds;
       } else {
-        return '';
+        return "";
       }
-      return DateTime.fromSeconds(seconds).toFormat('LLL dd, h:mm a');
+      return DateTime.fromSeconds(seconds).toFormat("LLL dd, h:mm a");
     },
   },
   created() {
     this.loadConversations();
-    
+
     // 👇 CORRECTED WATCHER
     if (this.$route.params.chatId) {
-        let unwatch; // 1. Declare 'unwatch' in the outer scope
-        
-        // 2. Assign the watcher return value to 'unwatch'
-        unwatch = this.$watch('sortedConversations', (newVal) => {
-            if (newVal.length > 0) {
-                 const chat = newVal.find(c => c.id === this.$route.params.chatId);
-                 if (chat) {
-                     this.selectConversation(chat);
-                 }
-                 
-                 // 3. Check if 'unwatch' exists before calling it
-                 if (unwatch) { 
-                    unwatch(); // Call the function to stop watching
-                 }
+      let unwatch; // 1. Declare 'unwatch' in the outer scope
+
+      // 2. Assign the watcher return value to 'unwatch'
+      unwatch = this.$watch(
+        "sortedConversations",
+        (newVal) => {
+          if (newVal.length > 0) {
+            const chat = newVal.find((c) => c.id === this.$route.params.chatId);
+            if (chat) {
+              this.selectConversation(chat);
             }
-        }, { immediate: true });
+
+            // 3. Check if 'unwatch' exists before calling it
+            if (unwatch) {
+              unwatch(); // Call the function to stop watching
+            }
+          }
+        },
+        { immediate: true }
+      );
     }
   },
   beforeUnmount() {
@@ -354,7 +392,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '@/assets/styles/variables.scss';
+@import "@/assets/styles/variables.scss";
 
 /* --- NEW MODERN STYLES --- */
 .chat-container {
@@ -438,21 +476,22 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  
-  span { // Style "You:"
+
+  span {
+    // Style "You:"
     font-weight: 500;
   }
 }
 .conversation-meta {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    font-size: 0.75rem;
-    color: $text-color-medium;
-    flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 0.75rem;
+  color: $text-color-medium;
+  flex-shrink: 0;
 }
 .last-message-time {
-    margin-bottom: 0.25rem;
+  margin-bottom: 0.25rem;
 }
 .unread-text {
   font-weight: 700;
@@ -486,28 +525,28 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  
+
   h3 {
     margin: 0;
     font-size: 1.1rem;
     font-weight: 600;
   }
   .avatar-small {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      object-fit: cover;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
   }
   .booking-link {
-      margin-left: auto;
-      color: $text-color-medium;
-      font-size: 1.25rem;
-      padding: 0.5rem;
-      border-radius: 50%;
-      &:hover {
-          color: $primary-color;
-          background-color: $background-light;
-      }
+    margin-left: auto;
+    color: $text-color-medium;
+    font-size: 1.25rem;
+    padding: 0.5rem;
+    border-radius: 50%;
+    &:hover {
+      color: $primary-color;
+      background-color: $background-light;
+    }
   }
 }
 .message-area {
@@ -521,13 +560,13 @@ export default {
 .message-bubble-wrapper {
   display: flex;
   max-width: 75%; // Bubbles take max 75% of width
-  
+
   &.is-sender {
     justify-content: flex-end;
     margin-left: auto; // Push to right
   }
   &:not(.is-sender) {
-      margin-right: auto; // Push to left
+    margin-right: auto; // Push to left
   }
 }
 .message-bubble {
@@ -541,7 +580,8 @@ export default {
     white-space: pre-wrap; // Respect line breaks
     word-break: break-word; // Break long words
   }
-  .message-timestamp { // Removed from template, but style remains
+  .message-timestamp {
+    // Removed from template, but style remains
     font-size: 0.7rem;
     opacity: 0.8;
     display: block;
@@ -561,13 +601,13 @@ export default {
 
 /* STYLES for image preview and chat image */
 .message-area .chat-image {
-  max-width: 100%; 
+  max-width: 100%;
   height: auto;
-  border-radius: $border-radius-md; 
-  margin-top: 8px; 
+  border-radius: $border-radius-md;
+  margin-top: 8px;
 }
 .message-bubble p + img {
-   margin-top: $spacing-sm;
+  margin-top: $spacing-sm;
 }
 .message-input-area-wrapper {
   display: flex;
@@ -604,7 +644,7 @@ export default {
   font-size: 1rem;
   line-height: 1;
   padding: 0;
-  
+
   &:hover {
     background-color: $text-color-dark;
   }
@@ -675,8 +715,8 @@ export default {
     background-color: darken($primary-color, 10%);
   }
   &:disabled {
-      background-color: lighten($primary-color, 25%);
-      cursor: not-allowed;
+    background-color: lighten($primary-color, 25%);
+    cursor: not-allowed;
   }
 }
 .no-chat-selected,
@@ -698,4 +738,3 @@ export default {
   }
 }
 </style>
-

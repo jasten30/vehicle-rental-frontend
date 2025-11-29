@@ -1,5 +1,6 @@
 import axios from 'axios';
-import store from '../../store'; 
+import store from '../../store';
+import { getAuth } from "firebase/auth";
 
 // Create a configured instance of axios
 const apiClient = axios.create({
@@ -11,8 +12,20 @@ const apiClient = axios.create({
 
 // Interceptor to add token
 apiClient.interceptors.request.use(
-    (config) => {
-        const token = store.getters.authToken; 
+    async (config) => { // Make this ASYNC
+        let token = store.getters.authToken;
+
+        // CHECK FIREBASE DIRECTLY
+        const auth = getAuth();
+        const user = auth.currentUser;
+
+        if (user) {
+            // Force fetch a new token from Firebase
+            // true = force refresh
+            token = await user.getIdToken(true);
+            console.log("🔥 [Axios] Got fresh token from Firebase");
+        }
+
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -46,7 +59,7 @@ export default {
     getAllUsers: () => apiClient.get('/users/all-users'),
     updateUserRole: (userId, role) => apiClient.put(`/users/update-role/${userId}`, { role }),
     deleteUser: (userId) => apiClient.delete(`/users/${userId}`),
-    
+
     // --- USER VERIFICATION ---
     sendEmailVerificationCode: () => apiClient.post('/users/send-email-verification'),
     verifyEmailCode: (code) => apiClient.post('/users/verify-email-code', { code }),
@@ -58,7 +71,7 @@ export default {
     // --- HOST APPLICATIONS ---
     submitHostApplication: (applicationData) => apiClient.post('/users/submit-host-application', applicationData),
     getHostApplications: () => apiClient.get('/users/host-applications'),
-    
+
     // --- ADMIN ---
     approveHostApplication: (applicationId, userId) => apiClient.put('/admin/approve-host-application', { applicationId, userId }),
     declineHostApplication: (applicationId) => apiClient.put('/admin/decline-host-application', { applicationId }),
@@ -68,7 +81,7 @@ export default {
     getBookingReports: () => apiClient.get('/admin/reports'),
     resolveBookingReport: (reportId) => apiClient.put(`/admin/reports/${reportId}/resolve`),
     findOrCreateAdminUserChat: (payload) => apiClient.post('/admin/chats/find-or-create', payload),
-    toggleUserSuspension: (userId, isSuspended) => 
+    toggleUserSuspension: (userId, isSuspended) =>
         apiClient.put(`/users/update-suspension/${userId}`, { isSuspended }),
 
     // --- VEHICLES ---
@@ -110,8 +123,8 @@ export default {
     updateBookingPaymentMethod: (bookingId, data) => apiClient.put(`/bookings/${bookingId}/payment-method`, data),
     confirmDownpaymentByUser: (bookingId, data) => apiClient.post(`/bookings/${bookingId}/confirm-downpayment-by-user`, data),
     confirmOwnerPayment: (bookingId) => apiClient.post(`/bookings/${bookingId}/confirm-owner-payment`),
-    confirmBookingPayment: (bookingId) => apiClient.put(`/bookings/${bookingId}/confirm-payment`), 
-    
+    confirmBookingPayment: (bookingId) => apiClient.put(`/bookings/${bookingId}/confirm-payment`),
+
     // --- BOOKING EXTENSION ---
     requestBookingExtension: (bookingId, data) => apiClient.post(`/bookings/${bookingId}/request-extension`, data),
     confirmExtensionPayment: (bookingId, data) => apiClient.post(`/bookings/${bookingId}/confirm-extension`, data),
@@ -121,7 +134,7 @@ export default {
     // Corrected path from /bookings/admin/platform-fees to /admin/platform-fees
     getAllPlatformFees: () => apiClient.get('/admin/platform-fees'),
     // Corrected path from /bookings/admin/host-statements to /admin/host-statements
-    getAllHostMonthlyStatements: () => apiClient.get('/admin/host-statements'), 
+    getAllHostMonthlyStatements: () => apiClient.get('/admin/host-statements'),
     verifyPlatformFee: (feeId) => apiClient.put(`/bookings/admin/platform-fees/${feeId}/verify`), // This path may also need review
     getOwnerPlatformFees: () => apiClient.get('/bookings/owner/my-fees'),
     submitPlatformFeePayment: (paymentData) => apiClient.post('/bookings/pay-platform-fee', paymentData),

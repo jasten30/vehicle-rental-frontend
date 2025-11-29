@@ -77,11 +77,11 @@
                     @click="closeMenu"
                   >
                     <h6 class="dropdown-header user-name-header">
-                      Hello, {{ user.name || 'User' }}
+                      Hello, {{ user.name || "User" }}
                     </h6>
                   </router-link>
                   <span class="user-email-text">{{ user.email }}</span>
-                  
+
                   <span v-if="isSuspended" class="suspended-badge">
                     SUSPENDED
                   </span>
@@ -115,7 +115,10 @@
               </div>
 
               <hr
-                v-if="isAuthenticated && (userRole === 'owner' || userRole === 'renter')"
+                v-if="
+                  isAuthenticated &&
+                  (userRole === 'owner' || userRole === 'renter')
+                "
                 class="dropdown-divider"
               />
 
@@ -145,7 +148,7 @@
                 >
                   <i class="bi bi-calendar-check-fill"></i>Calendar
                 </router-link>
-                
+
                 <a
                   href="#"
                   class="dropdown-item with-icon"
@@ -153,7 +156,7 @@
                   @click.prevent="handleHostClick"
                 >
                   <i class="bi bi-plus-circle-fill"></i>
-                  {{ isSuspended ? 'Listing Disabled' : 'List New Asset' }}
+                  {{ isSuspended ? "Listing Disabled" : "List New Asset" }}
                 </a>
               </div>
 
@@ -188,9 +191,6 @@
                 >
                   <i class="bi bi-headset"></i>Contact Support
                 </router-link>
-                <router-link to="#" class="dropdown-item with-icon">
-                  <i class="bi bi-file-earmark-text"></i>Legal
-                </router-link>
               </div>
 
               <hr v-if="isAuthenticated" class="dropdown-divider" />
@@ -224,15 +224,15 @@
 </template>
 
 <script>
-import { mapGetters, mapActions } from 'vuex';
-import NotificationBadge from './utils/NotificationBadge.vue';
-import NotificationBell from './components/utils/NotificationBell.vue';
-import VehicleTypeChoiceModal from './components/modals/VehicleTypeChoiceModal.vue';
-import FooterSection from './components/HomeViewComponents/FooterSection.vue';
-import logoHeader from '@/assets/rentcycle_logo.png';
+import { mapGetters, mapActions } from "vuex";
+import NotificationBadge from "./utils/NotificationBadge.vue";
+import NotificationBell from "./components/utils/NotificationBell.vue";
+import VehicleTypeChoiceModal from "./components/modals/VehicleTypeChoiceModal.vue";
+import FooterSection from "./components/HomeViewComponents/FooterSection.vue";
+import logoHeader from "@/assets/rentcycle_logo.png";
 
 export default {
-  name: 'App',
+  name: "App",
   components: {
     NotificationBadge,
     NotificationBell,
@@ -248,7 +248,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(['isAuthenticated', 'userRole', 'user', 'userChats']),
+    ...mapGetters(["isAuthenticated", "userRole", "user", "userChats"]),
 
     // Helper to check if account is suspended
     isSuspended() {
@@ -256,20 +256,20 @@ export default {
     },
 
     hostLinkText() {
-      if (this.isAuthenticated && this.userRole === 'owner') {
-        if (this.isSuspended) return 'Listing Disabled';
-        return 'List your asset';
+      if (this.isAuthenticated && this.userRole === "owner") {
+        if (this.isSuspended) return "Listing Disabled";
+        return "List your asset";
       }
-      return 'Become a host';
+      return "Become a host";
     },
 
     initials() {
-      if (!this.user) return '';
-      const name = this.user.name || 'User';
+      if (!this.user) return "";
+      const name = this.user.name || "User";
       return name
-        .split(' ')
+        .split(" ")
         .map((n) => n[0])
-        .join('')
+        .join("")
         .toUpperCase()
         .substring(0, 2);
     },
@@ -304,22 +304,22 @@ export default {
     },
   },
   methods: {
-    ...mapActions(['logout', 'fetchUserChats']),
+    ...mapActions(["logout", "fetchUserChats"]),
 
     handleHostClick() {
       this.closeMenu();
 
       if (this.isSuspended) {
         alert(
-          'Your account is suspended. You cannot perform this action. Please contact support.'
+          "Your account is suspended. You cannot perform this action. Please contact support."
         );
         return;
       }
 
-      if (this.isAuthenticated && this.userRole === 'owner') {
+      if (this.isAuthenticated && this.userRole === "owner") {
         this.isChoiceModalVisible = true;
       } else {
-        this.$router.push({ name: 'BecomeOwnerApplication' });
+        this.$router.push({ name: "BecomeOwnerApplication" });
       }
     },
 
@@ -329,17 +329,17 @@ export default {
     },
 
     generateInitialsImage(initials) {
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
       const size = 100;
       canvas.width = size;
       canvas.height = size;
-      context.fillStyle = '#C0C0C0';
+      context.fillStyle = "#C0C0C0";
       context.fillRect(0, 0, size, size);
-      context.fillStyle = '#FFFFFF';
+      context.fillStyle = "#FFFFFF";
       context.font = `bold ${size / 2}px Nunito`;
-      context.textAlign = 'center';
-      context.textBaseline = 'middle';
+      context.textAlign = "center";
+      context.textBaseline = "middle";
       context.fillText(initials, size / 2, size / 2);
       this.initialsDataUrl = canvas.toDataURL();
     },
@@ -355,11 +355,7 @@ export default {
       this.isMenuOpen = false;
     },
     closeMenuOnClickOutside(event) {
-      if (
-        this.isMenuOpen &&
-        this.$refs.dropdownMenu &&
-        this.$refs.menuButton
-      ) {
+      if (this.isMenuOpen && this.$refs.dropdownMenu && this.$refs.menuButton) {
         if (
           !this.$refs.dropdownMenu.contains(event.target) &&
           !this.$refs.menuButton.contains(event.target)
@@ -370,10 +366,10 @@ export default {
     },
   },
   mounted() {
-    document.addEventListener('click', this.closeMenuOnClickOutside);
+    document.addEventListener("click", this.closeMenuOnClickOutside);
   },
   beforeUnmount() {
-    document.removeEventListener('click', this.closeMenuOnClickOutside);
+    document.removeEventListener("click", this.closeMenuOnClickOutside);
   },
   created() {
     if (this.isAuthenticated) {
@@ -384,13 +380,13 @@ export default {
 </script>
 
 <style lang="scss">
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Nunito:wght@400;700;900&display=swap');
-@import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css');
-@import './assets/styles/variables.scss';
+@import url("https://fonts.googleapis.com/css2?family=Anton&family=Nunito:wght@400;700;900&display=swap");
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css");
+@import "./assets/styles/variables.scss";
 
 body {
   margin: 0;
-  font-family: 'Nunito', sans-serif;
+  font-family: "Nunito", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: white;
@@ -409,6 +405,7 @@ body {
   min-height: 100vh;
 }
 
+/* --- Responsive Header --- */
 .app-header {
   display: flex;
   justify-content: space-between;
@@ -417,9 +414,12 @@ body {
   background-color: white;
   border-bottom: 1px solid #eee;
   box-shadow: $shadow-light;
-  
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
   @media (max-width: 768px) {
-    padding: 1rem 1.5rem;
+    padding: 0.75rem 1rem;
   }
 }
 
@@ -429,19 +429,25 @@ body {
   cursor: pointer;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .app-logo-image {
   height: 50px;
   width: auto;
   object-fit: contain;
+
+  @media (max-width: 480px) {
+    height: 40px;
+  }
 }
 
+/* --- Navigation Links --- */
 .header-nav {
   display: flex;
   gap: 2rem;
-  
-  @media (max-width: 768px) {
+
+  @media (max-width: 900px) {
     display: none;
   }
 }
@@ -455,7 +461,7 @@ body {
 
   &:hover,
   &.router-link-active {
-    color: black;
+    color: $primary-color;
   }
 }
 
@@ -463,9 +469,13 @@ body {
   display: flex;
   align-items: center;
   gap: 1.5rem;
+
+  @media (max-width: 768px) {
+    gap: 0.75rem;
+  }
 }
 
-/* Become Host Button */
+/* --- Become Host Button --- */
 .become-host-button {
   text-decoration: none;
   white-space: nowrap;
@@ -487,23 +497,25 @@ body {
     box-shadow: $shadow-medium;
   }
 
-  /* Disabled Style for Button */
+  @media (max-width: 900px) {
+    display: none;
+  }
+
   &.disabled-btn {
     color: #9ca3af;
     background-color: #f3f4f6;
     border-color: #e5e7eb;
     cursor: not-allowed;
-    /* Keep pointer events to show tooltip */
     &:hover {
       box-shadow: none;
     }
     .icon-left {
-      color: #ef4444; /* Red icon for suspended */
+      color: #ef4444;
     }
   }
 }
 
-/* User Menu */
+/* --- User Menu --- */
 .user-menu-container {
   position: relative;
   display: inline-block;
@@ -513,13 +525,17 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.8rem;
   border-radius: 9999px;
   background-color: white;
   border: 1px solid #ddd;
   cursor: pointer;
   transition: box-shadow 0.2s ease-in-out;
   box-shadow: $shadow-light;
+
+  @media (min-width: 768px) {
+    padding: 0.75rem 1rem;
+  }
 
   &:hover {
     box-shadow: $shadow-medium;
@@ -531,24 +547,41 @@ body {
   }
 }
 
+/* --- RESPONSIVE DROPDOWN MENU --- */
 .dropdown-menu {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 0.5rem);
   right: 0;
   z-index: 1000;
-  margin-top: 0.75rem;
   min-width: 250px;
   background-color: white;
   border-radius: $border-radius-md;
-  box-shadow: $shadow-medium;
+  box-shadow: $shadow-large;
   list-style: none;
   padding: 0.5rem 0;
   text-align: left;
+  border: 1px solid #f0f0f0;
+
+  /* SCROLL FIX: Allow scrolling if menu is too tall */
+  max-height: 75vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
+  /* MOBILE FIX: Fix position to viewport on small screens */
+  @media (max-width: 768px) {
+    position: fixed; /* Anchors to the window, not the button */
+    top: 75px; /* Just below the header */
+    right: 1rem; /* 1rem from right edge */
+    width: 280px; /* Wider width */
+    max-height: 80vh; /* Ensure it fits on screen */
+  }
 }
 
 .dropdown-fade-enter-active,
 .dropdown-fade-leave-active {
-  transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+  transition:
+    transform 0.2s ease-out,
+    opacity 0.2s ease-out;
 }
 .dropdown-fade-enter-from,
 .dropdown-fade-leave-to {
@@ -562,43 +595,49 @@ body {
   opacity: 1;
 }
 
+/* User Info Inside Dropdown */
 .user-info-header {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0.75rem 1.5rem;
+  padding: 1rem 1.5rem;
   text-align: center;
+  background-color: #f9fafb;
+  border-bottom: 1px solid #eee;
 }
 
 .dropdown-avatar {
-  width: 3rem;
-  height: 3rem;
+  width: 3.5rem;
+  height: 3.5rem;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid $primary-color;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .user-details {
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
 }
 
 .user-name-header {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: $text-color-dark;
   text-transform: capitalize;
   margin: 0;
   padding: 0;
+  line-height: 1.2;
 }
 
 .user-email-text {
   font-size: 0.85rem;
   color: $text-color-medium;
   margin-top: 0.25rem;
+  word-break: break-all;
 }
 
 /* Suspension Badge */
@@ -622,17 +661,17 @@ body {
 }
 
 .dropdown-header {
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: 0.85rem;
+  font-weight: 800;
   color: $text-color-medium;
-  padding: 0 1.5rem 0.5rem;
+  padding: 0.5rem 1.5rem 0.25rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1px solid #e5e7eb;
+  margin: 0.5rem 0 0;
 }
 
 .dropdown-section {
-  padding: 0.5rem 0;
+  padding: 0.25rem 0;
 }
 
 .dropdown-item {
@@ -642,8 +681,9 @@ body {
   color: $text-color-dark;
   text-decoration: none;
   font-weight: 500;
-  transition: background-color 0.2s ease-in-out, transform 0.2s ease-out;
+  transition: background-color 0.2s ease-in-out;
   box-sizing: border-box;
+  font-size: 0.95rem;
 
   &.with-icon {
     display: flex;
@@ -651,27 +691,31 @@ body {
     gap: 0.75rem;
   }
   &:hover {
-    transform: translateX(5px);
-    background-color: #f9fafb;
+    background-color: #f3f4f6;
+    color: $primary-color;
   }
-  
-  /* Disabled Item Style */
+
   &.disabled-item {
     color: #9ca3af !important;
     cursor: not-allowed;
     background-color: #f9fafb;
     &:hover {
-      transform: none !important;
+      background-color: #f9fafb;
+      color: #9ca3af !important;
     }
   }
 }
 
 .dropdown-item i {
-  color: $primary-color; /* Default icon color */
+  color: $text-color-medium;
+  font-size: 1.1rem;
 }
-/* Override for disabled items */
+.dropdown-item:hover i {
+  color: $primary-color;
+}
+
 .dropdown-item.disabled-item i {
-    color: #9ca3af !important;
+  color: #9ca3af !important;
 }
 
 .dropdown-divider {
@@ -688,6 +732,15 @@ body {
   font-size: inherit;
   cursor: pointer;
   text-align: left;
+  color: $admin-color;
+
+  &:hover {
+    background-color: #fee2e2;
+    color: darken($admin-color, 10%);
+  }
+  i {
+    color: $admin-color;
+  }
 }
 
 .app-content {

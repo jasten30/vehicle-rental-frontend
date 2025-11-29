@@ -414,76 +414,106 @@ onMounted(() => {
 <style lang="scss" scoped>
 @import "@/assets/styles/variables.scss";
 
-/* ... Your existing styles ... */
+/* --- 1. Main Container & Header --- */
 .details-box {
   flex: 2;
   background-color: transparent;
   border-radius: 0.5rem;
+  width: 100%; /* Ensure it doesn't overflow */
 }
+
 .vehicle-header {
   margin-bottom: 1rem;
 }
+
 .vehicle-name {
-  font-size: 2.5rem;
+  font-size: 1.8rem; /* Smaller on mobile */
   font-weight: 700;
   color: $text-color-dark;
   margin: 0;
+  line-height: 1.2;
+
+  @media (min-width: 768px) {
+    font-size: 2.5rem;
+  }
 }
+
 .vehicle-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-top: 0.25rem;
+  flex-wrap: wrap; /* Allow wrapping on small screens */
+  gap: 0.75rem;
+  margin-top: 0.5rem;
 }
+
 .vehicle-make {
   font-size: 1rem;
   color: $text-color-medium;
   font-weight: 500;
 }
+
 .vehicle-rating {
   display: flex;
   align-items: center;
   font-size: 1rem;
   color: $text-color-dark;
 }
+
 .star-icon {
   width: 1rem;
   height: 1rem;
   margin-right: 0.25rem;
   color: $primary-color;
 }
+
 .divider {
   border: 0;
   height: 1px;
   background: $border-color;
   margin: 1.5rem 0;
 }
+
+/* --- 2. Host Section --- */
 .hosted-by-section {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
+
 .hosted-by-title {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   color: $text-color-dark;
   font-weight: bold;
   margin-bottom: 0.5rem;
+
+  @media (min-width: 768px) {
+    font-size: 1.25rem;
+  }
 }
+
 .host-profile {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
+
 .host-avatar {
-  width: 60px;
-  height: 60px;
+  width: 50px; /* Smaller avatar on mobile */
+  height: 50px;
   border-radius: 50%;
   object-fit: cover;
+
+  @media (min-width: 768px) {
+    width: 60px;
+    height: 60px;
+  }
 }
+
 .host-details {
   display: flex;
   flex-direction: column;
 }
+
 .host-name-link {
   text-decoration: none;
   color: inherit;
@@ -492,42 +522,55 @@ onMounted(() => {
     color: $primary-color;
   }
 }
+
 .host-name {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: bold;
   color: $text-color-dark;
+
+  @media (min-width: 768px) {
+    font-size: 1.1rem;
+  }
 }
+
 .host-member-date {
   font-size: 0.85rem;
   color: $text-color-medium;
 }
+
+/* --- 3. Features & Specs --- */
 .details-list {
   padding-top: 1.5rem;
 }
+
 .features-grid-container {
   display: flex;
   flex-direction: column;
 }
+
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 2rem;
+  grid-template-columns: 1fr; /* Mobile: 1 col */
+  gap: 1rem;
   margin-bottom: 1rem;
-  @media (max-width: 576px) {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
+
+  @media (min-width: 576px) {
+    grid-template-columns: repeat(2, 1fr); /* Tablet+: 2 cols */
+    gap: 2rem;
   }
 }
+
 .feature-column {
   list-style: disc;
   padding-left: 1.5rem;
   margin: 0;
   li {
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: $text-color-dark;
     margin-bottom: 0.5rem;
   }
 }
+
 .see-all-btn {
   background-color: transparent;
   color: $primary-color;
@@ -543,122 +586,167 @@ onMounted(() => {
     text-decoration: underline;
   }
 }
+
+/* --- 4. Included In Price --- */
 .included-in-price-section {
   padding-top: 1.5rem;
 }
+
 .included-title {
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   color: $text-color-dark;
   font-weight: bold;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
 }
+
 .included-content-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 2rem;
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
+  grid-template-columns: 1fr; /* Mobile: 1 col */
+  gap: 1.5rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr); /* Desktop: 2 cols */
+    gap: 2rem;
   }
 }
+
 .included-category-title {
   font-size: 1rem;
   color: $text-color-dark;
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
+
 .included-category ul {
   list-style: disc;
-  padding-left: 1.5rem;
+  padding-left: 1.25rem;
   margin: 0;
 }
+
 .included-category li {
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: $text-color-dark;
   margin-bottom: 0.25rem;
 }
+
+/* --- 5. Ratings & Reviews --- */
 .ratings-and-reviews-section {
   padding-top: 1.5rem;
 }
+
 .section-title {
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   color: $text-color-dark;
   font-weight: bold;
   margin-bottom: 1rem;
+
+  @media (min-width: 768px) {
+    font-size: 1.5rem;
+  }
 }
+
 .ratings-summary {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
+
 .overall-rating {
   display: flex;
   align-items: baseline;
   gap: 0.25rem;
 }
+
 .rating-number {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: bold;
   color: $text-color-dark;
+
+  @media (min-width: 768px) {
+    font-size: 2.5rem;
+  }
 }
+
 .categorical-ratings {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
   margin-bottom: 2rem;
 }
+
 .rating-item {
   display: grid;
-  grid-template-columns: 150px 1fr auto;
+  /* Mobile: Stack label above bar? No, tight grid is better */
+  grid-template-columns: 110px 1fr auto;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
+
+  @media (min-width: 576px) {
+    grid-template-columns: 150px 1fr auto;
+    gap: 1rem;
+  }
 }
+
 .category-name {
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: $text-color-medium;
   font-weight: 500;
   text-transform: capitalize;
 }
+
 .bar-chart {
   width: 100%;
-  height: 8px;
+  height: 6px;
   background-color: #f3f4f6;
   border-radius: 9999px;
   overflow: hidden;
+
+  @media (min-width: 768px) {
+    height: 8px;
+  }
 }
+
 .bar-fill {
   height: 100%;
   background-color: $primary-color;
   border-radius: 9999px;
   transition: width 0.5s ease-in-out;
 }
+
 .score {
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: $text-color-dark;
   font-weight: 500;
 }
+
+/* --- 6. Rules --- */
 .rules-section {
   padding-top: 1.5rem;
   h3 {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     color: $text-color-dark;
     font-weight: bold;
     margin-bottom: 1rem;
   }
   p {
     margin-bottom: 1rem;
-    line-height: 1.6;
+    line-height: 1.5;
+    font-size: 0.95rem;
   }
   strong.rule-title {
     display: block;
-    font-size: 1.1em;
+    font-size: 1em;
     color: $primary-color;
     margin-bottom: 0.25rem;
   }
 }
+
+/* --- 7. Review List --- */
 .reviews-list-section {
   margin-top: 2rem;
 }
+
 .review-item {
   padding: 1.5rem 0;
   border-bottom: 1px solid $border-color;
@@ -666,63 +754,81 @@ onMounted(() => {
     border-bottom: none;
   }
 }
+
 .review-header {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
 }
+
 .reviewer-avatar {
-  width: 50px;
-  height: 50px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: cover;
+
+  @media (min-width: 768px) {
+    width: 50px;
+    height: 50px;
+  }
 }
+
 .reviewer-info {
   display: flex;
   flex-direction: column;
 }
+
 .reviewer-name {
   font-weight: 600;
   color: $text-color-dark;
+  font-size: 0.95rem;
 }
+
 .review-date {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: $text-color-medium;
 }
+
 .review-comment {
   color: $text-color-dark;
-  line-height: 1.6;
+  line-height: 1.5;
+  font-size: 0.95rem;
 }
+
 .loading-state {
   color: $text-color-medium;
   font-style: italic;
   margin-top: 1rem;
 }
 
-/* --- NEW STYLES FOR MOTORCYCLE SPECS --- */
+/* --- 8. Motorcycle Specs --- */
 .specs-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr; /* Mobile: 1 col */
   gap: 1rem;
   margin-bottom: 1rem;
-  @media (max-width: 576px) {
-    grid-template-columns: 1fr;
+
+  @media (min-width: 576px) {
+    grid-template-columns: repeat(2, 1fr); /* Tablet: 2 cols */
   }
 }
+
 .spec-item {
   display: flex;
   flex-direction: column;
 }
+
 .spec-label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: $text-color-medium;
   font-weight: 600;
   text-transform: uppercase;
   margin-bottom: 0.25rem;
 }
+
 .spec-value {
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: $text-color-dark;
   font-weight: 500;
 }

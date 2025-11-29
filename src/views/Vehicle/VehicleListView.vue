@@ -525,49 +525,84 @@ export default {
 <style lang="scss" scoped>
 @import "@/assets/styles/variables.scss";
 
+/* --- 1. Main Container --- */
 .vehicle-list-container {
-  padding: 1.5rem 2rem;
+  padding: 1rem; /* Reduced padding for mobile */
   max-width: 1400px;
   margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+
+  @media (min-width: 768px) {
+    padding: 1.5rem 2rem;
+  }
 }
 
-/* --- MODERN FILTER BAR STYLES --- */
+/* --- 2. Filter Section --- */
 .filters-sort-section {
   position: sticky;
-  top: 70px;
+  top: 60px; /* Adjusted for mobile header height */
   background-color: #ffffff;
-  z-index: 50;
-  padding: 1rem 0;
+  z-index: 40; /* Lower z-index to not cover modals */
+  padding: 0.75rem 0;
   border-bottom: 1px solid $border-color-light;
-  margin-bottom: 2.5rem;
+  margin-bottom: 1.5rem;
+
+  @media (min-width: 768px) {
+    top: 70px;
+    padding: 1rem 0;
+    margin-bottom: 2.5rem;
+  }
 }
 
 .filters-sort-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
+  gap: 0.5rem;
+
+  /* Mobile: Horizontal Scroll for filters */
+  overflow-x: auto;
+  padding-bottom: 5px; /* Space for scrollbar */
+  -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+
+  /* Hide Scrollbar visually but keep functionality */
+  &::-webkit-scrollbar {
+    height: 0px;
+    background: transparent;
+  }
+
+  @media (min-width: 992px) {
+    flex-wrap: wrap; /* Desktop: Wrap normally */
+    overflow-x: visible;
+    gap: 0.75rem;
+  }
 }
 
 .filter-group {
   position: relative;
+  flex-shrink: 0; /* Prevent filters from squishing on mobile */
 }
 
-/* General Button Style for Filters */
+/* General Filter Button */
 .filter-group > :deep(button) {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.6rem 1.1rem;
+  padding: 0.5rem 0.9rem; /* Slightly smaller on mobile */
   border: 1px solid $border-color;
   border-radius: $border-radius-pill;
   background-color: #fff;
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: $text-color-dark;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+
+  @media (min-width: 768px) {
+    padding: 0.6rem 1.1rem;
+    font-size: 0.9rem;
+  }
 
   &:hover {
     border-color: $text-color-dark;
@@ -583,25 +618,27 @@ export default {
   }
 }
 
-/* --- LOCATION SEARCH SPECIFIC STYLES (The Search Feature) --- */
+/* --- 3. Location Search Bar --- */
 .location-search-container {
-  // Ensure it doesn't shrink too small
-  min-width: 240px;
+  min-width: 200px;
+  flex-shrink: 0;
 
-  // On mobile, take full width
-  @media (max-width: 992px) {
+  /* On Mobile: Make it full width and stick to top */
+  @media (max-width: 991px) {
     width: 100%;
-    order: -1; // Move to top on mobile
-    margin-bottom: 0.5rem;
+    order: -1; /* Force to top */
+    margin-bottom: 0.75rem;
+    position: sticky;
+    left: 0;
   }
 
-  // Customize the trigger button to look like a search bar
   > :deep(button) {
-    border-radius: 8px; // Less round than pills
+    border-radius: 8px;
     justify-content: space-between;
     width: 100%;
-    border: 1px solid $primary-color; // Distinct border
+    border: 1px solid $primary-color;
     background-color: #fff;
+    padding: 0.6rem 1rem;
 
     &:hover {
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -611,23 +648,43 @@ export default {
 
 .filter-spacer {
   flex-grow: 1;
-  @media (max-width: 992px) {
-    display: none;
+  display: none; /* Hidden on mobile */
+
+  @media (min-width: 992px) {
+    display: block; /* Visible on desktop */
   }
 }
 
-/* --- Grid & Card Styles --- */
+/* --- 4. Vehicle Grid --- */
 .vehicle-grid-inner {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 2rem 1.5rem;
+  /* Mobile: 1 column
+     Tablet: 2 columns
+     Desktop: 3 or 4 columns
+  */
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+
+  @media (min-width: 550px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 900px) {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem 1.5rem;
+  }
+
+  @media (min-width: 1200px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
+/* --- Empty States & Messages --- */
 .loading-message,
 .no-vehicles-message {
   text-align: center;
-  padding: 4rem 1rem;
-  font-size: 1.1rem;
+  padding: 3rem 1rem;
+  font-size: 1rem;
   color: $text-color-medium;
 }
 
@@ -641,16 +698,19 @@ export default {
   align-items: center;
   gap: 1rem;
   margin: 2rem auto;
-  max-width: 500px;
+  max-width: 90%; /* Responsive width */
+  width: 500px;
+  padding: 2rem;
 
   .icon-large {
-    font-size: 3rem;
+    font-size: 2.5rem;
     color: $text-color-light;
   }
   p {
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: $text-color-dark;
     margin-bottom: 0.5rem;
+    text-align: center;
   }
 }
 
@@ -659,7 +719,7 @@ export default {
   width: 100%;
 }
 
-/* Vehicle Fade Animation */
+/* Animations */
 .vehicle-fade-enter-active,
 .vehicle-fade-leave-active {
   transition: opacity 0.5s ease;
@@ -669,7 +729,7 @@ export default {
   opacity: 0;
 }
 
-/* Basic Button Style */
+/* Button Utility */
 .button {
   padding: 0.75rem 1.25rem;
   border-radius: $border-radius-md;
@@ -680,6 +740,7 @@ export default {
   align-items: center;
   justify-content: center;
   border: 1px solid transparent;
+  font-size: 0.95rem;
 }
 .secondary-button {
   background-color: transparent;

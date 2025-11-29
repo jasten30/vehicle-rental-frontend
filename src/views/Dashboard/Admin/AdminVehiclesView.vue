@@ -471,11 +471,13 @@ $card-shadow:
 .admin-page-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1.5rem; /* Reduced padding for mobile */
   color: $text-main;
+  width: 100%;
+  box-sizing: border-box;
 
-  @media (max-width: 768px) {
-    padding: 1rem;
+  @media (min-width: 768px) {
+    padding: 2rem;
   }
 }
 
@@ -483,27 +485,37 @@ $card-shadow:
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 2.5rem;
-  flex-wrap: wrap;
+  align-items: flex-start; /* Better alignment for multiline titles */
+  margin-bottom: 2rem;
+  flex-direction: column; /* Stack by default on mobile */
   gap: 1rem;
 
+  @media (min-width: 768px) {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+
   .section-title {
-    font-size: 2rem;
+    font-size: 1.75rem; /* Smaller on mobile */
     font-weight: 800;
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.25rem 0;
     letter-spacing: -0.025em;
+
+    @media (min-width: 768px) {
+      font-size: 2rem;
+    }
   }
   .section-subtitle {
     color: $text-light;
     margin: 0;
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
 
   .header-action {
-    @media (max-width: 576px) {
-      width: 100%;
-      justify-content: center;
+    width: 100%;
+
+    @media (min-width: 768px) {
+      width: auto;
     }
   }
 }
@@ -511,58 +523,72 @@ $card-shadow:
 // --- Control Bar ---
 .control-bar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column-reverse; /* Stack filters below search on mobile */
+  gap: 1rem;
   background: white;
-  padding: 0.5rem;
-  border-radius: 16px;
+  padding: 1rem;
+  border-radius: 12px;
   box-shadow: $card-shadow;
   margin-bottom: 2rem;
-  flex-wrap: wrap;
-  gap: 1rem;
 
-  @media (max-width: 992px) {
-    flex-direction: column-reverse;
-    align-items: stretch;
-    padding: 1rem;
+  @media (min-width: 992px) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
   }
 }
 
 .tabs-wrapper {
   display: flex;
-  gap: 0.25rem;
-  background: $bg-color;
-  padding: 0.25rem;
-  border-radius: 12px;
-  overflow-x: auto; // Horizontal scroll on small screens
+  gap: 0.5rem;
+  overflow-x: auto; /* Horizontal scroll for filters */
+  padding-bottom: 5px;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+
+  /* Hide scrollbar */
+  &::-webkit-scrollbar {
+    height: 0px;
+    background: transparent;
+  }
+
+  @media (min-width: 992px) {
+    width: auto;
+    overflow-x: visible;
+    padding-bottom: 0;
+  }
 
   .filter-tab {
     border: none;
-    background: none;
-    padding: 0.6rem 1.25rem;
-    font-size: 0.9rem;
+    background: $bg-color;
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: $text-light;
     border-radius: 8px;
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.2s ease;
+    flex-shrink: 0; /* Prevent shrinking on mobile */
 
     &:hover {
       color: $text-main;
     }
     &.active {
-      background: white;
-      color: $primary-color;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      background: $primary-color; /* Active color background */
+      color: white;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
   }
 }
 
 .search-wrapper {
   position: relative;
-  @media (max-width: 992px) {
-    width: 100%;
+  width: 100%;
+
+  @media (min-width: 992px) {
+    width: 300px;
   }
 
   .search-icon {
@@ -573,10 +599,11 @@ $card-shadow:
     color: $text-light;
   }
   .search-input {
-    padding: 0.75rem 1rem 0.75rem 2.8rem;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
     border: 1px solid $border-color;
-    border-radius: 12px;
-    width: 300px;
+    border-radius: 10px;
+    width: 100%;
+    box-sizing: border-box;
     transition: all 0.2s;
     font-size: 0.95rem;
 
@@ -585,17 +612,16 @@ $card-shadow:
       border-color: $primary-color;
       box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
     }
-    @media (max-width: 992px) {
-      width: 100%;
-    }
   }
 }
 
-// --- Desktop Table ---
+// --- View Toggling ---
+/* Desktop Table View */
 .desktop-view {
-  display: block;
-  @media (max-width: 992px) {
-    display: none;
+  display: none; /* Hidden on mobile */
+
+  @media (min-width: 992px) {
+    display: block; /* Visible on Desktop */
   }
 }
 
@@ -604,6 +630,7 @@ $card-shadow:
   border-radius: 16px;
   box-shadow: $card-shadow;
   overflow: hidden;
+  width: 100%;
 }
 
 .modern-table {
@@ -612,7 +639,7 @@ $card-shadow:
 
   thead th {
     text-align: left;
-    padding: 1.25rem 1.5rem;
+    padding: 1rem 1.5rem;
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -636,73 +663,33 @@ $card-shadow:
   }
 }
 
-.vehicle-info-cell {
-  display: flex;
-  align-items: center;
+/* Mobile Card View */
+.mobile-view {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 1rem;
 
-  .vehicle-thumb {
-    width: 60px;
-    height: 40px;
-    object-fit: cover;
-    border-radius: 6px;
-    background-color: $bg-color;
+  @media (min-width: 600px) {
+    grid-template-columns: repeat(2, 1fr); /* 2 columns on tablets */
   }
-  .vehicle-text {
-    display: flex;
-    flex-direction: column;
-    .model {
-      font-weight: 600;
-      color: $text-main;
-    }
-    .plate {
-      font-size: 0.8rem;
-      color: $text-light;
-      text-transform: uppercase;
-    }
-  }
-}
 
-.owner-info-cell {
-  display: flex;
-  flex-direction: column;
-  .owner-name {
-    font-weight: 600;
-    color: $text-main;
-  }
-  .owner-email {
-    font-size: 0.85rem;
-    color: $text-light;
-  }
-}
-
-.price-cell {
-  font-family: "Roboto Mono", monospace;
-  font-weight: 600;
-  color: $text-main;
-}
-
-// --- Mobile Cards ---
-.mobile-view {
-  display: none;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-  @media (max-width: 992px) {
-    display: grid;
+  @media (min-width: 992px) {
+    display: none; /* Hide on Desktop */
   }
 }
 
 .vehicle-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 12px;
   overflow: hidden;
   box-shadow: $card-shadow;
   display: flex;
   flex-direction: column;
+  border: 1px solid $border-color;
 
   .card-image-wrapper {
     position: relative;
-    height: 180px;
+    height: 160px;
 
     .card-image {
       width: 100%;
@@ -718,19 +705,14 @@ $card-shadow:
   }
 
   .card-body {
-    padding: 1.25rem;
+    padding: 1rem;
     flex: 1;
 
     .card-title {
-      margin: 0;
+      margin: 0 0 0.5rem 0;
       font-size: 1.1rem;
       font-weight: 700;
-    }
-    .card-plate {
-      margin: 0.25rem 0 1rem;
-      font-size: 0.85rem;
-      color: $text-light;
-      text-transform: uppercase;
+      color: $text-main;
     }
 
     .card-details {
@@ -745,9 +727,15 @@ $card-shadow:
         font-size: 0.9rem;
         color: $text-light;
 
+        i {
+          width: 16px;
+          text-align: center;
+        }
+
         &.price {
           color: $text-main;
           font-weight: 600;
+          margin-top: 0.5rem;
         }
       }
     }
@@ -757,18 +745,24 @@ $card-shadow:
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 1.25rem;
+    padding: 0.75rem 1rem;
     border-top: 1px solid $border-color;
-    background: #fafafa;
+    background: #fcfcfc;
 
     .btn-card {
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
       font-weight: 600;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       border: 1px solid $border-color;
       background: white;
       color: $text-main;
+      cursor: pointer;
+      text-decoration: none;
+
+      &:hover {
+        background: #f3f4f6;
+      }
     }
     .icon-group {
       display: flex;
@@ -777,31 +771,81 @@ $card-shadow:
   }
 }
 
-// --- Common Styles ---
+// --- Table Cells Content ---
+.vehicle-info-cell {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  .vehicle-thumb {
+    width: 50px;
+    height: 35px;
+    object-fit: cover;
+    border-radius: 4px;
+    background-color: $bg-color;
+  }
+  .vehicle-text {
+    display: flex;
+    flex-direction: column;
+    .model {
+      font-weight: 600;
+      color: $text-main;
+      font-size: 0.95rem;
+    }
+    .plate {
+      font-size: 0.75rem;
+      color: $text-light;
+      text-transform: uppercase;
+    }
+  }
+}
+
+.owner-info-cell {
+  display: flex;
+  flex-direction: column;
+  .owner-name {
+    font-weight: 600;
+    color: $text-main;
+    font-size: 0.9rem;
+  }
+  .owner-email {
+    font-size: 0.8rem;
+    color: $text-light;
+  }
+}
+
+.price-cell {
+  font-family: monospace;
+  font-weight: 600;
+  color: $text-main;
+}
+
+// --- Status Badges ---
 .status-badge {
-  padding: 0.35rem 0.75rem;
+  padding: 0.25rem 0.6rem;
   border-radius: 50px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
 
   &.status-success {
     background: #d1fae5;
     color: #065f46;
-  } // Available
+  }
   &.status-booked {
     background: #e0f2fe;
     color: #075985;
-  } // On Trip
+  }
   &.status-warning {
     background: #fef3c7;
     color: #92400e;
-  } // Pending
+  }
   &.status-returned {
     background: #e0e7ff;
     color: #3730a3;
-  } // Completed
+  }
   &.status-default {
     background: #f3f4f6;
     color: #4b5563;
@@ -816,9 +860,9 @@ $card-shadow:
 
 .action-btn,
 .btn-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
   border: none;
   background: transparent;
   color: $text-light;
@@ -846,30 +890,14 @@ $card-shadow:
   }
 }
 
-// --- Button & Pagination ---
-.primary-btn {
-  background: $primary-color;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 12px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  transition: background 0.2s;
-  &:hover {
-    background: darken($primary-color, 5%);
-  }
-}
-
+// --- Pagination ---
 .pagination-controls {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 1rem;
   margin-top: 2rem;
+  flex-wrap: wrap; /* Allow wrap on very small screens */
 
   .pagination-btn {
     background: white;
@@ -900,10 +928,10 @@ $card-shadow:
   }
 }
 
-// --- States ---
+// --- Loading State ---
 .state-container {
   text-align: center;
-  padding: 4rem 2rem;
+  padding: 4rem 1rem;
   color: $text-light;
   background: white;
   border-radius: 16px;

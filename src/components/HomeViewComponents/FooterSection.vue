@@ -3,16 +3,15 @@
     <div class="footer-content">
       <div class="footer-column brand">
         <h2 class="footer-title">
-          <span class="rent-text">RENT</span><span class="cycle-text">CYCLE</span>
+          <span class="rent-text">RENT</span
+          ><span class="cycle-text">CYCLE</span>
         </h2>
-        <p class="tagline">Your adventure starts here. Rent cars and motorcycles from trusted local hosts.</p>
-        <div class="social-icons">
-          <a href="#" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
-          <a href="#" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
-          <a href="#" aria-label="Twitter"><i class="bi bi-twitter"></i></a>
-        </div>
+        <p class="tagline">
+          Your adventure starts here. Rent cars and motorcycles from trusted
+          local hosts.
+        </p>
       </div>
-      
+
       <div class="footer-column links">
         <h4 class="column-title">Company</h4>
         <ul>
@@ -27,7 +26,9 @@
         <ul>
           <li><router-link to="/contact">Contact Support</router-link></li>
           <li><router-link to="/faq">FAQ</router-link></li>
-          <li><router-link to="/trust-and-safety">Trust & Safety</router-link></li>
+          <li>
+            <router-link to="/trust-and-safety">Trust & Safety</router-link>
+          </li>
           <li><router-link to="/how-it-works">How it Works</router-link></li>
         </ul>
       </div>
@@ -41,30 +42,35 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <p>&copy; {{ new Date().getFullYear() }} RentCycle, Inc. All rights reserved.</p>
+      <p>
+        &copy; {{ new Date().getFullYear() }} RentCycle, Inc. All rights
+        reserved.
+      </p>
       <ul>
         <li><router-link to="/privacy-policy">Privacy Policy</router-link></li>
-        <li><router-link to="/terms-of-service">Terms of Service</router-link></li>
-        </ul>
+        <li>
+          <router-link to="/terms-of-service">Terms of Service</router-link>
+        </li>
+      </ul>
     </div>
   </footer>
 </template>
 
 <script>
 export default {
-  name: 'FooterSection'
-}
+  name: "FooterSection",
+};
 </script>
 
 <style lang="scss" scoped>
-@import '@/assets/styles/variables.scss';
+@import "@/assets/styles/variables.scss";
 
 .footer-container {
   background-color: $background-light;
   color: $text-color-medium;
   padding: 4rem 2rem 2rem;
   border-top: 1px solid $border-color-light;
-  font-family: 'Nunito', sans-serif;
+  font-family: "Nunito", sans-serif;
 }
 
 .footer-content {
@@ -90,13 +96,19 @@ export default {
 }
 
 .footer-title {
-  font-family: 'Anton', sans-serif;
+  font-family: "Anton", sans-serif;
   font-size: 2.2rem;
   font-weight: 400;
   margin: 0 0 1rem 0;
   line-height: 1;
-  .rent-text { color: red; font-style: italic; }
-  .cycle-text { color: black; font-style: italic; }
+  .rent-text {
+    color: red;
+    font-style: italic;
+  }
+  .cycle-text {
+    color: black;
+    font-style: italic;
+  }
 }
 
 .tagline {
@@ -135,7 +147,7 @@ export default {
     flex-direction: column;
     gap: 0.75rem;
   }
-  
+
   a {
     text-decoration: none;
     color: $text-color-medium;

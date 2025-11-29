@@ -60,7 +60,14 @@
 import { ref, defineProps } from "vue";
 import { useStore } from "vuex";
 import { useRouter } from "vue-router";
-import { getFirestore, doc, getDoc, collection, addDoc, updateDoc } from "firebase/firestore";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  collection,
+  addDoc,
+  updateDoc,
+} from "firebase/firestore";
 
 // Define props to receive data from the parent component
 const props = defineProps({
@@ -109,10 +116,10 @@ const submitReview = async () => {
       class: "message-error",
     };
     // Redirect to the login page
-    setTimeout(() => router.push('/login'), 2000);
+    setTimeout(() => router.push("/login"), 2000);
     return;
   }
-  
+
   if (
     !newReview.value.rating ||
     !newReview.value.comment ||
@@ -224,33 +231,55 @@ const submitReview = async () => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+/* Use SCSS for cleaner media queries */
+
 .review-form-container {
+  width: 100%;
   max-width: 600px;
-  margin: 2rem auto;
-  padding: 2rem;
+  margin: 1rem auto; /* Reduced margin for mobile */
+  padding: 1.5rem; /* Reduced padding for mobile */
   background-color: #fff;
   border-radius: 1rem;
   box-shadow:
     0 4px 6px -1px rgb(0 0 0 / 0.1),
     0 2px 4px -2px rgb(0 0 0 / 0.1);
   font-family: "Inter", sans-serif;
+  box-sizing: border-box; /* Prevents padding from breaking width */
+
+  @media (min-width: 768px) {
+    margin: 2rem auto;
+    padding: 2.5rem;
+  }
 }
 
 .form-title {
-  font-size: 1.5rem;
+  font-size: 1.25rem; /* Smaller on mobile */
   font-weight: bold;
   margin-bottom: 1.5rem;
   color: #1f2937;
+  text-align: center;
+
+  @media (min-width: 768px) {
+    font-size: 1.5rem;
+    text-align: left;
+  }
 }
 
 .star-rating-input {
   margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center stars on mobile */
+
+  @media (min-width: 768px) {
+    align-items: flex-start;
+  }
 }
 
 .stars {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.5rem; /* More spacing for touch targets */
 }
 
 .stars .star-filled {
@@ -258,10 +287,11 @@ const submitReview = async () => {
 }
 
 .stars span {
-  font-size: 2rem;
+  font-size: 2rem; /* Large touch targets */
   cursor: pointer;
   transition: color 0.2s;
   color: #d1d5db;
+  line-height: 1;
 }
 
 .stars span:hover,
@@ -272,8 +302,8 @@ const submitReview = async () => {
 .categorical-sliders {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
 }
 
 .slider-item {
@@ -282,10 +312,10 @@ const submitReview = async () => {
 }
 
 .slider-label {
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: #4b5563;
   font-weight: 500;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .slider-input {
@@ -295,16 +325,24 @@ const submitReview = async () => {
   background: #f3f4f6;
   border-radius: 9999px;
   cursor: pointer;
+  outline: none; /* Remove blue outline on touch */
 }
 
 .slider-input::-webkit-slider-thumb {
   -webkit-appearance: none;
-  height: 16px;
-  width: 16px;
+  height: 24px; /* Larger touch target for mobile */
+  width: 24px;
   background: #8c73ff;
   border-radius: 50%;
-  border: none;
-  transition: background-color 0.2s ease-in-out;
+  border: 2px solid white; /* Add border for better visibility */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition:
+    background-color 0.2s ease-in-out,
+    transform 0.1s;
+
+  &:active {
+    transform: scale(1.1);
+  }
 }
 
 .slider-input::-webkit-slider-thumb:hover {
@@ -314,14 +352,14 @@ const submitReview = async () => {
 .comment-input-group {
   display: flex;
   flex-direction: column;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .input-label {
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #4b5563;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
 }
 
 .comment-textarea {
@@ -329,14 +367,23 @@ const submitReview = async () => {
   padding: 0.75rem;
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
-  font-size: 1rem;
+  font-size: 1rem; /* 16px prevents zoom on iOS */
   resize: vertical;
   color: #374151;
+  min-height: 100px;
+  box-sizing: border-box;
+  font-family: inherit;
+
+  &:focus {
+    outline: none;
+    border-color: #8c73ff;
+    box-shadow: 0 0 0 3px rgba(140, 115, 255, 0.1);
+  }
 }
 
 .submit-review-btn {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.85rem; /* Larger tap area */
   background-color: #3b82f6;
   color: #fff;
   border: none;
@@ -344,33 +391,47 @@ const submitReview = async () => {
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    transform 0.1s;
+
+  &:hover:not(:disabled) {
+    background-color: #2563eb;
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+  }
 }
 
-.submit-review-btn:hover:not(:disabled) {
-  background-color: #2563eb;
-}
-
-.submit-review-btn:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
+.message-success,
+.message-error,
+.message-info {
+  margin-top: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
 }
 
 .message-success {
-  margin-top: 1rem;
-  color: #10b981;
-  font-weight: 500;
+  color: #065f46;
+  background-color: #d1fae5;
 }
 
 .message-error {
-  margin-top: 1rem;
-  color: #ef4444;
-  font-weight: 500;
+  color: #991b1b;
+  background-color: #fee2e2;
 }
 
 .message-info {
-  margin-top: 1rem;
-  color: #3b82f6;
-  font-weight: 500;
+  color: #1e40af;
+  background-color: #dbeafe;
 }
 </style>

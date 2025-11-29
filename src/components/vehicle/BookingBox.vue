@@ -476,33 +476,56 @@ export default {
 <style lang="scss" scoped>
 @import "@/assets/styles/variables.scss";
 
+/* --- 1. Main Booking Card --- */
 .booking-box-card {
-  padding: 1.5rem;
+  padding: 1.25rem;
   border: 1px solid $border-color;
   border-radius: $border-radius-lg;
   box-shadow: $shadow-medium;
   background-color: $card-background;
-  position: sticky;
-  top: 2rem;
-  min-width: 300px;
-  max-width: 400px;
-  align-self: flex-start;
+
+  /* Mobile Default: Full width, static position */
+  width: 100%;
+  position: relative;
+  box-sizing: border-box;
+  margin-top: 1.5rem; /* Add space between vehicle info and this box on mobile */
+
+  /* Desktop: Sticky Sidebar */
+  @media (min-width: 992px) {
+    position: sticky;
+    top: 6rem; /* Adjust based on your header height */
+    min-width: 320px;
+    max-width: 400px;
+    align-self: flex-start;
+    padding: 1.5rem;
+    margin-top: 0;
+  }
 }
 
+/* --- 2. Price Header --- */
 .price-header {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+
   .price-amount {
-    font-size: 1.75rem;
+    font-size: 1.5rem; /* Smaller on mobile */
     font-weight: 700;
     color: $text-color-dark;
+
+    @media (min-width: 768px) {
+      font-size: 1.75rem;
+    }
   }
   .price-period {
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: $text-color-medium;
-    margin-left: $spacing-sm;
+    margin-left: 0.5rem;
   }
 }
 
+/* --- 3. Date Picker Section --- */
 .date-picker-section {
   display: flex;
   flex-direction: column;
@@ -511,6 +534,7 @@ export default {
   border-radius: $border-radius-md;
   padding: 1rem;
   margin-bottom: 1.5rem;
+  background-color: #fcfcfc;
 }
 
 .datetime-input-group {
@@ -522,6 +546,7 @@ export default {
     text-transform: uppercase;
     color: $text-color-dark;
     margin-bottom: 0.35rem;
+    letter-spacing: 0.05em;
   }
 }
 
@@ -529,10 +554,15 @@ export default {
   display: flex;
   gap: 0.75rem;
 
+  /* On very small phones, stack date and time */
+  @media (max-width: 360px) {
+    flex-direction: column;
+  }
+
   input[type="date"],
   input[type="time"] {
     border: 1px solid $border-color-light;
-    padding: 0.6rem 0.75rem;
+    padding: 0.7rem;
     border-radius: $border-radius-md;
     font-family: $font-family-base;
     font-size: 0.95rem;
@@ -542,6 +572,10 @@ export default {
     transition:
       border-color 0.2s ease,
       box-shadow 0.2s ease;
+
+    /* Remove default iOS styles */
+    -webkit-appearance: none;
+    appearance: none;
 
     &:focus {
       outline: none;
@@ -557,14 +591,16 @@ export default {
       border-style: dashed;
     }
   }
+
   input[type="date"] {
-    flex-basis: 55%;
+    flex: 3; /* Give date more space */
   }
   input[type="time"] {
-    flex-basis: 45%;
+    flex: 2;
   }
 }
 
+/* --- 4. Price Calculation List --- */
 .price-calculation {
   margin-bottom: 1.5rem;
 }
@@ -577,16 +613,19 @@ export default {
   color: $text-color-medium;
 
   span:last-child {
-    font-weight: 500;
+    font-weight: 600;
     color: $text-color-dark;
   }
 
   &.total {
     font-weight: 700;
-    font-size: 1.15rem;
+    font-size: 1.1rem;
     color: $text-color-dark;
+    margin-top: 0.5rem;
+
     span:last-child {
-      color: $text-color-dark;
+      color: $primary-color;
+      font-size: 1.2rem;
     }
   }
 }
@@ -597,16 +636,23 @@ export default {
   margin: 0.75rem 0;
 }
 
+/* --- 5. Status Messages --- */
 .availability-message {
   padding: 0.8rem 1rem;
   border-radius: $border-radius-md;
   margin-bottom: 1.5rem;
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* Better for multiline text */
   gap: 0.75rem;
-  font-size: 0.95rem;
-  font-weight: 500;
+  font-size: 0.9rem;
+  font-weight: 600;
   border: 1px solid transparent;
+  line-height: 1.4;
+
+  i {
+    margin-top: 2px; /* Align icon with text top */
+    flex-shrink: 0;
+  }
 
   &.available {
     background-color: #d1fae5;
@@ -641,8 +687,6 @@ export default {
       color: #6b7280;
     }
   }
-
-  /* Suspended Styles */
   &.suspended {
     background-color: #fee2e2;
     color: #b91c1c;
@@ -654,6 +698,7 @@ export default {
   }
 }
 
+/* --- 6. Buttons --- */
 .continue-button {
   width: 100%;
   padding: 0.9rem;
@@ -661,12 +706,19 @@ export default {
   color: white;
   border: none;
   border-radius: $border-radius-md;
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   cursor: pointer;
   transition:
     background-color 0.2s ease-in-out,
     transform 0.1s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  @media (min-width: 768px) {
+    font-size: 1.1rem;
+  }
 
   &.verification-button {
     background-color: $secondary-color;
@@ -675,7 +727,6 @@ export default {
     }
   }
 
-  /* Suspended Button Style */
   &.suspended-button {
     background-color: #e5e7eb;
     color: #6b7280;

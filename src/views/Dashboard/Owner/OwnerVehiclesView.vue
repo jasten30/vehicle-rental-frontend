@@ -301,74 +301,122 @@ export default {
 <style lang="scss" scoped>
 @import "../../../assets/styles/variables.scss";
 
+/* --- Global Container --- */
 .owner-vehicles-container {
-  padding: 1.5rem;
+  padding: 1rem; /* Reduced for mobile default */
   max-width: 1200px;
   margin: 0 auto;
-}
-.section-title {
-  font-size: 2.2rem;
-  font-weight: 800;
-  color: $text-color-dark;
-  margin-bottom: 2rem;
-  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+
+  /* Tablet and up */
+  @media (min-width: 768px) {
+    padding: 2rem;
+  }
 }
 
-/* Suspension Banner */
+.section-title {
+  font-size: 1.8rem; /* Smaller on mobile */
+  font-weight: 800;
+  color: $text-color-dark;
+  margin-bottom: 1.5rem;
+  text-align: center;
+
+  @media (min-width: 768px) {
+    font-size: 2.2rem;
+    margin-bottom: 2rem;
+  }
+}
+
+/* --- Suspension Banner --- */
 .suspension-banner {
   background-color: #fee2e2;
   color: #b91c1c;
   border: 1px solid #fecaca;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   border-radius: 8px;
   display: flex;
+  flex-direction: column; /* Stack on mobile */
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
   margin-bottom: 2rem;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
+  text-align: center;
+
+  @media (min-width: 640px) {
+    flex-direction: row;
+    font-size: 0.95rem;
+    gap: 12px;
+    padding: 1rem;
+  }
 
   i {
     font-size: 1.2rem;
   }
 }
 
+/* --- Empty / Error States --- */
 .empty-card,
 .error-card {
   background-color: $card-background;
   border-radius: $border-radius-lg;
   box-shadow: $shadow-medium;
-  padding: 3rem 1.5rem;
+  padding: 2rem 1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+
+  @media (min-width: 768px) {
+    padding: 3rem 1.5rem;
+  }
 }
+
 .loading-message {
-  padding: 3rem;
+  padding: 2rem;
   text-align: center;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   color: $text-color-medium;
 }
+
 .error-message {
   color: $admin-color;
   font-weight: 600;
-  border-radius: $border-radius-md;
+  text-align: center;
 }
+
 .no-vehicles-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
   .icon-large {
-    font-size: 4rem;
+    font-size: 3rem;
     color: $primary-color;
+    margin-bottom: 1rem;
+
+    @media (min-width: 768px) {
+      font-size: 4rem;
+    }
   }
   .message-text {
-    font-size: 1.1rem;
+    font-size: 1rem;
     color: $text-color-dark;
     margin-bottom: 0.5rem;
     max-width: 400px;
     text-align: center;
+    line-height: 1.5;
+
+    @media (min-width: 768px) {
+      font-size: 1.1rem;
+    }
   }
 }
+
 .spinner {
   border: 4px solid $border-color-light;
   border-top: 4px solid $primary-color;
@@ -378,6 +426,7 @@ export default {
   animation: spin 1s linear infinite;
   margin-top: 1rem;
 }
+
 @keyframes spin {
   0% {
     transform: rotate(0deg);
@@ -386,18 +435,38 @@ export default {
     transform: rotate(360deg);
   }
 }
+
+/* --- Vehicle List Grid --- */
 .vehicle-list-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
 }
+
 .vehicle-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 2rem;
+  /* RESPONSIVE GRID LOGIC:
+     - 1 column on mobile (< 600px)
+     - 2 columns on tablets (> 600px)
+     - 3 columns on desktops (> 900px)
+  */
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
   width: 100%;
   position: relative;
+
+  @media (min-width: 600px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 992px) {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
 }
+
+/* --- Vehicle Card --- */
 .vehicle-card {
   background-color: $card-background;
   border-radius: $border-radius-lg;
@@ -408,34 +477,43 @@ export default {
   transition:
     transform 0.3s ease,
     box-shadow 0.3s ease;
+  height: 100%; /* Ensure cards match height in grid */
 
   &:hover {
     transform: translateY(-5px);
     box-shadow: $shadow-large;
   }
 }
+
 .image-wrapper {
   position: relative;
   width: 100%;
-  height: 200px;
+  height: 180px; /* Slightly smaller on mobile */
   overflow: hidden;
+
+  @media (min-width: 768px) {
+    height: 200px;
+  }
 }
+
 .vehicle-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-bottom: 1px solid #e0e0e0;
 }
+
 .status-badge {
   position: absolute;
-  top: 1rem;
-  left: 1rem;
-  padding: 0.3rem 0.8rem;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.25rem 0.6rem;
   border-radius: $border-radius-pill;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   color: white;
+  z-index: 2;
 
   &.active {
     background-color: $secondary-color;
@@ -447,30 +525,48 @@ export default {
     background-color: $text-color-medium;
   }
 }
+
 .vehicle-details {
-  padding: 1.25rem;
+  padding: 1rem;
   flex-grow: 1;
   display: flex;
   flex-direction: column;
 
+  @media (min-width: 768px) {
+    padding: 1.25rem;
+  }
+
   .vehicle-title {
-    font-size: 1.3rem;
+    font-size: 1.15rem;
     font-weight: 700;
     color: $text-color-dark;
-    margin: 0 0 1rem 0;
+    margin: 0 0 0.75rem 0;
     line-height: 1.3;
+
+    @media (min-width: 768px) {
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+    }
   }
+
   .detail-row {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     color: $text-color-dark;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
     display: flex;
     align-items: center;
+    flex-wrap: wrap; /* Allow wrapping on very small screens */
+
+    @media (min-width: 768px) {
+      font-size: 0.95rem;
+      margin-bottom: 0.5rem;
+    }
 
     i {
       font-size: 1rem;
       margin-right: 0.5rem;
       color: $primary-color;
+      flex-shrink: 0;
     }
     strong {
       font-weight: 600;
@@ -479,16 +575,25 @@ export default {
     }
   }
 }
+
+/* --- Card Actions (Buttons) --- */
 .vehicle-actions {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column; /* Stack vertically on mobile */
   gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  padding: 1rem;
   border-top: 1px solid $border-color-light;
   background-color: #f9fafb;
+
+  @media (min-width: 480px) {
+    flex-direction: row; /* Row on larger phones/tablets */
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+  }
 }
+
 .button {
-  padding: 0.75rem 1.25rem;
+  padding: 0.75rem 1rem;
   border-radius: $border-radius-md;
   font-weight: 600;
   cursor: pointer;
@@ -500,12 +605,18 @@ export default {
   align-items: center;
   justify-content: center;
   border: 1px solid transparent;
+  width: 100%; /* Full width on mobile */
+  font-size: 0.95rem;
+
+  @media (min-width: 480px) {
+    width: auto; /* Auto width on larger screens */
+    padding: 0.75rem 1.25rem;
+  }
 
   &.icon-button i {
     margin-right: 0.5rem;
   }
 
-  /* Disabled Style */
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -516,6 +627,7 @@ export default {
     box-shadow: none !important;
   }
 }
+
 .primary-button {
   background-color: $primary-color;
   color: white;
@@ -525,6 +637,7 @@ export default {
     transform: translateY(-1px);
   }
 }
+
 .secondary-button {
   background-color: transparent;
   color: $primary-color;
@@ -534,6 +647,7 @@ export default {
     transform: translateY(-1px);
   }
 }
+
 .cancel-button {
   background-color: $admin-color;
   color: white;
@@ -543,15 +657,26 @@ export default {
     transform: translateY(-1px);
   }
 }
+
 .add-new-button {
-  margin-top: 2.5rem;
-  width: fit-content;
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
+  margin-top: 2rem;
+  width: 100%;
+  padding: 1rem;
+  font-size: 1rem;
+
+  @media (min-width: 480px) {
+    width: fit-content;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    margin-top: 2.5rem;
+  }
+
   i {
     margin-right: 0.5rem;
   }
 }
+
+/* --- Animations --- */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.5s ease;
@@ -576,8 +701,5 @@ export default {
 .list-fade-leave-to {
   opacity: 0;
   transform: translateY(-30px) scale(0.98);
-}
-.vehicle-list {
-  position: relative;
 }
 </style>

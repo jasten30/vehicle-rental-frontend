@@ -272,48 +272,50 @@ export default {
 
 // --- Dynamic Gallery Layouts ---
 
-// Default grid (for desktop)
+// Default grid container
 .vehicle-image-gallery {
   display: grid;
   gap: 0.5rem;
-  height: 450px;
+  height: 450px; /* Desktop Height */
   overflow: hidden;
   border-radius: 12px;
+  width: 100%;
 
   // 1. Standard Layout (1 Big + 2 Small)
   &.layout-standard {
-    grid-template-columns: 3fr 1fr;
+    grid-template-columns: 2fr 1fr;
   }
 
   // 2. Single Image Layout (1 Big, No Thumbnails)
   &.layout-single {
-    grid-template-columns: 1fr; // Full width
+    grid-template-columns: 1fr;
     .thumbnail-grid {
       display: none;
-    } // Hide right column
+    }
   }
 
-  // 3. Split Half Layout (1 Big + 1 Small)
+  // 3. Split Half Layout
   &.layout-split-half {
-    grid-template-columns: 3fr 1fr;
+    grid-template-columns: 1fr 1fr;
     .thumbnail-grid {
-      grid-template-rows: 1fr; // Only 1 row in right column
-    }
-  }
-
-  // Mobile Responsiveness
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr !important;
-    height: 350px;
-
-    &.layout-standard {
-      grid-template-rows: 3fr 1fr;
-    }
-    &.layout-single {
       grid-template-rows: 1fr;
     }
-    &.layout-split-half {
-      grid-template-rows: 3fr 1fr;
+  }
+
+  // --- MOBILE RESPONSIVENESS ---
+  @media (max-width: 768px) {
+    height: 300px; /* Smaller height for mobile */
+    grid-template-columns: 1fr !important; /* Stack vertically if needed, or hide thumbnails */
+
+    &.layout-standard {
+      grid-template-columns: 1fr; /* Only show main image big */
+      grid-template-rows: 1fr; /* Hide thumbnails visually or stack below */
+      /* Note: You might want to hide .thumbnail-grid on mobile to save space */
+    }
+
+    /* Hide the side grid on mobile for a cleaner look */
+    .thumbnail-grid {
+      display: none;
     }
   }
 }
@@ -325,19 +327,19 @@ export default {
   cursor: pointer;
   transition: transform 0.3s ease;
   &:hover {
-    transform: scale(1.01);
+    transform: scale(1.02);
   }
 }
 
 .thumbnail-grid {
   display: grid;
-  grid-template-rows: 1fr 1fr; // Standard is 2 rows
+  grid-template-rows: 1fr 1fr;
   gap: 0.5rem;
   height: 100%;
 
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr 1fr; // Side by side on mobile
-    grid-template-rows: 1fr;
+  /* On Tablet (between mobile and desktop), maybe show them? */
+  @media (min-width: 769px) {
+    display: grid;
   }
 }
 
@@ -359,117 +361,165 @@ export default {
   }
 }
 
-/* ... (Keep the rest of your existing Modal/Slider styles exactly as they were) ... */
 .show-all-button {
   position: absolute;
-  bottom: 0.5rem;
-  right: 0.5rem;
+  bottom: 1rem;
+  right: 1rem;
   background-color: rgba(255, 255, 255, 0.9);
   color: $text-color-dark;
   border: 1px solid #e5e7eb;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 600;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: all 0.2s;
+  z-index: 10;
+
   i {
-    margin-right: 4px;
+    margin-right: 6px;
   }
   &:hover {
     background-color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
   }
 }
+
+/* --- MODAL STYLES --- */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.9);
+  background-color: rgba(0, 0, 0, 0.85);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 2000;
+  padding: 1rem; /* Prevent edge touching */
 }
+
 .modal-content {
-  width: 90%;
+  width: 100%;
   max-width: 1000px;
   max-height: 90vh;
-  padding: 2rem;
+  padding: 1.5rem; /* Reduced padding */
   background: white;
   border-radius: 12px;
   overflow-y: auto;
   position: relative;
+  box-sizing: border-box;
+
+  @media (min-width: 768px) {
+    padding: 2.5rem;
+  }
 }
+
 .modal-close-button {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: 0.75rem;
+  right: 0.75rem;
   background: #f3f4f6;
   border: none;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+
+  @media (min-width: 768px) {
+    top: 1rem;
+    right: 1rem;
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
+  }
+
   &:hover {
     background: #e5e7eb;
   }
 }
+
 .modal-gallery-title {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: $text-color-dark;
   margin-bottom: 1.5rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid #e5e7eb;
+  padding-right: 2rem; /* Avoid close button overlap */
+
+  @media (min-width: 768px) {
+    font-size: 1.5rem;
+  }
 }
+
 .modal-section-subtitle {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   color: $primary-color;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
+
 .modal-photo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(140px, 1fr)
+  ); /* Smaller minmax for mobile */
+  gap: 0.75rem;
   margin-bottom: 2rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
   &.single {
     grid-template-columns: 1fr;
     max-width: 600px;
     margin: 0 auto 2rem auto;
   }
 }
+
 .modal-image {
   width: 100%;
-  height: 200px;
+  height: 120px; /* Shorter on mobile */
   object-fit: cover;
   border-radius: 8px;
   cursor: zoom-in;
   transition: transform 0.2s;
+
+  @media (min-width: 768px) {
+    height: 200px;
+  }
+
   &:hover {
     transform: scale(1.02);
   }
+
   &.profile-image {
     height: auto;
-    max-height: 400px;
+    max-height: 300px;
     object-fit: contain;
     background: #f9fafb;
   }
 }
+
 .no-photos-text {
   color: #6b7280;
   font-style: italic;
+  font-size: 0.9rem;
 }
+
+/* --- FULLSCREEN SLIDER --- */
 .fullscreen-overlay {
   position: fixed;
   top: 0;
@@ -482,11 +532,13 @@ export default {
   align-items: center;
   z-index: 3000;
 }
+
 .fullscreen-image {
-  max-width: 95vw;
-  max-height: 95vh;
+  max-width: 100vw;
+  max-height: 100vh;
   object-fit: contain;
 }
+
 .fullscreen-close-button {
   position: absolute;
   top: 1rem;
@@ -497,35 +549,41 @@ export default {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  font-size: 2rem;
+  font-size: 1.5rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  &:hover {
-    background: rgba(255, 255, 255, 0.4);
-  }
+  z-index: 3001;
 }
+
 .nav-button {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   background: transparent;
   color: white;
-  font-size: 3rem;
+  font-size: 2rem; /* Smaller arrows on mobile */
   border: none;
   cursor: pointer;
   padding: 1rem;
+  z-index: 3001;
+
+  @media (min-width: 768px) {
+    font-size: 3rem;
+  }
+
   &:hover {
     color: $primary-color;
   }
   &.prev-button {
-    left: 1rem;
+    left: 0;
   }
   &.next-button {
-    right: 1rem;
+    right: 0;
   }
 }
+
 .image-counter {
   position: absolute;
   bottom: 2rem;
@@ -534,7 +592,10 @@ export default {
   background: rgba(0, 0, 0, 0.5);
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
+  font-size: 0.9rem;
 }
+
+/* Transitions */
 .modal-bounce-enter-active {
   transition: all 0.3s ease-out;
 }
@@ -546,6 +607,7 @@ export default {
   opacity: 0;
   transform: scale(0.95);
 }
+
 .fullscreen-fade-enter-active,
 .fullscreen-fade-leave-active {
   transition: opacity 0.3s;

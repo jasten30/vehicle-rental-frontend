@@ -2,21 +2,24 @@
   <section class="skip-counter-section">
     <div class="container">
       <div class="header-content">
-        <h2 class="main-title">Rent any car, anywhere, <span class="highlight">instantly.</span></h2>
+        <h2 class="main-title">
+          Rent any car, anywhere, <span class="highlight">instantly.</span>
+        </h2>
         <p class="subtitle">
-          Skip the rental counter. Unlock freedom with a vehicle ready whenever you are.
+          Skip the rental counter. Unlock freedom with a vehicle ready whenever
+          you are.
         </p>
       </div>
 
       <div class="content-grid">
-        
         <div class="text-column">
           <div class="feature-block">
             <h3 class="feature-title">Vehicle pickup made effortless</h3>
             <p class="feature-description">
-              Connect with trusted local hosts in Cebu Province for a seamless handover experience.
+              Connect with trusted local hosts in Cebu Province for a seamless
+              handover experience.
             </p>
-            
+
             <ul class="feature-list">
               <li>
                 <div class="icon-box">
@@ -33,12 +36,14 @@
                 </div>
                 <div class="list-text">
                   <strong>Easy Access</strong>
-                  <span>Locate and unlock your booked vehicle via our app.</span>
+                  <span
+                    >Locate and unlock your booked vehicle via our app.</span
+                  >
                 </div>
               </li>
               <li>
                 <div class="icon-box">
-                  <i class="bi bi-shield-check-fill"></i>
+                  <i class="bi bi-shield-fill-check"></i>
                 </div>
                 <div class="list-text">
                   <strong>24/7 Support</strong>
@@ -68,7 +73,6 @@
             </div>
           </div>
         </div>
-
       </div>
     </div>
   </section>
@@ -76,19 +80,19 @@
 
 <script>
 export default {
-  name: 'SkipCounterSection',
+  name: "SkipCounterSection",
   methods: {
     goToVehicleList() {
-      this.$router.push({ name: 'VehicleList' });
+      this.$router.push({ name: "VehicleList" });
     },
   },
 };
 </script>
 
 <style lang="scss" scoped>
-@import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css');
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css");
 // Assuming you have this, otherwise replace variables with hex codes
-@import '../../assets/styles/variables.scss'; 
+@import "../../assets/styles/variables.scss";
 
 // Variables for this component (fallback if global vars aren't present)
 $primary-color: #6a0dad;
@@ -124,9 +128,9 @@ $bg-light: #f8f9fa;
     .highlight {
       color: $primary-color;
       position: relative;
-      
+
       &::after {
-        content: '';
+        content: "";
         position: absolute;
         bottom: 5px;
         left: 0;
@@ -190,7 +194,7 @@ $bg-light: #f8f9fa;
       display: flex;
       align-items: flex-start;
       margin-bottom: 1.5rem;
-      
+
       .icon-box {
         background-color: rgba($primary-color, 0.1);
         color: $primary-color;
@@ -208,20 +212,20 @@ $bg-light: #f8f9fa;
       .list-text {
         display: flex;
         flex-direction: column;
-        
+
         strong {
           font-size: 1.1rem;
           color: $text-dark;
           margin-bottom: 0.2rem;
         }
-        
+
         span {
           color: $text-light;
           font-size: 0.95rem;
         }
       }
     }
-    
+
     // Center the list container on mobile if desired, but keep items flex-start
     @media (max-width: 992px) {
       display: inline-block;
@@ -297,7 +301,7 @@ $bg-light: #f8f9fa;
     transform: rotate(3deg);
     transition: transform 0.3s ease;
   }
-  
+
   &:hover .backdrop-shape {
     transform: rotate(5deg) scale(1.02);
   }
@@ -310,7 +314,7 @@ $bg-light: #f8f9fa;
     background: white;
     padding: 0.8rem 1.5rem;
     border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -331,8 +335,14 @@ $bg-light: #f8f9fa;
 
 // --- Animations ---
 @keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-15px); }
-  100% { transform: translateY(0px); }
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
 }
 </style>

@@ -5,7 +5,9 @@
       <div class="hero-content scroll-animate">
         <h1 class="hero-title">Connecting Journeys, Building Communities</h1>
         <p class="hero-subtitle">
-          RentCycle is more than just a rental marketplace. We are a community-driven platform dedicated to making mobility accessible, sustainable, and enjoyable for everyone.
+          RentCycle is more than just a rental marketplace. We are a
+          community-driven platform dedicated to making mobility accessible,
+          sustainable, and enjoyable for everyone.
         </p>
       </div>
     </section>
@@ -16,11 +18,19 @@
         <div class="mission-text scroll-animate">
           <h2>Our Mission</h2>
           <p>
-            Our goal is to revolutionize the way people think about vehicle ownership and travel. We empower local owners to safely and easily share their assets, providing renters with a convenient and affordable alternative to traditional rental services. By fostering a peer-to-peer network, we aim to reduce waste, support local economies, and create meaningful connections.
+            Our goal is to revolutionize the way people think about vehicle
+            ownership and travel. We empower local owners to safely and easily
+            share their assets, providing renters with a convenient and
+            affordable alternative to traditional rental services. By fostering
+            a peer-to-peer network, we aim to reduce waste, support local
+            economies, and create meaningful connections.
           </p>
         </div>
         <div class="mission-image scroll-animate">
-          <img src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=1200" alt="Happy car owner" />
+          <img
+            src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=1200"
+            alt="Happy car owner"
+          />
         </div>
       </div>
     </section>
@@ -31,44 +41,63 @@
     <section class="how-it-works-section">
       <h2 class="scroll-animate">How It Works</h2>
       <div class="steps-container">
-        
         <!-- Step 1 -->
         <div class="step-row">
-          <div class="step-image-wrapper scroll-animate" style="--delay: 0s;">
-            <img src="https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1200" alt="Discover vehicles" class="step-image"/>
+          <div class="step-image-wrapper scroll-animate" style="--delay: 0s">
+            <img
+              src="https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1200"
+              alt="Discover vehicles"
+              class="step-image"
+            />
           </div>
-          <div class="step-text-content scroll-animate" style="--delay: 0.1s;">
+          <div class="step-text-content scroll-animate" style="--delay: 0.1s">
             <div class="step-icon"><i class="bi bi-search"></i></div>
             <h3>1. Discover</h3>
-            <p>Browse a unique selection of cars and motorcycles shared by local hosts, from daily drivers to luxury sedans.</p>
+            <p>
+              Browse a unique selection of cars and motorcycles shared by local
+              hosts, from daily drivers to luxury sedans.
+            </p>
           </div>
         </div>
 
         <!-- Step 2 -->
         <div class="step-row reverse">
-          <div class="step-image-wrapper scroll-animate" style="--delay: 0s;">
+          <div class="step-image-wrapper scroll-animate" style="--delay: 0s">
             <!-- === UPDATED IMAGE HERE === -->
-            <img src="https://images.unsplash.com/photo-1502877338535-766e1452684a?q=80&w=1200" alt="Book a car" class="step-image"/>
+            <img
+              src="https://images.unsplash.com/photo-1502877338535-766e1452684a?q=80&w=1200"
+              alt="Book a car"
+              class="step-image"
+            />
           </div>
-          <div class="step-text-content scroll-animate" style="--delay: 0.1s;">
+          <div class="step-text-content scroll-animate" style="--delay: 0.1s">
             <div class="step-icon"><i class="bi bi-calendar-check"></i></div>
             <h3>2. Book</h3>
-            <p>Choose your dates, book your trip, and get verified—all through our secure platform.</p>
-          </div>
-        </div>
-        
-        <!-- Step 3 -->
-        <div class="step-row">
-          <div class="step-image-wrapper scroll-animate" style="--delay: 0s;">
-            <img src="https://images.unsplash.com/photo-1558981403-c5f9899a28bc?q=80&w=1200" alt="Drive a motorcycle" class="step-image"/>
-          </div>
-          <div class="step-text-content scroll-animate" style="--delay: 0.1s;">
-            <div class="step-icon"><i class="bi bi-key-fill"></i></div>
-            <h3>3. Drive</h3>
-            <p>Pick up your vehicle, unlock new experiences, and hit the open road with confidence.</p>
+            <p>
+              Choose your dates, book your trip, and get verified—all through
+              our secure platform.
+            </p>
           </div>
         </div>
 
+        <!-- Step 3 -->
+        <div class="step-row">
+          <div class="step-image-wrapper scroll-animate" style="--delay: 0s">
+            <img
+              src="https://images.unsplash.com/photo-1558981403-c5f9899a28bc?q=80&w=1200"
+              alt="Drive a motorcycle"
+              class="step-image"
+            />
+          </div>
+          <div class="step-text-content scroll-animate" style="--delay: 0.1s">
+            <div class="step-icon"><i class="bi bi-key-fill"></i></div>
+            <h3>3. Drive</h3>
+            <p>
+              Pick up your vehicle, unlock new experiences, and hit the open
+              road with confidence.
+            </p>
+          </div>
+        </div>
       </div>
     </section>
     <!-- ================================== -->
@@ -78,32 +107,49 @@
     <!-- Meet the Team Section -->
     <section class="team-section">
       <h2 class="scroll-animate">Meet the Team</h2>
-      <p class="team-intro scroll-animate">We are a passionate team of innovators, thinkers, and adventurers dedicated to building the future of mobility.</p>
+      <p class="team-intro scroll-animate">
+        We are a passionate team of innovators, thinkers, and adventurers
+        dedicated to building the future of mobility.
+      </p>
+
       <div class="team-grid">
-        <div class="team-member-card scroll-animate" style="--delay: 0s;">
-          <img src="https://images.unsplash.com/photo-1557862921-37829c790f19?q=80&w=300" alt="Team Member 1" class="team-member-photo" />
-          <h4 class="member-name">Alex Johnson</h4>
-          <p class="member-role">Co-Founder & CEO</p>
+        <div class="team-member-card scroll-animate" style="--delay: 0s">
+          <img
+            src="@/assets/images/images/Deniel John T. Jumao-as.jpg"
+            alt="Deniel John T. Jumao-as"
+            class="team-member-photo"
+          />
+          <h4 class="member-name">Deniel John T. Jumao-as</h4>
+          <p class="member-role">Backend Developer</p>
         </div>
-        <div class="team-member-card scroll-animate" style="--delay: 0.1s;">
-          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300" alt="Team Member 2" class="team-member-photo" />
-          <h4 class="member-name">Maria Garcia</h4>
-          <p class="member-role">Co-Founder & CTO</p>
+
+        <div class="team-member-card scroll-animate" style="--delay: 0.1s">
+          <img
+            src="@/assets/images/images/Christian Jade C. Malahos.jpg"
+            alt="Christian Jade C. Malahos"
+            class="team-member-photo"
+          />
+          <h4 class="member-name">Christian Jade C. Malahos</h4>
+          <p class="member-role">Project Manager</p>
         </div>
-        <div class="team-member-card scroll-animate" style="--delay: 0.2s;">
-          <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=300" alt="Team Member 3" class="team-member-photo" />
-          <h4 class="member-name">David Chen</h4>
-          <p class="member-role">Chief Operating Officer</p>
+
+        <div class="team-member-card scroll-animate" style="--delay: 0.2s">
+          <img
+            src="@/assets/images/images/Frenand Ross M. Gungob.jpg"
+            alt="Frenand Ross M. Gungob"
+            class="team-member-photo"
+          />
+          <h4 class="member-name">Frenand Ross M. Gungob</h4>
+          <p class="member-role">Frontend Developer</p>
         </div>
       </div>
     </section>
-
   </div>
 </template>
 
 <script>
 export default {
-  name: 'AboutView',
+  name: "AboutView",
   data() {
     return {
       observer: null,
@@ -117,17 +163,17 @@ export default {
     };
 
     this.observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
+      entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          entry.target.classList.add('is-visible');
+          entry.target.classList.add("is-visible");
           this.observer.unobserve(entry.target);
         }
       });
     }, options);
 
     this.$nextTick(() => {
-      const sections = this.$el.querySelectorAll('.scroll-animate');
-      sections.forEach(section => {
+      const sections = this.$el.querySelectorAll(".scroll-animate");
+      sections.forEach((section) => {
         this.observer.observe(section);
       });
     });
@@ -141,7 +187,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '@/assets/styles/variables.scss';
+@import "@/assets/styles/variables.scss";
 
 // --- ADDED: Keyframes for the background animation ---
 @keyframes kenburns-bg {
@@ -168,13 +214,15 @@ export default {
   color: white;
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1600');
+    background:
+      linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+      url("https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1600");
     background-size: cover;
     background-position: center;
     animation: kenburns-bg 20s ease-in-out infinite alternate;
@@ -298,7 +346,8 @@ section {
     grid-template-columns: 1fr;
     gap: 2rem;
     &.reverse {
-      .step-image-wrapper, .step-text-content {
+      .step-image-wrapper,
+      .step-text-content {
         order: initial; // Reset order on mobile
       }
     }
@@ -397,7 +446,9 @@ section {
   // Start hidden
   opacity: 0;
   transform: translateY(40px); // Start slightly lower
-  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  transition:
+    opacity 0.6s ease-out,
+    transform 0.6s ease-out;
   transition-delay: var(--delay, 0s); // Use CSS variable for delay
   will-change: opacity, transform;
 

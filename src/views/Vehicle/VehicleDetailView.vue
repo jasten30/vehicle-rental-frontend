@@ -24,17 +24,17 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex';
-import VehicleImageGallery from '@/components/vehicle/VehicleImageGallery.vue';
-import VehicleDetailsAndBooking from '@/components/vehicle/VehicleDetailsAndBooking.vue';
+import { mapActions } from "vuex";
+import VehicleImageGallery from "@/components/vehicle/VehicleImageGallery.vue";
+import VehicleDetailsAndBooking from "@/components/vehicle/VehicleDetailsAndBooking.vue";
 
 export default {
-  name: 'VehicleDetailView',
+  name: "VehicleDetailView",
   components: {
     VehicleImageGallery,
     VehicleDetailsAndBooking,
   },
-  props: ['id'],
+  props: ["id"],
   // Data has been simplified. No more booking-related state here.
   data() {
     return {
@@ -52,7 +52,7 @@ export default {
     },
   },
   methods: {
-    ...mapActions(['getVehicleById']),
+    ...mapActions(["getVehicleById"]),
     async fetchVehicle() {
       this.loading = true;
       this.errorMessage = null;
@@ -60,7 +60,7 @@ export default {
       try {
         this.vehicle = await this.getVehicleById(this.id);
       } catch (error) {
-        this.errorMessage = 'Failed to load vehicle details. Please try again.';
+        this.errorMessage = "Failed to load vehicle details. Please try again.";
       } finally {
         this.loading = false;
       }
@@ -70,27 +70,51 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import "@/assets/styles/variables.scss";
+
 .vehicle-detail-container {
-  padding: 1.5rem;
+  padding: 1rem; /* Reduced padding for mobile */
+  width: 100%;
+  box-sizing: border-box;
+
+  @media (min-width: 768px) {
+    padding: 2rem; /* Comfortable padding for tablet/desktop */
+  }
 }
-.loading-message, .error-message {
+
+.loading-message,
+.error-message {
   text-align: center;
-  padding: 2rem;
-  font-size: 1.1rem;
+  padding: 3rem 1rem;
+  font-size: 1rem;
   color: #718096;
+
+  @media (min-width: 768px) {
+    font-size: 1.1rem;
+  }
 }
+
 .error-message {
   color: #ef4444;
 }
+
 .vehicle-details-content {
   max-width: 1100px;
   margin: 0 auto;
+  width: 100%;
 }
+
 .card-body {
-  padding: 2rem;
+  padding: 1.5rem; /* Tighter padding on mobile */
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
+  background-color: white; /* Ensure visibility if card style is external */
+  border-radius: 8px; /* Standard border radius */
+
+  @media (min-width: 768px) {
+    padding: 2.5rem; /* Spacious padding on desktop */
+    gap: 2.5rem;
+  }
 }
 </style>
-
